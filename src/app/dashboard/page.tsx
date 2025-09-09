@@ -1,19 +1,17 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Card from '@/components/ui/Card';
 
 export default function Dashboard() {
   const router = useRouter();
-  const [email, setEmail] = useState<string | null>(null);
-
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       const user = data.user;
       if (!user) { router.replace('/login'); return; }
-      setEmail(user.email ?? null);
     });
   }, [router]);
 
@@ -24,33 +22,109 @@ export default function Dashboard() {
 
   return (
     <main className="min-h-screen p-6">
-      <div className="container max-w-5xl space-y-6">
-        <header className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold">Dashboard</h1>
-            <p className="text-sm muted">Logado como: <b className="not-italic text-[inherit]">{email ?? '...'}</b></p>
-          </div>
-          <button onClick={signOut} className="btn">Sair</button>
+      <div className="container max-w-6xl space-y-8">
+        <header className="space-y-2">
+          <h1 className="text-4xl font-bold text-gray-900">INÍCIO</h1>
+          <p className="text-slate-600 text-lg">Escolha um módulo para começar</p>
         </header>
 
-        <nav className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
-          <Link href="/sacados" className="card p-6 hover:opacity-90 transition-opacity">
-            <h2 className="font-semibold text-lg">Sacados</h2>
-            <p className="text-sm muted">Cadastro Sacados</p>
-          </Link>
+        <section className="space-y-4">
+          <h2 className="text-2xl font-semibold text-gray-800">Operacional</h2>
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <Link href="/sacados">
+              <Card hover className="h-full">
+                <div className="space-y-3">
+                  <h3 className="text-xl font-semibold text-slate-800">Sacados</h3>
+                  <p className="text-slate-600">Cadastro e gestão de sacados</p>
+                </div>
+              </Card>
+            </Link>
+            <Link href="/cedentes">
+              <Card hover className="h-full">
+                <div className="space-y-3">
+                  <h3 className="text-xl font-semibold text-slate-800">Cedentes</h3>
+                  <p className="text-slate-600">Cadastro e gestão de cedentes</p>
+                </div>
+              </Card>
+            </Link>
+          </div>
+        </section>
 
-          <Link href="/contas-pagar" className="card p-6 hover:opacity-90 transition-opacity">
-            <h2 className="font-semibold text-lg">Contas a Pagar</h2>
-            <p className="text-sm muted">Fluxo de caixa</p>
-          </Link>
+        <section className="space-y-4">
+          <h2 className="text-2xl font-semibold text-gray-800">Financeiro</h2>
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <Link href="/contas-pagar">
+              <Card hover className="h-full">
+                <div className="space-y-3">
+                  <h3 className="text-xl font-semibold text-slate-800">Fluxo de Caixa</h3>
+                  <p className="text-slate-600">Controle de receitas e despesas</p>
+                </div>
+              </Card>
+            </Link>
+            <Link href="/financeiro/faturamento">
+              <Card hover className="h-full">
+                <div className="space-y-3">
+                  <h3 className="text-xl font-semibold text-slate-800">Faturamento</h3>
+                  <p className="text-slate-600">Análise de receitas e lucros</p>
+                </div>
+              </Card>
+            </Link>
+            <Link href="/financeiro/top-receitas-despesas">
+              <Card hover className="h-full">
+                <div className="space-y-3">
+                  <h3 className="text-xl font-semibold text-slate-800">Top Receitas/Despesas</h3>
+                  <p className="text-slate-600">Ranking dos maiores lançamentos</p>
+                </div>
+              </Card>
+            </Link>
+            <Link href="/financeiro/calendario">
+              <Card hover className="h-full">
+                <div className="space-y-3">
+                  <h3 className="text-xl font-semibold text-slate-800">Calendário</h3>
+                  <p className="text-slate-600">Visualização mensal dos lançamentos</p>
+                </div>
+              </Card>
+            </Link>
+            <Link href="/financeiro/fluxo-caixa">
+              <Card hover className="h-full">
+                <div className="space-y-3">
+                  <h3 className="text-xl font-semibold text-slate-800">Fluxo de Caixa</h3>
+                  <p className="text-slate-600">Análise de entradas e saídas</p>
+                </div>
+              </Card>
+            </Link>
+            <Link href="/financeiro/a-receber">
+              <Card hover className="h-full">
+                <div className="space-y-3">
+                  <h3 className="text-xl font-semibold text-slate-800">A Receber</h3>
+                  <p className="text-slate-600">Gestão de receitas</p>
+                </div>
+              </Card>
+            </Link>
+            <Link href="/financeiro/a-pagar">
+              <Card hover className="h-full">
+                <div className="space-y-3">
+                  <h3 className="text-xl font-semibold text-slate-800">A Pagar</h3>
+                  <p className="text-slate-600">Gestão de despesas</p>
+                </div>
+              </Card>
+            </Link>
+          </div>
+        </section>
 
-          <Link href="/cedentes" className="card p-6 hover:opacity-90 transition-opacity">
-            <h2 className="font-semibold text-lg">Cedentes</h2>
-            <p className="text-sm muted">Cadastro de cedentes</p>
-          </Link>
-
-          {/* espaço reservado para novos atalhos */}
-        </nav>
+        <section className="space-y-4">
+          <h2 className="text-2xl font-semibold text-gray-800">Configurações</h2>
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <Link href="/settings">
+              <Card hover className="h-full">
+                <div className="space-y-3">
+                  <h3 className="text-xl font-semibold text-slate-800">Configurações</h3>
+                  <p className="text-slate-600">Configurações do sistema</p>
+                </div>
+              </Card>
+            </Link>
+          </div>
+        </section>
       </div>
     </main>
   );

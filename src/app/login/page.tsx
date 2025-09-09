@@ -3,6 +3,9 @@
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import Card from '@/components/ui/Card';
+import Button from '@/components/ui/Button';
+import Input from '@/components/ui/Input';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -36,60 +39,70 @@ export default function LoginPage() {
 
   return (
     <main className="min-h-screen flex items-center justify-center p-6">
-      <div className="w-full max-w-sm card p-6 space-y-4">
-        <h1 className="text-xl font-semibold text-center">
-          {mode === 'login' ? 'Entrar' : 'Criar conta'}
-        </h1>
+      <Card className="w-full max-w-md p-8">
+        <div className="space-y-6">
+          <div className="text-center">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              Reversa
+            </h1>
+            <h2 className="text-xl font-semibold text-slate-800">
+              {mode === 'login' ? 'Entrar' : 'Criar conta'}
+            </h2>
+            <p className="text-slate-600 text-sm">
+              {mode === 'login' ? 'Acesse sua conta' : 'Crie uma nova conta'}
+            </p>
+          </div>
 
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <div className="space-y-1">
-            <label className="block text-sm muted">E-mail</label>
-            <input
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <Input
+              label="E-mail"
               type="email"
               required
               value={email}
               onChange={e => setEmail(e.target.value)}
-              className="input"
               placeholder="voce@empresa.com"
             />
-          </div>
 
-          <div className="space-y-1">
-            <label className="block text-sm muted">Senha</label>
-            <input
+            <Input
+              label="Senha"
               type="password"
               required
               value={password}
               onChange={e => setPassword(e.target.value)}
-              className="input"
               placeholder="********"
             />
+
+            {error && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-xl">
+                <p className="text-sm text-red-600">{error}</p>
+              </div>
+            )}
+
+            <Button
+              type="submit"
+              variant="primary"
+              size="lg"
+              loading={pending}
+              disabled={pending}
+              className="w-full"
+            >
+              {mode === 'login' ? 'Entrar' : 'Criar conta'}
+            </Button>
+          </form>
+
+          <div className="text-center">
+            <Button
+              variant="outline"
+              onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
+              className="w-full"
+            >
+              {mode === 'login'
+                ? 'Não tem conta? Criar conta'
+                : 'Já tem conta? Entrar'}
+            </Button>
           </div>
-
-          {error && (
-            <p className="text-sm text-red-600">{error}</p>
-          )}
-
-          <button
-            type="submit"
-            disabled={pending}
-            className="btn btn-primary w-full"
-          >
-            {pending
-              ? (mode === 'login' ? 'Entrando...' : 'Criando...')
-              : (mode === 'login' ? 'Entrar' : 'Criar conta')}
-          </button>
-        </form>
-
-        <button
-          onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
-          className="btn btn-ghost w-full h-9 text-sm"
-        >
-          {mode === 'login'
-            ? 'Não tem conta? Criar conta'
-            : 'Já tem conta? Entrar'}
-        </button>
-      </div>
+        </div>
+      </Card>
     </main>
   );
 }
