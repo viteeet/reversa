@@ -32,7 +32,7 @@ export default function FluxoPage() {
   const [novo, setNovo] = useState({ conta_id: '', categoria_id: '', natureza: 'despesa' as 'receita'|'despesa', valor: '', data: '', descricao: '' });
 
   useEffect(() => { loadLookups(); }, []);
-  useEffect(() => { load(); }, [periodo, filtros]);
+  useEffect(() => { load(); }, [periodo, filtros.conta, filtros.categoria, filtros.status, filtros.meio, filtros.elemento]);
 
   async function loadLookups() {
     const [c1, c2, c3, c4] = await Promise.all([
@@ -41,10 +41,10 @@ export default function FluxoPage() {
       supabase.from('meios_pagamento').select('id, nome').order('nome', { ascending: true }),
       supabase.from('elementos').select('id, nome').order('nome', { ascending: true }),
     ]);
-    setContas((c1.data ?? []) as any);
-    setCats((c2.data ?? []) as any);
-    setMeios((c3.data ?? []) as any);
-    setEls((c4.data ?? []) as any);
+    setContas((c1.data ?? []) as Conta[]);
+    setCats((c2.data ?? []) as Categoria[]);
+    setMeios((c3.data ?? []) as Meio[]);
+    setEls((c4.data ?? []) as Elemento[]);
   }
 
   async function load() {
@@ -55,9 +55,9 @@ export default function FluxoPage() {
     if (filtros.status) q = q.eq('status', filtros.status);
     if (filtros.meio) q = q.eq('meio_pagamento_id', filtros.meio);
     if (filtros.elemento) q = q.eq('elemento_id', filtros.elemento);
-    const { data, error } = await q;
+    const { data, error } = await q.returns<Lanc[]>();
     if (error) setErr(error.message);
-    setItems((data as any) ?? []);
+    setItems(data ?? []);
     setPending(false);
   }
 

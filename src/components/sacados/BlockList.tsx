@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { formatCpfCnpj, isValidEmail } from "@/lib/format";
+import { formatCpfCnpj } from "@/lib/format";
 
 export type Column = {
   key: string;
@@ -15,7 +15,7 @@ export type BlockListProps = {
   title: string;
   addLabel?: string;
   columns: Column[];
-  rows: any[];
+  rows: Array<Record<string, unknown>>;
   onAdd: (payload: Record<string, string>) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   idKey?: string;
@@ -52,9 +52,9 @@ export default function BlockList(props: BlockListProps) {
     return rows.filter((row) => {
       return keys.some((k) => {
         const col = columns.find(c => c.key === k);
-        const raw = String(row[k] ?? "").toLowerCase();
+        const raw = String((row as Record<string, unknown>)[k] ?? "").toLowerCase();
         if (col && col.type === 'select' && col.options && col.options.length > 0) {
-          const found = col.options.find(o => o.value === row[k]);
+          const found = col.options.find(o => o.value === (row as Record<string, unknown>)[k]);
           const label = (found?.label ?? '').toLowerCase();
           return raw.includes(t) || label.includes(t);
         }

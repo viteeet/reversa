@@ -26,8 +26,9 @@ export default function LoginPage() {
         if (error) throw error;
       }
       router.push('/dashboard'); // pós-login
-    } catch (err: any) {
-      setError(err.message ?? 'Erro inesperado');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Erro inesperado';
+      setError(msg);
     } finally {
       setPending(false);
     }

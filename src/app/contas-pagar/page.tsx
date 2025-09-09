@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
 
 type Lancamento = {
   id: string;
@@ -12,7 +11,7 @@ type Lancamento = {
 };
 
 export default function ContasPagarPage() {
-  const [items, setItems] = useState<Lancamento[]>([]);
+  const [items] = useState<Lancamento[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

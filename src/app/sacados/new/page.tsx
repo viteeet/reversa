@@ -56,7 +56,7 @@ export default function NewSacadoPage() {
               <label className="block text-sm muted">{label}</label>
               <input
                 className="input"
-                value={k === 'cnpj' ? formatCpfCnpj((form as any)[k] ?? '') : (form as any)[k] ?? ''}
+                value={k === 'cnpj' ? formatCpfCnpj((form as Record<string, string>)[k] ?? '') : (form as Record<string, string>)[k] ?? ''}
                 onChange={e => setForm({ ...form, [k]: k === 'cnpj' ? formatCpfCnpj(e.target.value) : e.target.value })}
                 required={k === 'cnpj' || k === 'razao_social'}
               />
