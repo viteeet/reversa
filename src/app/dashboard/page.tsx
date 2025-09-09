@@ -49,10 +49,7 @@ export default function Dashboard() {
             <p className="text-sm muted">Cadastro de cedentes</p>
           </Link>
 
-          {/* futuramente: clientes, títulos, tarefas, contas */}
-          <div className="card p-6 opacity-60">
-            <h2 className="font-semibold text-lg">Em breve…</h2>
-          </div>
+          {/* espaço reservado para novos atalhos */}
         </nav>
       </div>
     </main>
