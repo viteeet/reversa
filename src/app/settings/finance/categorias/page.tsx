@@ -13,9 +13,13 @@ export default function CategoriasPage() {
   useEffect(() => { load(); }, []);
 
   async function load() {
-    const { data, error } = await supabase.from('categorias').select('id, nome, natureza, cor, ordem').order('ordem').order('nome');
+    const { data, error } = await supabase
+      .from('categorias')
+      .select('id, nome, natureza, cor, ordem')
+      .order('ordem')
+      .order('nome');
     if (error) setErr(error.message);
-    setItems((data as any) ?? []);
+    setItems((data ?? []) as Cat[]);
   }
 
   async function add() {
@@ -46,7 +50,7 @@ export default function CategoriasPage() {
 
         <div className="card p-4 grid gap-3 sm:grid-cols-4 items-end">
           <input className="input" placeholder="Nome" value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} />
-          <select className="select" value={form.natureza} onChange={(e) => setForm({ ...form, natureza: e.target.value as any })}>
+          <select className="select" value={form.natureza} onChange={(e) => setForm({ ...form, natureza: e.target.value as 'despesa'|'receita' })}>
             <option value="despesa">Despesa</option>
             <option value="receita">Receita</option>
           </select>

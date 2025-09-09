@@ -13,9 +13,12 @@ export default function ContasPage() {
   useEffect(() => { load(); }, []);
 
   async function load() {
-    const { data, error } = await supabase.from('contas_financeiras').select('id, nome, tipo, saldo_inicial').order('nome');
+    const { data, error } = await supabase
+      .from('contas_financeiras')
+      .select('id, nome, tipo, saldo_inicial')
+      .order('nome');
     if (error) setErr(error.message);
-    setItems((data as any) ?? []);
+    setItems((data ?? []) as Conta[]);
   }
 
   async function add() {

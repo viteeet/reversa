@@ -12,9 +12,12 @@ export default function ElementosPage() {
 
   useEffect(() => { load(); }, []);
   async function load() {
-    const { data, error } = await supabase.from('elementos').select('id, nome, descricao').order('nome');
+    const { data, error } = await supabase
+      .from('elementos')
+      .select('id, nome, descricao')
+      .order('nome');
     if (error) setErr(error.message);
-    setItems((data as any) ?? []);
+    setItems((data ?? []) as Elem[]);
   }
   async function add() {
     const { data: { user } } = await supabase.auth.getUser();

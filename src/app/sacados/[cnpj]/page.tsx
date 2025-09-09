@@ -289,7 +289,7 @@ export default function FichaSacadoPage() {
           <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-2xl font-semibold" style={{ color: 'var(--sand)' }}>Ficha do Sacado</h1>
             {sacado && (
-              <StatusBadge statusId={(sacado as any).status_id} />
+              <StatusBadge statusId={sacado.status_id ?? null} />
             )}
             <div className="flex items-center gap-2">
               <label className="text-sm muted">Status</label>
@@ -316,38 +316,38 @@ export default function FichaSacadoPage() {
                 <div>
                   <label className="block text-sm muted">Razão social*</label>
                   <input className="input" value={sacado.razao_social}
-                    onChange={(e) => setSacado({ ...(sacado as any), razao_social: e.target.value })} required />
+                    onChange={(e) => setSacado({ ...sacado, razao_social: e.target.value })} required />
                 </div>
                 <div>
                   <label className="block text-sm muted">Nome fantasia</label>
                   <input className="input" value={sacado.nome_fantasia ?? ''}
-                    onChange={(e) => setSacado({ ...(sacado as any), nome_fantasia: e.target.value })} />
+                    onChange={(e) => setSacado({ ...sacado, nome_fantasia: e.target.value })} />
                 </div>
                 <div>
                   <label className="block text-sm muted">Grupo</label>
                   <input className="input" value={sacado.grupo ?? ''}
-                    onChange={(e) => setSacado({ ...(sacado as any), grupo: e.target.value })} />
+                    onChange={(e) => setSacado({ ...sacado, grupo: e.target.value })} />
                 </div>
                 <div>
                   <label className="block text-sm muted">Endereço (Receita)</label>
                   <input className="input" value={sacado.endereco_receita ?? ''}
-                    onChange={(e) => setSacado({ ...(sacado as any), endereco_receita: e.target.value })} />
+                    onChange={(e) => setSacado({ ...sacado, endereco_receita: e.target.value })} />
                 </div>
                 <div>
                   <label className="block text-sm muted">Telefone (Receita)</label>
                   <input className="input" value={sacado.telefone_receita ?? ''}
-                    onChange={(e) => setSacado({ ...(sacado as any), telefone_receita: e.target.value })} />
+                    onChange={(e) => setSacado({ ...sacado, telefone_receita: e.target.value })} />
                 </div>
                 <div>
                   <label className="block text-sm muted">E-mail (Receita)</label>
                   <input type="email" className="input" value={sacado.email_receita ?? ''}
-                    onChange={(e) => setSacado({ ...(sacado as any), email_receita: e.target.value })} />
+                    onChange={(e) => setSacado({ ...sacado, email_receita: e.target.value })} />
                 </div>
               </div>
               <div>
                 <label className="block text-sm muted">Observações</label>
                 <textarea className="textarea" value={sacado.observacoes ?? ''}
-                  onChange={(e) => setSacado({ ...(sacado as any), observacoes: e.target.value })} />
+                  onChange={(e) => setSacado({ ...sacado, observacoes: e.target.value })} />
               </div>
               {err && <p className="text-sm text-red-600">{err}</p>}
               <div className="flex items-center gap-2">

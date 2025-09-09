@@ -12,9 +12,12 @@ export default function MeiosPage() {
 
   useEffect(() => { load(); }, []);
   async function load() {
-    const { data, error } = await supabase.from('meios_pagamento').select('id, nome').order('nome');
+    const { data, error } = await supabase
+      .from('meios_pagamento')
+      .select('id, nome')
+      .order('nome');
     if (error) setErr(error.message);
-    setItems((data as any) ?? []);
+    setItems((data ?? []) as Meio[]);
   }
   async function add() {
     const { data: { user } } = await supabase.auth.getUser();
