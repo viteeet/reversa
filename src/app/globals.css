@@ -1,8 +1,20 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #ffffff; /* light */
+  --foreground: #0f172a;
+  --card: #e4ebf0;
+  --border: #e4ebf0;
+  --muted: #e4ebf0;
+  --muted-foreground: #475569; /* mais contraste */
+  --surface-alt: #bdd1de;
+  --accent: #8ab3cf;
+  --sand: #cdb89a; /* areia mais escuro */
+  --ring: #4180ab;
+  --primary: #4180ab;
+  --primary-hover: #37739c;
+  --primary-foreground: #ffffff;
+  --input: #ffffff;
 }
 
 @theme inline {
@@ -14,13 +26,122 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    /* Forçar visual claro também no modo escuro do SO */
+    --background: #ffffff;
+    --foreground: #0f172a;
+    --card: #eaf2f7;
+    --border: #e7eef5;
+    --muted: #eaf2f7;
+    --muted-foreground: #475569;
+    --surface-alt: #dbe7f0;
+    --accent: #8ab3cf;
+    --ring: #4180ab;
+    --primary: #4180ab;
+    --primary-hover: #37739c;
+    --primary-foreground: #ffffff;
+    --input: #ffffff;
   }
 }
 
+/* Reset moderno e tipografia */
+*, *::before, *::after { box-sizing: border-box; }
+html, body, #__next { height: 100%; }
 body {
+  margin: 0;
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Noto Sans, Ubuntu, Cantarell, Helvetica Neue, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
+
+img, video, canvas, svg { display: block; max-width: 100%; }
+input, button, textarea, select { font: inherit; color: inherit; }
+
+/* Container utilitário */
+.container {
+  width: 100%;
+  max-width: 72rem; /* 1152px */
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+/* Cartões */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+
+/* Botões */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 2.5rem;
+  padding: 0 0.875rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+  transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease, box-shadow 150ms ease, opacity 150ms ease;
+}
+.btn:hover { background: var(--surface-alt, var(--muted)); }
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 30%, transparent); }
+
+.btn-primary {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-color: color-mix(in srgb, var(--primary) 70%, var(--border));
+}
+.btn-primary:hover { background: var(--primary-hover, var(--primary)); }
+
+.btn-outline {
+  background: transparent;
+}
+
+.btn-ghost {
+  border-color: transparent;
+  background: transparent;
+}
+.btn-ghost:hover { background: var(--muted); }
+
+/* Inputs */
+.input, .textarea, .select {
+  width: 100%;
+  border: 1px solid var(--border);
+  background: var(--input);
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  color: #0f172a; /* texto escuro para contraste em input branco */
+}
+.input:focus, .textarea:focus, .select:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 18%, transparent);
+}
+.textarea { min-height: 6rem; }
+
+/* Tabela */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+.table thead tr {
+  background: var(--muted);
+}
+.table th, .table td {
+  text-align: left;
+  padding: 0.625rem 0.5rem;
+}
+.table tbody tr { border-top: 1px solid var(--border); }
+.table tbody tr:hover { background: color-mix(in srgb, var(--muted) 60%, transparent); }
+
+/* Textos utilitários */
+.muted { color: var(--muted-foreground); }
