@@ -192,7 +192,7 @@ export default function FichaSacadoPage() {
       .update({ status_id: toId })
       .eq('cnpj', cnpjParam);
     if (error) { alert(error.message); return; }
-    setSacado({ ...(sacado as any), status_id: toId } as Sacado);
+    setSacado(prev => prev ? { ...prev, status_id: toId } : prev);
     // registra histórico
     const { error: hErr } = await supabase.from('sacado_status_history').insert({
       cnpj: cnpjParam,
