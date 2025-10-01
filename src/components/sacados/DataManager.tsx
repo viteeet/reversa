@@ -70,12 +70,17 @@ export default function DataManager({
   const handleSave = async () => {
     setLoading(true);
     try {
-      const dataToSave = {
+      const dataToSave: any = {
         ...form,
         sacado_cnpj: cnpj,
         origem: 'manual',
         ativo: true
       };
+
+      // Remove formatação de CPF antes de salvar
+      if (dataToSave.cpf) {
+        dataToSave.cpf = dataToSave.cpf.replace(/\D+/g, '');
+      }
 
       if (editingItem?.id) {
         // Update

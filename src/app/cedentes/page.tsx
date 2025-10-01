@@ -62,7 +62,7 @@ export default function CedentesPage() {
       user_id: user.id,
       nome: form.nome.trim(),
       razao_social: form.razao_social || null,
-      cnpj: form.cnpj ? formatCpfCnpj(form.cnpj) : null,
+      cnpj: form.cnpj ? form.cnpj.replace(/\D+/g, '') : null,
       telefone: form.telefone || null,
       email: form.email || null,
       endereco: form.endereco || null,

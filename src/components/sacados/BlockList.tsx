@@ -73,7 +73,14 @@ export default function BlockList(props: BlockListProps) {
         }
       }
       const payload: Record<string, string> = {};
-      columns.forEach((c) => { payload[c.key] = (form[c.key] ?? "").trim(); });
+      columns.forEach((c) => { 
+        let value = (form[c.key] ?? "").trim();
+        // Remove formatação de CPF/CNPJ antes de salvar
+        if ((c.type === 'cpf' || c.type === 'cnpj') && value) {
+          value = value.replace(/\D+/g, '');
+        }
+        payload[c.key] = value;
+      });
       await onAdd(payload);
       // reset
       const reset: Record<string, string> = {};

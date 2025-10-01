@@ -69,7 +69,7 @@ export default function SacadosPage() {
     if (!user) { setErr('Não autenticado'); setPending(false); return; }
     const { error } = await supabase.from('sacados').insert({
       user_id: user.id,
-      cnpj: form.cnpj ? formatCpfCnpj(form.cnpj) : '',
+      cnpj: form.cnpj ? form.cnpj.replace(/\D+/g, '') : '',
       razao_social: form.razao_social.trim(),
       nome_fantasia: form.nome.trim(),
       telefone_receita: form.telefone || null,
