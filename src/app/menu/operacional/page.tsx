@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Card from '@/components/ui/Card';
+import RelatoriosExport from '@/components/relatorios/RelatoriosExport';
 
 export default function MenuOperacionalPage() {
   const router = useRouter();
@@ -76,35 +77,9 @@ export default function MenuOperacionalPage() {
           </Link>
         </div>
 
-        {/* Funcionalidades Futuras */}
-        <Card>
-          <div className="p-6">
-            <h2 className="text-lg font-semibold text-[#0369a1] mb-4">Funcionalidades em Desenvolvimento</h2>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <div className="p-4 rounded-lg bg-[#f1f5f9] opacity-60">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="text-2xl">📋</div>
-                  <h3 className="font-medium text-[#64748b]">Contratos</h3>
-                </div>
-                <p className="text-sm text-[#64748b]">Gestão de contratos e documentos</p>
-              </div>
-              <div className="p-4 rounded-lg bg-[#f1f5f9] opacity-60">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="text-2xl">📞</div>
-                  <h3 className="font-medium text-[#64748b]">Atendimento</h3>
-                </div>
-                <p className="text-sm text-[#64748b]">Central de atendimento</p>
-              </div>
-              <div className="p-4 rounded-lg bg-[#f1f5f9] opacity-60">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="text-2xl">📊</div>
-                  <h3 className="font-medium text-[#64748b]">Relatórios</h3>
-                </div>
-                <p className="text-sm text-[#64748b]">Relatórios operacionais</p>
-              </div>
-            </div>
-          </div>
-        </Card>
+        {/* Relatórios de Atividades */}
+        <RelatoriosExport />
+
       </div>
     </main>
   );

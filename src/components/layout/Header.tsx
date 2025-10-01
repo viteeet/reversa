@@ -35,64 +35,36 @@ export default function Header() {
           REVERSA
         </Link>
 
-        {/* Menu Hambúrguer */}
-        {(!loading && email) ? (
-          <div className="flex items-center gap-4">
-            {/* Informações do usuário */}
-            <div className="hidden md:flex items-center gap-2">
-              <span className="text-sm text-white">Logado como:</span>
-              <span className="text-sm font-semibold text-white">{email}</span>
-            </div>
-
-            {/* Botão Sair */}
-            <button 
-              onClick={signOut}
-              className="px-3 py-2 text-sm font-medium rounded-lg transition-colors shadow-sm border"
-              style={{
-                backgroundColor: '#ffffff',
-                color: '#1e293b',
-                borderColor: '#cbd5e1',
-                fontWeight: '600'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#f1f5f9';
-                e.currentTarget.style.color = '#0f172a';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#ffffff';
-                e.currentTarget.style.color = '#1e293b';
-              }}
-            >
-              Sair
-            </button>
-
-            {/* Botão Menu Hambúrguer */}
-            <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="p-2 rounded-lg border border-white/20 hover:bg-white/10 transition-colors"
-            >
-              <div className="w-6 h-6 flex flex-col justify-center items-center gap-1">
-                <div 
-                  className={`w-5 h-0.5 bg-white transition-all duration-300 ${
-                    isMenuOpen ? 'rotate-45 translate-y-1.5' : ''
-                  }`}
-                />
-                <div 
-                  className={`w-5 h-0.5 bg-white transition-all duration-300 ${
-                    isMenuOpen ? 'opacity-0' : ''
-                  }`}
-                />
-                <div 
-                  className={`w-5 h-0.5 bg-white transition-all duration-300 ${
-                    isMenuOpen ? '-rotate-45 -translate-y-1.5' : ''
-                  }`}
-                />
-              </div>
-            </button>
-          </div>
-        ) : (
-          <div />
-        )}
+               {/* Menu Hambúrguer */}
+               {(!loading && email) ? (
+                 <div className="flex items-center">
+                   {/* Botão Menu Hambúrguer */}
+                   <button
+                     onClick={() => setIsMenuOpen(!isMenuOpen)}
+                     className="p-2 rounded-lg border border-white/20 hover:bg-white/10 transition-colors"
+                   >
+                     <div className="w-6 h-6 flex flex-col justify-center items-center gap-1">
+                       <div
+                         className={`w-5 h-0.5 bg-white transition-all duration-300 ${
+                           isMenuOpen ? 'rotate-45 translate-y-1.5' : ''
+                         }`}
+                       />
+                       <div
+                         className={`w-5 h-0.5 bg-white transition-all duration-300 ${
+                           isMenuOpen ? 'opacity-0' : ''
+                         }`}
+                       />
+                       <div
+                         className={`w-5 h-0.5 bg-white transition-all duration-300 ${
+                           isMenuOpen ? '-rotate-45 -translate-y-1.5' : ''
+                         }`}
+                       />
+                     </div>
+                   </button>
+                 </div>
+               ) : (
+                 <div />
+               )}
 
         {/* Menu Dropdown */}
         {isMenuOpen && (
@@ -141,12 +113,34 @@ export default function Header() {
                 </div>
               </Link>
 
-              <div className="border-t border-gray-200 my-2" />
-              
-              <div className="px-3 py-2">
-                <div className="text-xs text-gray-500 font-medium">Logado como:</div>
-                <div className="text-sm text-gray-700">{email}</div>
-              </div>
+                     <div className="border-t border-gray-200 my-2" />
+
+                     <div className="px-3 py-2">
+                       <div className="text-xs text-gray-500 font-medium">Logado como:</div>
+                       <div className="text-sm text-gray-700 mb-3">{email}</div>
+                       
+                       {/* Botão Sair */}
+                       <button
+                         onClick={signOut}
+                         className="w-full px-3 py-2 text-sm font-medium rounded-lg transition-colors shadow-sm border"
+                         style={{
+                           backgroundColor: '#ef4444',
+                           color: '#ffffff',
+                           borderColor: '#dc2626',
+                           fontWeight: '600'
+                         }}
+                         onMouseEnter={(e) => {
+                           e.currentTarget.style.backgroundColor = '#dc2626';
+                           e.currentTarget.style.borderColor = '#b91c1c';
+                         }}
+                         onMouseLeave={(e) => {
+                           e.currentTarget.style.backgroundColor = '#ef4444';
+                           e.currentTarget.style.borderColor = '#dc2626';
+                         }}
+                       >
+                         Sair
+                       </button>
+                     </div>
             </div>
           </div>
         )}

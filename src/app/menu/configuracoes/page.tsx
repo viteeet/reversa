@@ -95,34 +95,13 @@ export default function MenuConfiguracoesPage() {
               </div>
             </Card>
           </Link>
-
-          {/* Backup e Segurança */}
-          <div className="group">
-            <Card className="h-full opacity-60">
-              <div className="p-6">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="text-3xl">🔒</div>
-                  <div>
-                    <h2 className="text-xl font-bold text-[#64748b]">Backup e Segurança</h2>
-                    <p className="text-[#64748b] text-sm">Em desenvolvimento</p>
-                  </div>
-                </div>
-                <p className="text-[#64748b] mb-4">
-                  Backup de dados, logs de auditoria e configurações de segurança.
-                </p>
-                <div className="text-[#64748b] font-medium">
-                  Em breve
-                </div>
-              </div>
-            </Card>
-          </div>
         </div>
 
         {/* Submenus Financeiros */}
         <Card>
           <div className="p-6">
             <h2 className="text-lg font-semibold text-[#0369a1] mb-4">Configurações Financeiras Detalhadas</h2>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <Link href="/settings/finance/categorias" className="group">
                 <div className="p-4 rounded-lg border border-[#cbd5e1] hover:border-[#0369a1] hover:bg-[#f0f7ff] transition-all">
                   <div className="flex items-center gap-3 mb-2">
@@ -148,15 +127,6 @@ export default function MenuConfiguracoesPage() {
                     <h3 className="font-medium text-[#1e293b] group-hover:text-[#0369a1]">Meios</h3>
                   </div>
                   <p className="text-sm text-[#64748b]">Meios de pagamento</p>
-                </div>
-              </Link>
-              <Link href="/settings/finance/recorrencias" className="group">
-                <div className="p-4 rounded-lg border border-[#cbd5e1] hover:border-[#0369a1] hover:bg-[#f0f7ff] transition-all">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="text-2xl">🔄</div>
-                    <h3 className="font-medium text-[#1e293b] group-hover:text-[#0369a1]">Recorrências</h3>
-                  </div>
-                  <p className="text-sm text-[#64748b]">Configuração de recorrências</p>
                 </div>
               </Link>
             </div>
