@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
+import AtividadesManager from '@/components/atividades/AtividadesManager';
 
 type Sacado = {
   cnpj: string;
@@ -27,6 +28,7 @@ export default function SacadoDetailPage() {
   
   const [sacado, setSacado] = useState<Sacado | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'info' | 'atividades'>('info');
 
   useEffect(() => {
     loadData();
@@ -89,47 +91,83 @@ export default function SacadoDetailPage() {
           </Button>
         </header>
 
+        {/* Abas */}
         <Card>
-          <div className="space-y-4">
-            <h2 className="text-xl font-semibold text-slate-800">Informações Básicas</h2>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <div>
-                <label className="text-sm font-medium text-slate-700">Situação</label>
-                <div className="mt-1">
-                  {sacado.situacao && (
-                    <Badge variant={sacado.situacao === 'ATIVA' ? 'success' : 'error'} size="sm">
-                      {sacado.situacao}
-                    </Badge>
-                  )}
+          <div className="border-b border-[#cbd5e1]">
+            <nav className="flex space-x-8">
+              <button
+                onClick={() => setActiveTab('info')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  activeTab === 'info'
+                    ? 'border-[#0369a1] text-[#0369a1]'
+                    : 'border-transparent text-[#64748b] hover:text-[#1e293b] hover:border-[#cbd5e1]'
+                }`}
+              >
+                📋 Informações
+              </button>
+              <button
+                onClick={() => setActiveTab('atividades')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  activeTab === 'atividades'
+                    ? 'border-[#0369a1] text-[#0369a1]'
+                    : 'border-transparent text-[#64748b] hover:text-[#1e293b] hover:border-[#cbd5e1]'
+                }`}
+              >
+                📞 Atividades
+              </button>
+            </nav>
+          </div>
+
+          <div className="p-6">
+            {activeTab === 'info' ? (
+              <div className="space-y-4">
+                <h2 className="text-xl font-semibold text-[#0369a1]">Informações Básicas</h2>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  <div>
+                    <label className="text-sm font-medium text-[#64748b]">Situação</label>
+                    <div className="mt-1">
+                      {sacado.situacao && (
+                        <Badge variant={sacado.situacao === 'ATIVA' ? 'success' : 'error'} size="sm">
+                          {sacado.situacao}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-[#64748b]">Porte</label>
+                    <p className="text-[#1e293b]">{sacado.porte || '—'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-[#64748b]">Natureza Jurídica</label>
+                    <p className="text-[#1e293b]">{sacado.natureza_juridica || '—'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-[#64748b]">Data de Abertura</label>
+                    <p className="text-[#1e293b]">{sacado.data_abertura || '—'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-[#64748b]">Capital Social</label>
+                    <p className="text-[#1e293b]">
+                      {sacado.capital_social ? sacado.capital_social.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '—'}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-[#64748b]">Simples Nacional</label>
+                    <p className="text-[#1e293b]">{sacado.simples_nacional ? 'Sim' : 'Não'}</p>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-[#64748b]">Atividade Principal</label>
+                  <p className="text-[#1e293b]">{sacado.atividade_principal_descricao || '—'}</p>
                 </div>
               </div>
-              <div>
-                <label className="text-sm font-medium text-slate-700">Porte</label>
-                <p className="text-slate-600">{sacado.porte || '—'}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-slate-700">Natureza Jurídica</label>
-                <p className="text-slate-600">{sacado.natureza_juridica || '—'}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-slate-700">Data de Abertura</label>
-                <p className="text-slate-600">{sacado.data_abertura || '—'}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-slate-700">Capital Social</label>
-                <p className="text-slate-600">
-                  {sacado.capital_social ? sacado.capital_social.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '—'}
-                </p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-slate-700">Simples Nacional</label>
-                <p className="text-slate-600">{sacado.simples_nacional ? 'Sim' : 'Não'}</p>
-              </div>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-slate-700">Atividade Principal</label>
-              <p className="text-slate-600">{sacado.atividade_principal_descricao || '—'}</p>
-            </div>
+            ) : (
+              <AtividadesManager 
+                tipo="sacado" 
+                id={cnpj} 
+                nome={sacado.nome_fantasia || sacado.razao_social} 
+              />
+            )}
           </div>
         </Card>
       </div>

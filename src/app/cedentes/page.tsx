@@ -279,6 +279,11 @@ export default function CedentesPage() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex gap-2">
+                          <Link href={`/cedentes/${c.id}`}>
+                            <Button variant="outline" size="sm">
+                              Ver
+                            </Button>
+                          </Link>
                           <Link href={`/cedentes/${c.id}/editar`}>
                             <Button variant="secondary" size="sm">
                               Editar

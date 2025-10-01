@@ -201,6 +201,18 @@ input, button, textarea, select { font: inherit; color: inherit; }
   background: linear-gradient(135deg, #0369a1 0%, #075985 50%, #0c4a6e 100%);
 }
 
+/* Animação do menu dropdown */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* -------- Estatísticas / Badges (estilo da imagem) -------- */
 .stat {
   display: flex;
