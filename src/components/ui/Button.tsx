@@ -13,13 +13,13 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     const baseClasses = 'inline-flex items-center justify-center font-medium rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
     
     const variants = {
-      primary: 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500 border border-blue-600',
-      secondary: 'bg-gray-100 text-gray-700 hover:bg-gray-200 focus:ring-gray-500 border border-gray-300',
-      success: 'bg-green-600 text-white hover:bg-green-700 focus:ring-green-500 border border-green-600',
-      warning: 'bg-yellow-500 text-white hover:bg-yellow-600 focus:ring-yellow-500 border border-yellow-500',
-      error: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 border border-red-600',
-      neutral: 'bg-gray-600 text-white hover:bg-gray-700 focus:ring-gray-500 border border-gray-600',
-      outline: 'border-2 border-gray-300 text-gray-700 hover:border-gray-400 hover:bg-gray-50 focus:ring-gray-500 bg-white',
+      primary: 'bg-[#0369a1] text-white hover:bg-[#075985] focus:ring-[#0369a1] border border-[#0369a1]',
+      secondary: 'bg-[#f1f5f9] text-[#1e293b] hover:bg-[#e2e8f0] focus:ring-[#64748b] border border-[#cbd5e1]',
+      success: 'bg-[#10b981] text-white hover:bg-[#059669] focus:ring-[#10b981] border border-[#10b981]',
+      warning: 'bg-[#f59e0b] text-white hover:bg-[#d97706] focus:ring-[#f59e0b] border border-[#f59e0b]',
+      error: 'bg-[#ef4444] text-white hover:bg-[#dc2626] focus:ring-[#ef4444] border border-[#ef4444]',
+      neutral: 'bg-[#64748b] text-white hover:bg-[#475569] focus:ring-[#64748b] border border-[#64748b]',
+      outline: 'border-2 border-[#0369a1] text-[#0369a1] hover:bg-[#f0f7ff] hover:border-[#075985] focus:ring-[#0369a1] bg-white',
     };
     
     const sizes = {

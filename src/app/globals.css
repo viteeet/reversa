@@ -1,30 +1,54 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff; /* light */
-  --foreground: #0f172a;
-  --card: #e4ebf0;
-  --border: #e4ebf0;
-  --muted: #e4ebf0;
-  --muted-foreground: #475569; /* mais contraste */
-  --surface-alt: #bdd1de;
-  --accent: #8ab3cf;
-  --sand: #cdb89a; /* areia mais escuro */
-  --ring: #4180ab;
-  --primary: #4180ab;
-  --primary-hover: #37739c;
+  /* ===== TEMA REVERSA - Securitizadora ===== */
+  
+  /* Cores Base */
+  --background: #ffffff;
+  --foreground: #1e293b;
+  
+  /* Cards e Superfícies - Azul suave */
+  --card: #f0f7ff;
+  --card-hover: #e0efff;
+  --border: #cbd5e1;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --surface-alt: #dbeafe;
+  
+  /* Azul Corporativo Reversa */
+  --primary: #0369a1;        /* Azul profissional */
+  --primary-hover: #075985;   /* Azul escuro hover */
+  --primary-light: #0ea5e9;   /* Azul claro */
   --primary-foreground: #ffffff;
+  
+  /* Accent */
+  --accent: #0284c7;
+  --ring: #0369a1;
+  
+  /* Inputs - Sempre branco */
   --input: #ffffff;
-
-  /* Paleta de realce (estilo cards da imagem: verde, amarelo, neutro) */
-  --success: #22c55e;      /* verde */
-  --success-fg: #064e3b;
-  --warning: #f59e0b;      /* amarelo */
-  --warning-fg: #7c2d12;
-  --info: #0ea5e9;         /* azul claro */
-  --info-fg: #0c4a6e;
-  --neutral: #0f172a;      /* quase preto */
-  --neutral-fg: #0f172a;
+  --input-border: #cbd5e1;
+  
+  /* Status Colors */
+  --success: #10b981;         /* Verde moderno */
+  --success-fg: #065f46;
+  --success-bg: #d1fae5;
+  
+  --warning: #f59e0b;         /* Amarelo */
+  --warning-fg: #92400e;
+  --warning-bg: #fef3c7;
+  
+  --error: #ef4444;           /* Vermelho */
+  --error-fg: #991b1b;
+  --error-bg: #fee2e2;
+  
+  --info: #3b82f6;            /* Azul info */
+  --info-fg: #1e40af;
+  --info-bg: #dbeafe;
+  
+  --neutral: #64748b;         /* Cinza neutro */
+  --neutral-fg: #1e293b;
+  --neutral-bg: #f1f5f9;
 }
 
 @theme inline {
@@ -36,19 +60,14 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    /* Forçar visual claro também no modo escuro do SO */
+    /* Mantém tema claro mesmo no modo escuro do sistema */
     --background: #ffffff;
-    --foreground: #0f172a;
-    --card: #eaf2f7;
-    --border: #e7eef5;
-    --muted: #eaf2f7;
-    --muted-foreground: #475569;
-    --surface-alt: #dbe7f0;
-    --accent: #8ab3cf;
-    --ring: #4180ab;
-    --primary: #4180ab;
-    --primary-hover: #37739c;
-    --primary-foreground: #ffffff;
+    --foreground: #1e293b;
+    --card: #f0f7ff;
+    --border: #cbd5e1;
+    --muted: #f1f5f9;
+    --primary: #0369a1;
+    --primary-hover: #075985;
     --input: #ffffff;
   }
 }
@@ -156,6 +175,32 @@ input, button, textarea, select { font: inherit; color: inherit; }
 /* Textos utilitários */
 .muted { color: var(--muted-foreground); }
 
+/* ===== HEADER E FOOTER REVERSA ===== */
+.reversa-header {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+  color: var(--primary-foreground);
+  box-shadow: 0 2px 8px rgba(3, 105, 161, 0.15);
+}
+
+.reversa-footer {
+  background: var(--foreground);
+  color: #94a3b8;
+  border-top: 2px solid var(--primary);
+}
+
+/* Logo placeholder (quando adicionar) */
+.reversa-logo {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary-foreground);
+  letter-spacing: -0.02em;
+}
+
+/* Gradiente azul corporativo */
+.gradient-reversa {
+  background: linear-gradient(135deg, #0369a1 0%, #075985 50%, #0c4a6e 100%);
+}
+
 /* -------- Estatísticas / Badges (estilo da imagem) -------- */
 .stat {
   display: flex;
@@ -173,8 +218,38 @@ input, button, textarea, select { font: inherit; color: inherit; }
 .stat.info .stat-value { color: var(--info); }
 .stat.neutral .stat-value { color: var(--neutral); }
 
-.badge { display: inline-flex; align-items: center; gap: 0.375rem; height: 1.5rem; padding: 0 0.5rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }
-.badge.success { background: color-mix(in srgb, var(--success) 15%, white); color: var(--success-fg); border: 1px solid color-mix(in srgb, var(--success) 40%, white); }
-.badge.warning { background: color-mix(in srgb, var(--warning) 18%, white); color: var(--warning-fg); border: 1px solid color-mix(in srgb, var(--warning) 45%, white); }
-.badge.info { background: color-mix(in srgb, var(--info) 15%, white); color: var(--info-fg); border: 1px solid color-mix(in srgb, var(--info) 40%, white); }
-.badge.neutral { background: #f1f5f9; color: var(--neutral-fg); border: 1px solid #e2e8f0; }
+.badge { 
+  display: inline-flex; 
+  align-items: center; 
+  gap: 0.375rem; 
+  height: 1.5rem; 
+  padding: 0 0.5rem; 
+  border-radius: 9999px; 
+  font-size: 0.75rem; 
+  font-weight: 600; 
+}
+.badge.success { 
+  background: var(--success-bg); 
+  color: var(--success-fg); 
+  border: 1px solid var(--success); 
+}
+.badge.warning { 
+  background: var(--warning-bg); 
+  color: var(--warning-fg); 
+  border: 1px solid var(--warning); 
+}
+.badge.error { 
+  background: var(--error-bg); 
+  color: var(--error-fg); 
+  border: 1px solid var(--error); 
+}
+.badge.info { 
+  background: var(--info-bg); 
+  color: var(--info-fg); 
+  border: 1px solid var(--info); 
+}
+.badge.neutral { 
+  background: var(--neutral-bg); 
+  color: var(--neutral-fg); 
+  border: 1px solid var(--neutral); 
+}

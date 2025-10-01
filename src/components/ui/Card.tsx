@@ -19,9 +19,9 @@ const Card = ({ children, className = '', padding = 'md', hover = false }: CardP
 
   return (
     <div className={`
-      bg-white rounded-lg border border-gray-200 shadow-sm
+      bg-[#f0f7ff] rounded-lg border border-[#cbd5e1] shadow-sm
       ${paddingClasses[padding]}
-      ${hover ? 'hover:shadow-md hover:border-gray-300 transition-all duration-200' : ''}
+      ${hover ? 'hover:shadow-md hover:border-[#0369a1] transition-all duration-200' : ''}
       ${className}
     `}>
       {children}

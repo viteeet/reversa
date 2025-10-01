@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { formatCpfCnpj } from '@/lib/format';
 import Card from '@/components/ui/Card';
@@ -103,16 +104,16 @@ export default function CedentesPage() {
   }, [items, q]);
 
   return (
-    <main className="min-h-screen p-6">
+    <main className="min-h-screen p-6 bg-white">
       <div className="container max-w-6xl space-y-6">
         <header>
-          <h1 className="text-3xl font-bold text-gray-900">Cedentes</h1>
-          <p className="text-slate-600">Cadastro e gestão de cedentes</p>
+          <h1 className="text-3xl font-bold text-[#0369a1]">Cedentes</h1>
+          <p className="text-[#64748b]">Cadastro e gestão de cedentes</p>
         </header>
 
         <Card>
           <div className="space-y-4">
-            <h2 className="text-xl font-semibold text-slate-800">Novo Cedente</h2>
+            <h2 className="text-xl font-semibold text-[#0369a1]">Novo Cedente</h2>
             <div className="grid gap-4 sm:grid-cols-2">
               <Input
                 label="Nome*"
@@ -230,7 +231,7 @@ export default function CedentesPage() {
         <Card>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-slate-800">Lista de Cedentes</h2>
+              <h2 className="text-xl font-semibold text-[#0369a1]">Lista de Cedentes</h2>
               <div className="flex gap-2">
                 <Input
                   placeholder="Buscar cedente..."
@@ -246,25 +247,25 @@ export default function CedentesPage() {
             
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gradient-to-r from-slate-50 to-blue-50">
+                <thead className="bg-gradient-to-r from-[#e0efff] to-[#f0f7ff]">
                   <tr>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Nome</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Razão social</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">CNPJ</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Situação</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Porte</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Atividade</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 w-24">Ações</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-[#0369a1]">Nome</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-[#0369a1]">Razão social</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-[#0369a1]">CNPJ</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-[#0369a1]">Situação</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-[#0369a1]">Porte</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-[#0369a1]">Atividade</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-[#0369a1]">Ações</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200">
+                <tbody className="divide-y divide-[#cbd5e1]">
                   {filtered.length === 0 ? (
-                    <tr><td colSpan={7} className="p-6 text-center text-slate-600">Nenhum cedente encontrado.</td></tr>
+                    <tr><td colSpan={7} className="p-6 text-center text-[#64748b]">Nenhum cedente encontrado.</td></tr>
                   ) : filtered.map(c => (
-                    <tr key={c.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-4 py-3 text-sm text-slate-900 font-medium">{c.nome}</td>
-                      <td className="px-4 py-3 text-sm text-slate-600">{c.razao_social ?? '—'}</td>
-                      <td className="px-4 py-3 text-sm text-slate-600 font-mono">{c.cnpj ? formatCpfCnpj(c.cnpj) : '—'}</td>
+                    <tr key={c.id} className="hover:bg-white transition-colors">
+                      <td className="px-4 py-3 text-sm text-[#1e293b] font-medium">{c.nome}</td>
+                      <td className="px-4 py-3 text-sm text-[#64748b]">{c.razao_social ?? '—'}</td>
+                      <td className="px-4 py-3 text-sm text-[#64748b] font-mono">{c.cnpj ? formatCpfCnpj(c.cnpj) : '—'}</td>
                       <td className="px-4 py-3">
                         {c.situacao && (
                           <Badge variant={c.situacao === 'ATIVA' ? 'success' : c.situacao === 'INATIVA' ? 'error' : 'neutral'} size="sm">
@@ -272,14 +273,21 @@ export default function CedentesPage() {
                           </Badge>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-sm text-slate-600">{c.porte ?? '—'}</td>
-                      <td className="px-4 py-3 text-sm text-slate-600 max-w-xs truncate" title={c.atividade_principal_descricao ?? ''}>
+                      <td className="px-4 py-3 text-sm text-[#64748b]">{c.porte ?? '—'}</td>
+                      <td className="px-4 py-3 text-sm text-[#64748b] max-w-xs truncate" title={c.atividade_principal_descricao ?? ''}>
                         {c.atividade_principal_descricao ?? '—'}
                       </td>
                       <td className="px-4 py-3">
-                        <Button variant="error" size="sm" onClick={() => remove(c.id)}>
-                          Excluir
-                        </Button>
+                        <div className="flex gap-2">
+                          <Link href={`/cedentes/${c.id}/editar`}>
+                            <Button variant="secondary" size="sm">
+                              Editar
+                            </Button>
+                          </Link>
+                          <Button variant="error" size="sm" onClick={() => remove(c.id)}>
+                            Excluir
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}

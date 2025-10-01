@@ -28,32 +28,41 @@ export default function Header() {
   }
 
   return (
-    <header className="border-b border-gray-200 sticky top-0 z-40 bg-white shadow-sm">
+    <header className="reversa-header sticky top-0 z-40">
       <div className="container flex h-16 items-center justify-between">
-        <Link href="/dashboard" className="text-2xl font-bold text-gray-900">
-          Reversa
+        <Link href="/dashboard" className="reversa-logo">
+          REVERSA
         </Link>
 
         {/* Sem menu enquanto carrega ou não autenticado */}
         {(!loading && email) ? (
           <nav className="flex items-center gap-2">
             <Link href="/dashboard">
-              <Button variant="outline" size="sm">Início</Button>
+              <button className="px-4 py-2 text-sm font-medium bg-white text-[#0369a1] hover:bg-white/90 rounded-lg transition-colors shadow-sm">
+                Início
+              </button>
             </Link>
             <Link href="/contas-pagar">
-              <Button variant="outline" size="sm">Financeiro</Button>
+              <button className="px-4 py-2 text-sm font-medium bg-white text-[#0369a1] hover:bg-white/90 rounded-lg transition-colors shadow-sm">
+                Financeiro
+              </button>
             </Link>
             <Link href="/settings">
-              <Button variant="outline" size="sm">Configurações</Button>
+              <button className="px-4 py-2 text-sm font-medium bg-white text-[#0369a1] hover:bg-white/90 rounded-lg transition-colors shadow-sm">
+                Configurações
+              </button>
             </Link>
 
-            <div className="h-6 w-px bg-slate-300 mx-3" />
+            <div className="h-6 w-px bg-white/40 mx-3" />
             <div className="flex items-center gap-3">
-              <span className="text-sm text-slate-600 hidden sm:inline">Logado como:</span>
-              <span className="text-sm font-medium text-slate-800">{email}</span>
-              <Button variant="secondary" size="sm" onClick={signOut}>
+              <span className="text-sm text-white hidden sm:inline">Logado como:</span>
+              <span className="text-sm font-semibold text-white">{email}</span>
+              <button 
+                onClick={signOut}
+                className="px-4 py-2 text-sm font-semibold bg-white text-[#0369a1] hover:bg-white/90 rounded-lg transition-colors shadow-sm"
+              >
                 Sair
-              </Button>
+              </button>
             </div>
           </nav>
         ) : (
