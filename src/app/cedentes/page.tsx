@@ -41,6 +41,11 @@ export default function CedentesPage() {
   const [err, setErr] = useState<string | null>(null);
   const [q, setQ] = useState('');
   const [loadingCnpj, setLoadingCnpj] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
+  const [sortBy, setSortBy] = useState<'nome' | 'razao_social' | 'cnpj' | 'situacao'>('nome');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   useEffect(() => { load(); }, []);
 
@@ -103,18 +108,75 @@ export default function CedentesPage() {
     ].some(v => String(v).toLowerCase().includes(t)));
   }, [items, q]);
 
+  const sorted = useMemo(() => {
+    const arr = [...filtered];
+    arr.sort((a, b) => {
+      const va = (a[sortBy] ?? '').toString().toLowerCase();
+      const vb = (b[sortBy] ?? '').toString().toLowerCase();
+      if (va < vb) return sortDir === 'asc' ? -1 : 1;
+      if (va > vb) return sortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+    return arr;
+  }, [filtered, sortBy, sortDir]);
+
+  const total = sorted.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const paginated = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return sorted.slice(start, start + pageSize);
+  }, [sorted, currentPage, pageSize]);
+
+  function onSort(col: 'nome' | 'razao_social' | 'cnpj' | 'situacao') {
+    if (sortBy === col) {
+      setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(col);
+      setSortDir('asc');
+    }
+    setPage(1);
+  }
+
+  useEffect(() => { setPage(1); }, [q]);
+
   return (
     <main className="min-h-screen p-6 bg-white">
       <div className="container max-w-6xl space-y-6">
-        <header>
-          <h1 className="text-3xl font-bold text-[#0369a1]">Cedentes</h1>
-          <p className="text-[#64748b]">Cadastro e gestão de cedentes</p>
+        {/* Toolbar */}
+        <header className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-[#0369a1]">Cedentes</h1>
+            <p className="text-[#64748b]">Cadastro e gestão de cedentes</p>
+          </div>
+          <div className="flex items-center gap-2 w-full md:w-auto">
+            <Input
+              placeholder="Buscar cedente..."
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              className="md:w-80 flex-1"
+            />
+            <Button variant="secondary" onClick={() => setQ('')}>Limpar</Button>
+            <Button variant="primary" onClick={() => setShowCreate(v => !v)}>
+              {showCreate ? 'Fechar' : 'Novo Cedente'}
+            </Button>
+          </div>
         </header>
 
-        <Card>
-          <div className="space-y-4">
-            <h2 className="text-xl font-semibold text-[#0369a1]">Novo Cedente</h2>
-            <div className="grid gap-4 sm:grid-cols-2">
+        {/* Modal Novo Cedente */}
+        {showCreate && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl border border-[#e2e8f0]">
+              <div className="flex items-center justify-between px-5 py-3 border-b">
+                <h2 className="text-lg font-semibold text-[#0369a1]">Novo Cedente</h2>
+                <button
+                  onClick={() => setShowCreate(false)}
+                  className="px-2 py-1 text-[#64748b] hover:text-[#0f172a]"
+                  aria-label="Fechar"
+                >×</button>
+              </div>
+              <div className="p-5 space-y-4">
+                <div className="grid gap-4 sm:grid-cols-2">
               <Input
                 label="Nome*"
                 value={form.nome}
@@ -225,79 +287,100 @@ export default function CedentesPage() {
             </div>
             
             {err && <p className="text-sm text-red-600">{err}</p>}
+              </div>
+            </div>
           </div>
-        </Card>
+        )}
 
         <Card>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-[#0369a1]">Lista de Cedentes</h2>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Buscar cedente..."
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                  className="w-64"
-                />
-                <Button variant="secondary" onClick={() => setQ('')}>
-                  Limpar
-                </Button>
-              </div>
+              <h2 className="text-xl font-semibold text-[#0369a1]">
+                Lista de Cedentes
+                <span className="ml-2 text-sm font-normal text-[#64748b]">({total})</span>
+              </h2>
             </div>
             
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gradient-to-r from-[#e0efff] to-[#f0f7ff]">
                   <tr>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-[#0369a1]">Nome</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-[#0369a1]">Razão social</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-[#0369a1]">CNPJ</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-[#0369a1]">Situação</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-[#0369a1]">Porte</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-[#0369a1]">Atividade</th>
+                    {(['nome','razao_social','cnpj'] as const).map(col => (
+                      <th key={col} className="px-4 py-3 text-left text-sm font-semibold text-[#0369a1] cursor-pointer select-none" onClick={() => onSort(col)}>
+                        {col === 'nome' ? 'Nome' : col === 'razao_social' ? 'Razão social' : 'CNPJ'}
+                        {sortBy === col && (
+                          <span className="ml-1 text-[#64748b]">{sortDir === 'asc' ? '▲' : '▼'}</span>
+                        )}
+                      </th>
+                    ))}
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-[#0369a1] cursor-pointer select-none" onClick={() => onSort('situacao')}>
+                      Resumo
+                      {sortBy === 'situacao' && (
+                        <span className="ml-1 text-[#64748b]">{sortDir === 'asc' ? '▲' : '▼'}</span>
+                      )}
+                    </th>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-[#0369a1]">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#cbd5e1]">
-                  {filtered.length === 0 ? (
+                  {paginated.length === 0 ? (
                     <tr><td colSpan={7} className="p-6 text-center text-[#64748b]">Nenhum cedente encontrado.</td></tr>
-                  ) : filtered.map(c => (
-                    <tr key={c.id} className="hover:bg-white transition-colors">
+                  ) : paginated.map(c => (
+                    <tr key={c.id} className="hover:bg-[#f8fbff] transition-colors">
                       <td className="px-4 py-3 text-sm text-[#1e293b] font-medium">{c.nome}</td>
                       <td className="px-4 py-3 text-sm text-[#64748b]">{c.razao_social ?? '—'}</td>
                       <td className="px-4 py-3 text-sm text-[#64748b] font-mono">{c.cnpj ? formatCpfCnpj(c.cnpj) : '—'}</td>
                       <td className="px-4 py-3">
-                        {c.situacao && (
-                          <Badge variant={c.situacao === 'ATIVA' ? 'success' : c.situacao === 'INATIVA' ? 'error' : 'neutral'} size="sm">
-                            {c.situacao}
-                          </Badge>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-[#64748b]">{c.porte ?? '—'}</td>
-                      <td className="px-4 py-3 text-sm text-[#64748b] max-w-xs truncate" title={c.atividade_principal_descricao ?? ''}>
-                        {c.atividade_principal_descricao ?? '—'}
+                        <div className="flex items-center gap-2">
+                          {c.situacao && (
+                            <Badge variant={c.situacao === 'ATIVA' ? 'success' : c.situacao === 'INATIVA' ? 'error' : 'neutral'} size="sm">
+                              {c.situacao}
+                            </Badge>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex gap-2">
-                          <Link href={`/cedentes/${c.id}`}>
-                            <Button variant="outline" size="sm">
-                              Ver
-                            </Button>
+                        <div className="flex gap-1">
+                          <Link href={`/cedentes/${c.id}`} title="Ver">
+                            <button className="p-2 rounded hover:bg-[#e2e8f0]" aria-label="Ver">👁️</button>
                           </Link>
-                          <Link href={`/cedentes/${c.id}/editar`}>
-                            <Button variant="secondary" size="sm">
-                              Editar
-                            </Button>
+                          <Link href={`/cedentes/${c.id}/editar`} title="Editar">
+                            <button className="p-2 rounded hover:bg-[#e2e8f0]" aria-label="Editar">✏️</button>
                           </Link>
-                          <Button variant="error" size="sm" onClick={() => remove(c.id)}>
-                            Excluir
-                          </Button>
+                          <button className="p-2 rounded hover:bg-[#fee2e2]" title="Excluir" aria-label="Excluir" onClick={() => remove(c.id)}>🗑️</button>
                         </div>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+            </div>
+
+            {/* Paginação */}
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 pt-2">
+              <div className="text-sm text-[#64748b]">
+                Mostrando <strong>{paginated.length}</strong> de <strong>{total}</strong>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  className="px-3 py-1.5 rounded border border-[#cbd5e1] text-sm text-[#0369a1] disabled:opacity-50"
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >Anterior</button>
+                <span className="text-sm text-[#64748b]">Página {currentPage} de {totalPages}</span>
+                <button
+                  className="px-3 py-1.5 rounded border border-[#cbd5e1] text-sm text-[#0369a1] disabled:opacity-50"
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                >Próxima</button>
+                <select
+                  className="ml-2 px-2 py-1.5 border border-[#cbd5e1] rounded text-sm text-[#0369a1] bg-white"
+                  value={pageSize}
+                  onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
+                >
+                  {[10, 20, 50].map(n => <option key={n} value={n}>{n}/página</option>)}
+                </select>
+              </div>
             </div>
           </div>
         </Card>

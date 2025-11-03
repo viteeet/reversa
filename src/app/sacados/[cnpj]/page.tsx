@@ -7,6 +7,7 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import AtividadesManager from '@/components/atividades/AtividadesManager';
+import FoundDataManagerGeneric from '@/components/shared/FoundDataManagerGeneric';
 
 type Sacado = {
   cnpj: string;
@@ -19,6 +20,19 @@ type Sacado = {
   capital_social: number | null;
   atividade_principal_descricao: string | null;
   simples_nacional: boolean | null;
+  endereco_receita: string | null;
+  telefone_receita: string | null;
+  email_receita: string | null;
+};
+
+type FoundDataItem = {
+  id: string;
+  tipo: string;
+  titulo: string;
+  conteudo: string;
+  observacoes?: string;
+  fonte?: string;
+  data_encontrado?: string;
 };
 
 export default function SacadoDetailPage() {
@@ -29,6 +43,7 @@ export default function SacadoDetailPage() {
   const [sacado, setSacado] = useState<Sacado | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'info' | 'atividades'>('info');
+  const [foundData, setFoundData] = useState<FoundDataItem[]>([]);
 
   useEffect(() => {
     loadData();
@@ -44,7 +59,19 @@ export default function SacadoDetailPage() {
       .single();
     
     setSacado(sacadoData);
+    await loadFoundData();
     setLoading(false);
+  }
+
+  async function loadFoundData() {
+    const { data } = await supabase
+      .from('sacados_dados_encontrados')
+      .select('*')
+      .eq('sacado_cnpj', cnpj)
+      .eq('ativo', true)
+      .order('created_at', { ascending: false });
+    
+    setFoundData(data || []);
   }
 
   if (loading) {
@@ -120,45 +147,86 @@ export default function SacadoDetailPage() {
 
           <div className="p-6">
             {activeTab === 'info' ? (
-              <div className="space-y-4">
-                <h2 className="text-xl font-semibold text-[#0369a1]">Informações Básicas</h2>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  <div>
-                    <label className="text-sm font-medium text-[#64748b]">Situação</label>
-                    <div className="mt-1">
-                      {sacado.situacao && (
-                        <Badge variant={sacado.situacao === 'ATIVA' ? 'success' : 'error'} size="sm">
-                          {sacado.situacao}
-                        </Badge>
-                      )}
+              <div className="space-y-6">
+                {/* Dados da Receita (API) */}
+                <div className="bg-gradient-to-r from-[#f0f9ff] to-[#e0f2fe] rounded-lg p-4 border border-[#bae6fd]">
+                  <h2 className="text-lg font-semibold text-[#0369a1] mb-3 flex items-center gap-2">
+                    <span>🏛️</span> Dados da Receita Federal
+                  </h2>
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="bg-white rounded p-2">
+                      <label className="text-xs font-medium text-[#64748b]">Situação</label>
+                      <div className="mt-1">
+                        {sacado.situacao && (
+                          <Badge variant={sacado.situacao === 'ATIVA' ? 'success' : 'error'} size="sm">
+                            {sacado.situacao}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    <div className="bg-white rounded p-2">
+                      <label className="text-xs font-medium text-[#64748b]">Porte</label>
+                      <p className="text-sm text-[#1e293b] mt-1">{sacado.porte || '—'}</p>
+                    </div>
+                    <div className="bg-white rounded p-2">
+                      <label className="text-xs font-medium text-[#64748b]">Simples Nacional</label>
+                      <p className="text-sm text-[#1e293b] mt-1">{sacado.simples_nacional ? 'Sim' : 'Não'}</p>
+                    </div>
+                    <div className="bg-white rounded p-2">
+                      <label className="text-xs font-medium text-[#64748b]">Data de Abertura</label>
+                      <p className="text-sm text-[#1e293b] mt-1">
+                        {sacado.data_abertura ? new Date(sacado.data_abertura).toLocaleDateString('pt-BR') : '—'}
+                      </p>
+                    </div>
+                    <div className="bg-white rounded p-2">
+                      <label className="text-xs font-medium text-[#64748b]">Capital Social</label>
+                      <p className="text-sm text-[#1e293b] mt-1">
+                        {sacado.capital_social ? sacado.capital_social.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '—'}
+                      </p>
+                    </div>
+                    <div className="bg-white rounded p-2">
+                      <label className="text-xs font-medium text-[#64748b]">Telefone</label>
+                      <p className="text-sm text-[#1e293b] mt-1">{sacado.telefone_receita || '—'}</p>
+                    </div>
+                    <div className="bg-white rounded p-2">
+                      <label className="text-xs font-medium text-[#64748b]">Email</label>
+                      <p className="text-sm text-[#1e293b] mt-1 truncate" title={sacado.email_receita || ''}>
+                        {sacado.email_receita || '—'}
+                      </p>
+                    </div>
+                    <div className="bg-white rounded p-2 sm:col-span-2 lg:col-span-1">
+                      <label className="text-xs font-medium text-[#64748b]">Natureza Jurídica</label>
+                      <p className="text-sm text-[#1e293b] mt-1">{sacado.natureza_juridica || '—'}</p>
                     </div>
                   </div>
-                  <div>
-                    <label className="text-sm font-medium text-[#64748b]">Porte</label>
-                    <p className="text-[#1e293b]">{sacado.porte || '—'}</p>
+                  <div className="bg-white rounded p-2 mt-3">
+                    <label className="text-xs font-medium text-[#64748b]">Endereço</label>
+                    <p className="text-sm text-[#1e293b] mt-1">{sacado.endereco_receita || '—'}</p>
                   </div>
-                  <div>
-                    <label className="text-sm font-medium text-[#64748b]">Natureza Jurídica</label>
-                    <p className="text-[#1e293b]">{sacado.natureza_juridica || '—'}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-[#64748b]">Data de Abertura</label>
-                    <p className="text-[#1e293b]">{sacado.data_abertura || '—'}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-[#64748b]">Capital Social</label>
-                    <p className="text-[#1e293b]">
-                      {sacado.capital_social ? sacado.capital_social.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '—'}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-[#64748b]">Simples Nacional</label>
-                    <p className="text-[#1e293b]">{sacado.simples_nacional ? 'Sim' : 'Não'}</p>
+                  <div className="bg-white rounded p-2 mt-3">
+                    <label className="text-xs font-medium text-[#64748b]">Atividade Principal</label>
+                    <p className="text-sm text-[#1e293b] mt-1">{sacado.atividade_principal_descricao || '—'}</p>
                   </div>
                 </div>
+
+                {/* Dados Encontrados (Manual) */}
                 <div>
-                  <label className="text-sm font-medium text-[#64748b]">Atividade Principal</label>
-                  <p className="text-[#1e293b]">{sacado.atividade_principal_descricao || '—'}</p>
+                  <FoundDataManagerGeneric 
+                    entityId={cnpj}
+                    entityType="sacado"
+                    items={foundData}
+                    onRefresh={loadFoundData}
+                  />
+                </div>
+
+                {/* Botão de Edição Completa */}
+                <div className="flex justify-center pt-2">
+                  <Button 
+                    variant="primary" 
+                    onClick={() => router.push(`/sacados/${encodeURIComponent(cnpj)}/editar`)}
+                  >
+                    Editar Dados Complementares (QSA, Processos, etc.)
+                  </Button>
                 </div>
               </div>
             ) : (

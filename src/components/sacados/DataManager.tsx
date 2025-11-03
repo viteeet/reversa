@@ -21,12 +21,13 @@ type DataManagerProps = {
   fields: {
     key: string;
     label: string;
-    type?: 'text' | 'email' | 'tel' | 'number' | 'date' | 'select';
+    type?: 'text' | 'email' | 'tel' | 'number' | 'date' | 'select' | 'textarea';
     options?: string[];
     required?: boolean;
   }[];
   displayFields: string[];
   onFetchFromAPI?: () => Promise<void>;
+  showDetailsButton?: boolean;
 };
 
 export default function DataManager({
@@ -37,13 +38,15 @@ export default function DataManager({
   onRefresh,
   fields,
   displayFields,
-  onFetchFromAPI
+  onFetchFromAPI,
+  showDetailsButton = false
 }: DataManagerProps) {
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState<DataItem | null>(null);
   const [form, setForm] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(false);
   const [fetchingAPI, setFetchingAPI] = useState(false);
+  const [showDetailsId, setShowDetailsId] = useState<string | null>(null);
 
   const resetForm = () => {
     const initialForm: Record<string, any> = {};
@@ -183,39 +186,60 @@ export default function DataManager({
             </thead>
             <tbody className="divide-y divide-[#cbd5e1]">
               {items.map(item => (
-                <tr key={item.id} className="hover:bg-white transition-colors">
-                  {displayFields.map(field => (
-                    <td key={field} className="px-4 py-3 text-sm text-[#1e293b]">
-                      {item[field] || '—'}
+                <>
+                  <tr key={item.id} className="hover:bg-[#f8fbff] transition-colors">
+                    {displayFields.map(field => (
+                      <td key={field} className="px-4 py-3 text-sm text-[#1e293b]">
+                        {item[field] || '—'}
+                      </td>
+                    ))}
+                    <td className="px-4 py-3">
+                      <Badge 
+                        variant={item.origem === 'api' ? 'info' : 'neutral'} 
+                        size="sm"
+                      >
+                        {item.origem === 'api' ? 'API' : 'Manual'}
+                      </Badge>
                     </td>
-                  ))}
-                  <td className="px-4 py-3">
-                    <Badge 
-                      variant={item.origem === 'api' ? 'info' : 'neutral'} 
-                      size="sm"
-                    >
-                      {item.origem === 'api' ? 'API' : 'Manual'}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => openModal(item)}
-                      >
-                        Editar
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => handleDelete(item.id!)}
-                      >
-                        Excluir
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
+                    <td className="px-4 py-3">
+                      <div className="flex gap-1">
+                        {showDetailsButton && (
+                          <button
+                            onClick={() => setShowDetailsId(showDetailsId === item.id ? null : item.id!)}
+                            className="px-2 py-1 text-xs border border-[#cbd5e1] rounded hover:bg-white"
+                            title={showDetailsId === item.id ? "Ocultar OBS" : "Ver OBS"}
+                          >
+                            {showDetailsId === item.id ? '▲' : '▼'}
+                          </button>
+                        )}
+                        <button
+                          onClick={() => openModal(item)}
+                          className="px-2 py-1 text-xs border border-[#cbd5e1] rounded hover:bg-white"
+                          title="Editar"
+                        >
+                          ✏️
+                        </button>
+                        <button
+                          onClick={() => handleDelete(item.id!)}
+                          className="px-2 py-1 text-xs border border-[#cbd5e1] rounded hover:bg-white"
+                          title="Excluir"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  {showDetailsButton && showDetailsId === item.id && item.observacoes && (
+                    <tr key={`${item.id}-details`} className="bg-[#f0f7ff]">
+                      <td colSpan={displayFields.length + 2} className="px-4 py-3">
+                        <div className="text-sm">
+                          <span className="font-semibold text-[#0369a1]">OBS:</span>
+                          <span className="ml-2 text-[#1e293b]">{item.observacoes}</span>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </>
               ))}
             </tbody>
           </table>
@@ -247,6 +271,19 @@ export default function DataManager({
                       <option key={opt} value={opt}>{opt}</option>
                     ))}
                   </select>
+                </div>
+              ) : field.type === 'textarea' ? (
+                <div>
+                  <label className="block text-sm font-medium text-[#1e293b] mb-1">
+                    {field.label}
+                    {field.required && <span className="text-[#ef4444]">*</span>}
+                  </label>
+                  <textarea
+                    className="w-full px-4 py-2 border border-[#cbd5e1] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0369a1] bg-white text-[#1e293b] min-h-[80px]"
+                    value={form[field.key] || ''}
+                    onChange={e => setForm({ ...form, [field.key]: e.target.value })}
+                    required={field.required}
+                  />
                 </div>
               ) : (
                 <Input

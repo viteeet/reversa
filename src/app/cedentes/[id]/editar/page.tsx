@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import DataManager from '@/components/sacados/DataManager';
+import CompactDataManager from '@/components/shared/CompactDataManager';
 
 type Cedente = {
   id: string;
@@ -29,6 +29,15 @@ export default function EditarCedentePage() {
   const [emails, setEmails] = useState([]);
   const [pessoasLigadas, setPessoasLigadas] = useState([]);
   const [empresasLigadas, setEmpresasLigadas] = useState([]);
+  const [processosTexto, setProcessosTexto] = useState(''); // TEXTO SIMPLES
+  
+  // Observações gerais DA EMPRESA (uma única observação)
+  const [observacoesGerais, setObservacoesGerais] = useState('');
+  
+  // Modal de detalhes de pessoa do QSA
+  const [showQsaDetails, setShowQsaDetails] = useState(false);
+  const [selectedQsa, setSelectedQsa] = useState<any>(null);
+  const [qsaDetalhes, setQsaDetalhes] = useState('');
 
   useEffect(() => {
     loadAllData();
@@ -53,7 +62,9 @@ export default function EditarCedentePage() {
       loadTelefones(),
       loadEmails(),
       loadPessoasLigadas(),
-      loadEmpresasLigadas()
+      loadEmpresasLigadas(),
+      loadProcessos(),
+      loadObservacoes()
     ]);
     
     setLoading(false);
@@ -117,6 +128,110 @@ export default function EditarCedentePage() {
       .eq('ativo', true)
       .order('razao_social');
     setEmpresasLigadas(data || []);
+  }
+
+  async function loadProcessos() {
+    // Carrega texto de processos da tabela de observações gerais ou criar campo separado
+    const { data } = await supabase
+      .from('cedentes_observacoes_gerais')
+      .select('processos_texto')
+      .eq('cedente_id', id)
+      .single();
+    
+    if (data) setProcessosTexto(data.processos_texto || '');
+  }
+
+  async function loadObservacoes() {
+    // Carrega observação geral única da empresa
+    const { data } = await supabase
+      .from('cedentes_observacoes_gerais')
+      .select('observacoes')
+      .eq('cedente_id', id)
+      .single();
+    
+    if (data) setObservacoesGerais(data.observacoes);
+  }
+
+  async function saveObservacaoGeral(observacoes: string) {
+    try {
+      const { error } = await supabase
+        .from('cedentes_observacoes_gerais')
+        .upsert({
+          cedente_id: id,
+          observacoes,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'cedente_id'
+        });
+      
+      if (error) throw error;
+    } catch (error) {
+      console.error('Erro ao salvar observação:', error);
+    }
+  }
+
+  async function saveProcessosTexto(texto: string) {
+    try {
+      const { error } = await supabase
+        .from('cedentes_observacoes_gerais')
+        .upsert({
+          cedente_id: id,
+          processos_texto: texto,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'cedente_id'
+        });
+      
+      if (error) throw error;
+    } catch (error) {
+      console.error('Erro ao salvar processos:', error);
+    }
+  }
+
+  async function saveQsaDetalhes() {
+    if (!selectedQsa) return;
+    
+    try {
+      const { error } = await supabase
+        .from('cedentes_qsa_detalhes')
+        .upsert({
+          qsa_id: selectedQsa.id,
+          cedente_id: id,
+          detalhes_completos: qsaDetalhes,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'qsa_id'
+        });
+      
+      if (error) throw error;
+      
+      alert('Detalhes salvos com sucesso!');
+      setShowQsaDetails(false);
+      setSelectedQsa(null);
+      setQsaDetalhes('');
+    } catch (error) {
+      console.error('Erro ao salvar detalhes da pessoa:', error);
+      alert('Erro ao salvar detalhes');
+    }
+  }
+
+  async function openQsaDetails(item: any) {
+    setSelectedQsa(item);
+    
+    // Carrega detalhes existentes
+    const { data } = await supabase
+      .from('cedentes_qsa_detalhes')
+      .select('detalhes_completos')
+      .eq('qsa_id', item.id)
+      .single();
+    
+    if (data) {
+      setQsaDetalhes(data.detalhes_completos || '');
+    } else {
+      setQsaDetalhes('');
+    }
+    
+    setShowQsaDetails(true);
   }
 
   async function fetchFromAPI(tipo: string) {
@@ -229,51 +344,50 @@ export default function EditarCedentePage() {
           </Button>
         </header>
 
-        {/* QSA */}
+        {/* Observações Gerais da Empresa - TOPO */}
         <Card>
-          <DataManager
-            title="QSA - Quadro de Sócios e Administradores"
-            cnpj={id}
-            tableName="cedentes_qsa"
-            items={qsa}
-            onRefresh={loadQSA}
-            onFetchFromAPI={cedente.cnpj ? () => fetchFromAPI('qsa') : undefined}
-            fields={[
-              { key: 'cpf', label: 'CPF', type: 'text' },
-              { key: 'nome', label: 'Nome', type: 'text', required: true },
-              { key: 'qualificacao', label: 'Qualificação', type: 'text' },
-              { key: 'participacao', label: 'Participação (%)', type: 'number' },
-              { key: 'data_entrada', label: 'Data de Entrada', type: 'date' }
-            ]}
-            displayFields={['nome', 'cpf', 'qualificacao', 'participacao']}
-          />
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-gray-800">
+              💬 Observações Gerais - {cedente.nome}
+            </label>
+            <textarea
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[100px] resize-y"
+              value={observacoesGerais}
+              onChange={e => {
+                setObservacoesGerais(e.target.value);
+                saveObservacaoGeral(e.target.value);
+              }}
+              placeholder="Digite observações gerais sobre esta empresa: contexto, histórico, alertas, etc..."
+            />
+            <p className="text-xs text-gray-500">Salva automaticamente ao digitar</p>
+          </div>
         </Card>
 
         {/* Endereços */}
         <Card>
-          <DataManager
-            title="Endereços Encontrados"
-            cnpj={id}
+          <CompactDataManager
+            title="Endereços"
+            entityId={id}
             tableName="cedentes_enderecos"
             items={enderecos}
             onRefresh={loadEnderecos}
             onFetchFromAPI={cedente.cnpj ? () => fetchFromAPI('enderecos') : undefined}
             fields={[
-              { key: 'endereco', label: 'Endereço', type: 'text', required: true },
+              { key: 'endereco', label: 'Endereço', type: 'text', required: true, width: 'full' },
               { key: 'tipo', label: 'Tipo', type: 'select', options: ['comercial', 'residencial', 'correspondencia'] },
               { key: 'cep', label: 'CEP', type: 'text' },
               { key: 'cidade', label: 'Cidade', type: 'text' },
-              { key: 'estado', label: 'Estado', type: 'text' }
+              { key: 'estado', label: 'UF', type: 'text' }
             ]}
-            displayFields={['endereco', 'tipo', 'cidade', 'estado']}
+            displayFields={['endereco', 'tipo', 'cidade']}
           />
         </Card>
 
         {/* Telefones */}
         <Card>
-          <DataManager
-            title="Telefones Encontrados"
-            cnpj={id}
+          <CompactDataManager
+            title="Telefones"
+            entityId={id}
             tableName="cedentes_telefones"
             items={telefones}
             onRefresh={loadTelefones}
@@ -281,7 +395,7 @@ export default function EditarCedentePage() {
             fields={[
               { key: 'telefone', label: 'Telefone', type: 'tel', required: true },
               { key: 'tipo', label: 'Tipo', type: 'select', options: ['celular', 'fixo', 'comercial'] },
-              { key: 'nome_contato', label: 'Nome do Contato', type: 'text' }
+              { key: 'nome_contato', label: 'Contato', type: 'text' }
             ]}
             displayFields={['telefone', 'tipo', 'nome_contato']}
           />
@@ -289,17 +403,17 @@ export default function EditarCedentePage() {
 
         {/* E-mails */}
         <Card>
-          <DataManager
-            title="E-mails Encontrados"
-            cnpj={id}
+          <CompactDataManager
+            title="E-mails"
+            entityId={id}
             tableName="cedentes_emails"
             items={emails}
             onRefresh={loadEmails}
             onFetchFromAPI={cedente.cnpj ? () => fetchFromAPI('emails') : undefined}
             fields={[
-              { key: 'email', label: 'E-mail', type: 'email', required: true },
+              { key: 'email', label: 'E-mail', type: 'email', required: true, width: 'half' },
               { key: 'tipo', label: 'Tipo', type: 'select', options: ['comercial', 'pessoal', 'financeiro'] },
-              { key: 'nome_contato', label: 'Nome do Contato', type: 'text' }
+              { key: 'nome_contato', label: 'Contato', type: 'text' }
             ]}
             displayFields={['email', 'tipo', 'nome_contato']}
           />
@@ -307,19 +421,19 @@ export default function EditarCedentePage() {
 
         {/* Pessoas Ligadas */}
         <Card>
-          <DataManager
+          <CompactDataManager
             title="Pessoas Ligadas"
-            cnpj={id}
+            entityId={id}
             tableName="cedentes_pessoas_ligadas"
             items={pessoasLigadas}
             onRefresh={loadPessoasLigadas}
             onFetchFromAPI={cedente.cnpj ? () => fetchFromAPI('pessoas_ligadas') : undefined}
             fields={[
               { key: 'cpf', label: 'CPF', type: 'text' },
-              { key: 'nome', label: 'Nome', type: 'text', required: true },
-              { key: 'tipo_relacionamento', label: 'Tipo de Relacionamento', type: 'select', 
+              { key: 'nome', label: 'Nome', type: 'text', required: true, width: 'half' },
+              { key: 'tipo_relacionamento', label: 'Relacionamento', type: 'select', 
                 options: ['pai', 'mae', 'conjuge', 'filho', 'irmao', 'socio', 'administrador', 'outro'] },
-              { key: 'observacoes', label: 'Observações', type: 'text' }
+              { key: 'observacoes', label: 'Obs', type: 'text', width: 'half' }
             ]}
             displayFields={['nome', 'cpf', 'tipo_relacionamento']}
           />
@@ -327,22 +441,177 @@ export default function EditarCedentePage() {
 
         {/* Empresas Ligadas */}
         <Card>
-          <DataManager
+          <CompactDataManager
             title="Empresas Ligadas"
-            cnpj={id}
+            entityId={id}
             tableName="cedentes_empresas_ligadas"
             items={empresasLigadas}
             onRefresh={loadEmpresasLigadas}
             onFetchFromAPI={cedente.cnpj ? () => fetchFromAPI('empresas_relacionadas') : undefined}
             fields={[
               { key: 'cnpj_relacionado', label: 'CNPJ', type: 'text', required: true },
-              { key: 'razao_social', label: 'Razão Social', type: 'text', required: true },
-              { key: 'tipo_relacionamento', label: 'Tipo de Relacionamento', type: 'select', 
+              { key: 'razao_social', label: 'Razão Social', type: 'text', required: true, width: 'half' },
+              { key: 'tipo_relacionamento', label: 'Tipo', type: 'select', 
                 options: ['grupo', 'filial', 'matriz', 'sociedade'] },
-              { key: 'participacao', label: 'Participação (%)', type: 'number' },
-              { key: 'observacoes', label: 'Observações', type: 'text' }
+              { key: 'participacao', label: 'Part.%', type: 'number' },
+              { key: 'observacoes', label: 'Obs', type: 'text', width: 'half' }
             ]}
-            displayFields={['razao_social', 'cnpj_relacionado', 'tipo_relacionamento', 'participacao']}
+            displayFields={['razao_social', 'cnpj_relacionado', 'tipo_relacionamento']}
+          />
+        </Card>
+
+        {/* Processos Judiciais - SIMPLIFICADO */}
+        <Card>
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-gray-800">
+              ⚖️ Processos Judiciais e Informações Relevantes
+            </label>
+            <textarea
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[300px] resize-y font-mono"
+              value={processosTexto}
+              onChange={e => {
+                setProcessosTexto(e.target.value);
+                saveProcessosTexto(e.target.value);
+              }}
+              placeholder="Cole aqui todos os processos e informações relevantes encontradas...&#10;&#10;Exemplo:&#10;PROCESSOS: 13&#10;&#10;Processo 1: ...&#10;Processo 2: ...&#10;&#10;INFORMAÇÕES:&#10;- Detalhes importantes&#10;- Endereços relacionados&#10;- Contatos úteis"
+            />
+            <p className="text-xs text-gray-500">Salva automaticamente ao digitar</p>
+          </div>
+        </Card>
+
+        {/* QSA com Botão de Detalhes */}
+        <Card>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between pb-2 border-b border-gray-200">
+              <h3 className="text-base font-semibold text-gray-900">
+                QSA - Quadro de Sócios e Administradores
+              </h3>
+              <div className="flex gap-2">
+                {cedente.cnpj && (
+                  <button
+                    onClick={() => fetchFromAPI('qsa')}
+                    className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded border border-gray-300"
+                  >
+                    🔄 API
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <CompactDataManager
+              title=""
+              entityId={id}
+              tableName="cedentes_qsa"
+              items={qsa}
+              onRefresh={loadQSA}
+              fields={[
+                { key: 'cpf', label: 'CPF', type: 'text', placeholder: '000.000.000-00' },
+                { key: 'nome', label: 'Nome', type: 'text', required: true, placeholder: 'Nome completo', width: 'half' },
+                { key: 'qualificacao', label: 'Qualificação', type: 'text', placeholder: 'Administrador, Sócio' },
+                { key: 'participacao', label: 'Part.%', type: 'number', placeholder: '0-100' },
+                { key: 'data_entrada', label: 'Data Entrada', type: 'date' },
+                { key: 'observacoes', label: 'OBS (Detalhes, endereços, telefones, processos, etc.)', type: 'textarea', placeholder: 'Informações completas desta pessoa...', width: 'full' }
+              ]}
+              displayFields={['nome', 'cpf', 'qualificacao', 'participacao']}
+              showDetailsButton={true}
+            />
+          </div>
+        </Card>
+
+        {/* Endereços */}
+        <Card>
+          <CompactDataManager
+            title="Endereços"
+            entityId={id}
+            tableName="cedentes_enderecos"
+            items={enderecos}
+            onRefresh={loadEnderecos}
+            onFetchFromAPI={cedente.cnpj ? () => fetchFromAPI('enderecos') : undefined}
+            fields={[
+              { key: 'endereco', label: 'Endereço', type: 'text', required: true, width: 'full' },
+              { key: 'tipo', label: 'Tipo', type: 'select', options: ['comercial', 'residencial', 'correspondencia'] },
+              { key: 'cep', label: 'CEP', type: 'text' },
+              { key: 'cidade', label: 'Cidade', type: 'text' },
+              { key: 'estado', label: 'UF', type: 'text' }
+            ]}
+            displayFields={['endereco', 'tipo', 'cidade']}
+          />
+        </Card>
+
+        {/* Telefones */}
+        <Card>
+          <CompactDataManager
+            title="Telefones"
+            entityId={id}
+            tableName="cedentes_telefones"
+            items={telefones}
+            onRefresh={loadTelefones}
+            onFetchFromAPI={cedente.cnpj ? () => fetchFromAPI('telefones') : undefined}
+            fields={[
+              { key: 'telefone', label: 'Telefone', type: 'tel', required: true },
+              { key: 'tipo', label: 'Tipo', type: 'select', options: ['celular', 'fixo', 'comercial'] },
+              { key: 'nome_contato', label: 'Contato', type: 'text' }
+            ]}
+            displayFields={['telefone', 'tipo', 'nome_contato']}
+          />
+        </Card>
+
+        {/* E-mails */}
+        <Card>
+          <CompactDataManager
+            title="E-mails"
+            entityId={id}
+            tableName="cedentes_emails"
+            items={emails}
+            onRefresh={loadEmails}
+            onFetchFromAPI={cedente.cnpj ? () => fetchFromAPI('emails') : undefined}
+            fields={[
+              { key: 'email', label: 'E-mail', type: 'email', required: true, width: 'half' },
+              { key: 'tipo', label: 'Tipo', type: 'select', options: ['comercial', 'pessoal', 'financeiro'] },
+              { key: 'nome_contato', label: 'Contato', type: 'text' }
+            ]}
+            displayFields={['email', 'tipo', 'nome_contato']}
+          />
+        </Card>
+
+        {/* Pessoas Ligadas */}
+        <Card>
+          <CompactDataManager
+            title="Pessoas Ligadas"
+            entityId={id}
+            tableName="cedentes_pessoas_ligadas"
+            items={pessoasLigadas}
+            onRefresh={loadPessoasLigadas}
+            onFetchFromAPI={cedente.cnpj ? () => fetchFromAPI('pessoas_ligadas') : undefined}
+            fields={[
+              { key: 'cpf', label: 'CPF', type: 'text' },
+              { key: 'nome', label: 'Nome', type: 'text', required: true, width: 'half' },
+              { key: 'tipo_relacionamento', label: 'Relacionamento', type: 'select', 
+                options: ['pai', 'mae', 'conjuge', 'filho', 'irmao', 'socio', 'administrador', 'outro'] },
+              { key: 'observacoes', label: 'Obs', type: 'text', width: 'half' }
+            ]}
+            displayFields={['nome', 'cpf', 'tipo_relacionamento']}
+          />
+        </Card>
+
+        {/* Empresas Ligadas */}
+        <Card>
+          <CompactDataManager
+            title="Empresas Ligadas"
+            entityId={id}
+            tableName="cedentes_empresas_ligadas"
+            items={empresasLigadas}
+            onRefresh={loadEmpresasLigadas}
+            onFetchFromAPI={cedente.cnpj ? () => fetchFromAPI('empresas_relacionadas') : undefined}
+            fields={[
+              { key: 'cnpj_relacionado', label: 'CNPJ', type: 'text', required: true },
+              { key: 'razao_social', label: 'Razão Social', type: 'text', required: true, width: 'half' },
+              { key: 'tipo_relacionamento', label: 'Tipo', type: 'select', 
+                options: ['grupo', 'filial', 'matriz', 'sociedade'] },
+              { key: 'participacao', label: 'Part.%', type: 'number' },
+              { key: 'observacoes', label: 'Obs', type: 'text', width: 'half' }
+            ]}
+            displayFields={['razao_social', 'cnpj_relacionado', 'tipo_relacionamento']}
           />
         </Card>
       </div>

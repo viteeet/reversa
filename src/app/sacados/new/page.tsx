@@ -1,14 +1,24 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { FormEvent, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { FormEvent, useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { formatCpfCnpj } from '@/lib/format';
-import { useState as useClientState } from 'react';
+
+type Cedente = {
+  id: string;
+  nome: string;
+  razao_social: string | null;
+};
 
 export default function NewSacadoPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const cedente_id_param = searchParams.get('cedente_id');
+  
+  const [cedentes, setCedentes] = useState<Cedente[]>([]);
   const [form, setForm] = useState({
+    cedente_id: cedente_id_param || '',
     cnpj: '', razao_social: '', nome_fantasia: '',
     grupo: '', endereco_receita: '', telefone_receita: '', email_receita: '',
     porte: '', natureza_juridica: '', situacao: '', data_abertura: '', capital_social: '',
@@ -17,16 +27,40 @@ export default function NewSacadoPage() {
   });
   const [pending, setPending] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [loadingCnpj, setLoadingCnpj] = useClientState(false);
+  const [loadingCnpj, setLoadingCnpj] = useState(false);
+
+  useEffect(() => {
+    loadCedentes();
+  }, []);
+
+  async function loadCedentes() {
+    const { data, error } = await supabase
+      .from('cedentes')
+      .select('id, nome, razao_social')
+      .order('nome', { ascending: true });
+    
+    if (error) {
+      console.error('Erro ao carregar cedentes:', error);
+    } else {
+      setCedentes(data || []);
+    }
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    
+    if (!form.cedente_id) {
+      setErr('Selecione um cedente para este sacado');
+      return;
+    }
+    
     setPending(true); setErr(null);
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setErr('Não autenticado'); setPending(false); return; }
 
     const { error } = await supabase.from('sacados').insert({
+      cedente_id: form.cedente_id,
       cnpj: form.cnpj.replace(/\D+/g, ''),
       razao_social: form.razao_social.trim(),
       nome_fantasia: form.nome_fantasia || null,
@@ -48,27 +82,75 @@ export default function NewSacadoPage() {
     });
 
     if (error) setErr(error.message);
-    else router.replace('/sacados');
+    else {
+      // Redireciona para a página do cedente se veio de lá, senão para a lista de sacados
+      if (cedente_id_param) {
+        router.replace(`/cedentes/${cedente_id_param}?tab=sacados`);
+      } else {
+        router.replace('/sacados');
+      }
+    }
     setPending(false);
   }
 
   return (
     <main className="min-h-screen p-6">
       <div className="container max-w-xl space-y-4">
-        <h1 className="text-2xl font-semibold">Novo sacado</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-semibold text-[#0369a1]">Novo Sacado (Devedor)</h1>
+          <button type="button" onClick={() => router.back()} className="text-[#64748b] hover:text-[#0369a1]">
+            Voltar
+          </button>
+        </div>
 
-        <form onSubmit={handleSubmit} className="space-y-3 card p-6">
+        <div className="bg-[#fff7ed] border border-[#fed7aa] rounded-lg p-4">
+          <p className="text-sm text-[#9a3412]">
+            <strong>Atenção:</strong> Cada sacado deve pertencer a um cedente. Selecione o cedente que está cobrando este devedor.
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4 bg-white rounded-lg shadow p-6">
+          {/* Seleção de Cedente */}
+          <div>
+            <label className="block text-sm font-medium text-[#1e293b] mb-1">
+              Cedente (Cliente)*
+            </label>
+            <select
+              className="w-full px-4 py-2 border border-[#cbd5e1] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0369a1] bg-white text-[#1e293b]"
+              value={form.cedente_id}
+              onChange={(e) => setForm({ ...form, cedente_id: e.target.value })}
+              required
+              disabled={!!cedente_id_param}
+            >
+              <option value="">Selecione o cedente...</option>
+              {cedentes.map(cedente => (
+                <option key={cedente.id} value={cedente.id}>
+                  {cedente.nome} {cedente.razao_social ? `(${cedente.razao_social})` : ''}
+                </option>
+              ))}
+            </select>
+            {cedentes.length === 0 && (
+              <p className="text-sm text-[#94a3b8] mt-1">
+                Nenhum cedente cadastrado. <a href="/cedentes" className="text-[#0369a1] hover:underline">Cadastre um cedente primeiro</a>.
+              </p>
+            )}
+          </div>
+
+          <div className="border-t border-[#e2e8f0] my-4"></div>
+
           <div className="flex items-end gap-2">
             <div className="flex-1">
-              <label className="block text-sm muted">CPF/CNPJ*</label>
+              <label className="block text-sm font-medium text-[#1e293b] mb-1">CPF/CNPJ*</label>
               <input
-                className="input"
+                className="w-full px-4 py-2 border border-[#cbd5e1] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0369a1]"
                 value={formatCpfCnpj(form.cnpj)}
                 onChange={(e) => setForm({ ...form, cnpj: formatCpfCnpj(e.target.value) })}
                 required
               />
             </div>
-            <button type="button" className="btn h-10" disabled={loadingCnpj}
+            <button type="button" 
+              className="px-4 py-2 bg-[#64748b] text-white rounded-lg hover:bg-[#475569] disabled:opacity-50"
+              disabled={loadingCnpj}
               onClick={async () => {
                 try {
                   setLoadingCnpj(true); setErr(null);
@@ -116,7 +198,7 @@ export default function NewSacadoPage() {
                   setLoadingCnpj(false);
                 }
               }}>
-              {loadingCnpj ? 'Buscando...' : 'Preencher pela Receita'}
+              {loadingCnpj ? 'Buscando...' : 'Consultar Receita'}
             </button>
           </div>
           {[
@@ -128,9 +210,9 @@ export default function NewSacadoPage() {
             ['email_receita','E-mail (Receita)'],
           ].map(([k, label]) => (
             <div key={k}>
-              <label className="block text-sm muted">{label}</label>
+              <label className="block text-sm font-medium text-[#1e293b] mb-1">{label}</label>
               <input
-                className="input"
+                className="w-full px-4 py-2 border border-[#cbd5e1] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0369a1]"
                 value={(form as Record<string, string | boolean>)[k]?.toString() ?? ''}
                 onChange={e => setForm({ ...form, [k]: e.target.value })}
                 required={k === 'razao_social'}
@@ -138,13 +220,16 @@ export default function NewSacadoPage() {
             </div>
           ))}
 
-          {err && <p className="text-sm text-red-600">{err}</p>}
-          <div className="flex gap-2">
-            <button disabled={pending} className="btn btn-primary">
-              {pending ? 'Salvando...' : 'Salvar'}
+          {err && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded p-2">{err}</p>}
+          <div className="flex gap-2 pt-4">
+            <button 
+              disabled={pending || cedentes.length === 0 || !form.cedente_id} 
+              className="flex-1 px-4 py-2 bg-[#0369a1] text-white rounded-lg hover:bg-[#075985] disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {pending ? 'Salvando...' : 'Salvar Sacado'}
             </button>
-            <button type="button" onClick={() => router.back()} className="btn">
-              Voltar
+            <button type="button" onClick={() => router.back()} className="px-4 py-2 border border-[#cbd5e1] rounded-lg hover:bg-[#f8fafc]">
+              Cancelar
             </button>
           </div>
         </form>

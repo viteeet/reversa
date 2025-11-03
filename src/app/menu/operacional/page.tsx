@@ -18,67 +18,72 @@ export default function MenuOperacionalPage() {
   }, [router]);
 
   return (
-    <main className="min-h-screen p-6 bg-white">
-      <div className="container max-w-6xl space-y-6">
+    <main className="min-h-screen p-6 bg-gradient-to-br from-slate-50 to-blue-50">
+      <div className="container max-w-5xl mx-auto space-y-8">
         <header className="flex items-center gap-4">
           <button 
             onClick={() => router.back()}
-            className="p-2 rounded-lg border border-[#cbd5e1] hover:bg-[#f0f7ff] transition-colors"
+            className="w-12 h-12 flex items-center justify-center rounded-xl bg-white border border-gray-200 hover:border-[#0369a1] hover:bg-blue-50 transition-all shadow-sm"
           >
-            ←
+            <span className="text-xl text-[#0369a1]">←</span>
           </button>
           <div>
-            <h1 className="text-3xl font-bold text-[#0369a1]">Operacional</h1>
-            <p className="text-[#64748b]">Gestão de sacados, cedentes e clientes</p>
+            <h1 className="text-4xl font-bold text-[#0369a1]">Operacional</h1>
+            <p className="text-[#64748b] text-lg">Gestão de Cedentes e seus Sacados</p>
           </div>
         </header>
 
+        {/* Layout em duas colunas: Cedentes (esquerda) | Info (direita) */}
         <div className="grid gap-6 md:grid-cols-2">
-          {/* Sacados */}
-          <Link href="/sacados" className="group">
-            <Card hover className="h-full">
-              <div className="p-6">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="text-3xl">👥</div>
-                  <div>
-                    <h2 className="text-xl font-bold text-[#0369a1]">Sacados</h2>
-                    <p className="text-[#64748b] text-sm">Gestão de sacados</p>
+          {/* Card Principal - Cedentes */}
+          <Link href="/cedentes" className="block group">
+            <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-200 transform hover:-translate-y-1 border border-gray-100">
+              <div className="p-7">
+                <div className="flex items-start gap-5">
+                  <div className="text-5xl">🏢</div>
+                  <div className="flex-1 space-y-3">
+                    <div>
+                      <h2 className="text-2xl font-bold text-[#0369a1] mb-1">Cedentes</h2>
+                      <p className="text-[#64748b]">Gestão completa de cedentes</p>
+                    </div>
+                    <p className="text-[#64748b] leading-relaxed text-sm">
+                      Cadastro, edição e visualização de cedentes. Consulta de CNPJ, dados complementares e histórico.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <span className="px-2.5 py-1 bg-blue-50 text-[#0369a1] rounded-md text-xs font-semibold border border-blue-100">📋 Cadastro</span>
+                      <span className="px-2.5 py-1 bg-blue-50 text-[#0369a1] rounded-md text-xs font-semibold border border-blue-100">👥 Sacados</span>
+                      <span className="px-2.5 py-1 bg-blue-50 text-[#0369a1] rounded-md text-xs font-semibold border border-blue-100">🔍 CNPJ</span>
+                      <span className="px-2.5 py-1 bg-blue-50 text-[#0369a1] rounded-md text-xs font-semibold border border-blue-100">📊 Dados</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-[#0369a1] font-semibold pt-1">
+                      <span>Acessar</span>
+                      <span className="transform group-hover:translate-x-1 transition-transform">→</span>
+                    </div>
                   </div>
                 </div>
-                <p className="text-[#64748b] mb-4">
-                  Cadastro, edição e visualização de sacados. Consulta de CNPJ, dados complementares e histórico.
-                </p>
-                <div className="text-[#0369a1] font-medium group-hover:text-[#075985]">
-                  Acessar →
-                </div>
               </div>
-            </Card>
+            </div>
           </Link>
 
-          {/* Cedentes */}
-          <Link href="/cedentes" className="group">
-            <Card hover className="h-full">
-              <div className="p-6">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="text-3xl">🏢</div>
-                  <div>
-                    <h2 className="text-xl font-bold text-[#0369a1]">Cedentes</h2>
-                    <p className="text-[#64748b] text-sm">Gestão de cedentes</p>
-                  </div>
-                </div>
-                <p className="text-[#64748b] mb-4">
-                  Cadastro, edição e visualização de cedentes. Consulta de CNPJ, dados complementares e histórico.
+          {/* Info Box */}
+          <div className="bg-white rounded-xl border border-blue-100 p-6 shadow-sm">
+            <div className="flex items-start gap-3">
+              <div className="text-2xl">💡</div>
+              <div className="space-y-2">
+                <h3 className="text-base font-bold text-[#0369a1]">Estrutura do Sistema</h3>
+                <p className="text-[#64748b] leading-relaxed text-sm">
+                  <strong className="text-[#0369a1]">Cedentes</strong> são os clientes principais. Cada cedente pode ter múltiplos <strong className="text-[#0369a1]">Sacados</strong> associados.
                 </p>
-                <div className="text-[#0369a1] font-medium group-hover:text-[#075985]">
-                  Acessar →
-                </div>
+                <p className="text-[#64748b] leading-relaxed text-sm">
+                  <span className="text-[#0369a1]">→</span> Acesse um cedente para gerenciar seus sacados.
+                </p>
               </div>
-            </Card>
-          </Link>
+            </div>
+          </div>
         </div>
 
-        {/* Relatórios de Atividades */}
-        <RelatoriosExport />
+  {/* Relatórios de Atividades */}
+  <RelatoriosExport />
 
       </div>
     </main>

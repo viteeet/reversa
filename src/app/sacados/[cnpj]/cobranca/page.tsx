@@ -36,6 +36,7 @@ export default function CobrancaReportPage() {
   const [pessoasLigadas, setPessoasLigadas] = useState<any[]>([]);
   const [empresasLigadas, setEmpresasLigadas] = useState<any[]>([]);
   const [processos, setProcessos] = useState<any[]>([]);
+  const [foundData, setFoundData] = useState<any[]>([]);
 
   useEffect(() => {
     loadData();
@@ -53,14 +54,15 @@ export default function CobrancaReportPage() {
     setSacado(sacadoData);
 
     // Carrega dados complementares
-    const [qsaData, enderecosData, telefonesData, emailsData, pessoasData, empresasData, processosData] = await Promise.all([
+    const [qsaData, enderecosData, telefonesData, emailsData, pessoasData, empresasData, processosData, foundDataData] = await Promise.all([
       supabase.from('sacados_qsa').select('*').eq('sacado_cnpj', cnpj).eq('ativo', true),
       supabase.from('sacados_enderecos').select('*').eq('sacado_cnpj', cnpj).eq('ativo', true),
       supabase.from('sacados_telefones').select('*').eq('sacado_cnpj', cnpj).eq('ativo', true),
       supabase.from('sacados_emails').select('*').eq('sacado_cnpj', cnpj).eq('ativo', true),
       supabase.from('sacados_pessoas_ligadas').select('*').eq('sacado_cnpj', cnpj).eq('ativo', true),
       supabase.from('sacados_empresas_ligadas').select('*').eq('sacado_cnpj', cnpj).eq('ativo', true),
-      supabase.from('sacados_processos').select('*').eq('sacado_cnpj', cnpj).eq('ativo', true)
+      supabase.from('sacados_processos').select('*').eq('sacado_cnpj', cnpj).eq('ativo', true),
+      supabase.from('sacados_dados_encontrados').select('*').eq('sacado_cnpj', cnpj).eq('ativo', true).order('tipo', { ascending: true })
     ]);
 
     setQsa(qsaData.data || []);
@@ -70,6 +72,7 @@ export default function CobrancaReportPage() {
     setPessoasLigadas(pessoasData.data || []);
     setEmpresasLigadas(empresasData.data || []);
     setProcessos(processosData.data || []);
+    setFoundData(foundDataData.data || []);
     
     setLoading(false);
   }
@@ -191,12 +194,19 @@ export default function CobrancaReportPage() {
               ) : (
                 <div className="space-y-3">
                   {qsa.map((socio, idx) => (
-                    <div key={idx} className="grid gap-2 border-b pb-2">
-                      <div><span className="font-semibold">Nome:</span> {socio.nome}</div>
-                      {socio.cpf && <div><span className="font-semibold">CPF:</span> {socio.cpf}</div>}
-                      {socio.qualificacao && <div><span className="font-semibold">Qualificação:</span> {socio.qualificacao}</div>}
-                      {socio.participacao && <div><span className="font-semibold">Participação:</span> {socio.participacao}%</div>}
-                      {socio.data_entrada && <div><span className="font-semibold">Data de Entrada:</span> {new Date(socio.data_entrada).toLocaleDateString('pt-BR')}</div>}
+                    <div key={idx} className="border-b pb-2">
+                      <div className="font-semibold text-slate-800">{socio.nome}</div>
+                      <div className="grid gap-1 text-sm mt-1">
+                        {socio.cpf && <div><span className="font-medium">CPF:</span> {socio.cpf}</div>}
+                        {socio.qualificacao && <div><span className="font-medium">Qualificação:</span> {socio.qualificacao}</div>}
+                        {socio.participacao && <div><span className="font-medium">Part.:</span> {socio.participacao}%</div>}
+                        {socio.data_entrada && <div><span className="font-medium">Entrada:</span> {new Date(socio.data_entrada).toLocaleDateString('pt-BR')}</div>}
+                        {socio.observacoes && (
+                          <div className="mt-1 p-2 bg-slate-50 rounded text-xs">
+                            <span className="font-medium">OBS:</span> {socio.observacoes}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -365,6 +375,58 @@ export default function CobrancaReportPage() {
                 </div>
               )}
             </div>
+
+            {/* Dados Encontrados Manualmente */}
+            {foundData.length > 0 && (
+              <div className="border-t border-[#e2e8f0] pt-6 mt-6">
+                <h3 className="text-xl font-semibold text-[#0369a1] mb-4">Dados Encontrados (Pesquisa Manual)</h3>
+                <div className="space-y-4">
+                  {['telefone', 'email', 'endereco', 'pessoa', 'empresa', 'processo', 'outros'].map(tipo => {
+                    const itemsDoTipo = foundData.filter(item => item.tipo === tipo);
+                    if (itemsDoTipo.length === 0) return null;
+
+                    const tipoLabels: Record<string, string> = {
+                      telefone: '📞 Telefones Encontrados',
+                      email: '📧 Emails Encontrados',
+                      endereco: '📍 Endereços Encontrados',
+                      pessoa: '👤 Pessoas Relacionadas',
+                      empresa: '🏢 Empresas Relacionadas',
+                      processo: '⚖️ Processos Encontrados',
+                      outros: '📝 Outras Informações'
+                    };
+
+                    return (
+                      <div key={tipo} className="bg-[#f8fafc] rounded-lg p-4 border border-[#e2e8f0]">
+                        <h4 className="font-semibold text-[#0369a1] mb-3">{tipoLabels[tipo]}</h4>
+                        <div className="space-y-3">
+                          {itemsDoTipo.map((item, idx) => (
+                            <div key={idx} className="bg-white rounded p-3 border border-[#e2e8f0]">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="font-medium text-[#1e293b] text-sm">{item.titulo}</span>
+                                    {item.fonte && <Badge variant="info" size="sm">{item.fonte}</Badge>}
+                                  </div>
+                                  <p className="text-sm text-[#64748b] break-words">{item.conteudo}</p>
+                                  {item.observacoes && (
+                                    <p className="text-xs text-[#94a3b8] mt-1 italic">Obs: {item.observacoes}</p>
+                                  )}
+                                  {item.data_encontrado && (
+                                    <p className="text-xs text-[#94a3b8] mt-1">
+                                      Encontrado em: {new Date(item.data_encontrado).toLocaleDateString('pt-BR')}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </Card>
       </div>

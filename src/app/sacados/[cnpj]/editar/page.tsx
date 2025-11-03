@@ -251,12 +251,14 @@ export default function EditarSacadoPage() {
             items={qsa}
             onRefresh={loadQSA}
             onFetchFromAPI={() => fetchFromAPI('qsa')}
+            showDetailsButton={true}
             fields={[
               { key: 'cpf', label: 'CPF', type: 'text' },
               { key: 'nome', label: 'Nome', type: 'text', required: true },
               { key: 'qualificacao', label: 'Qualificação', type: 'text' },
               { key: 'participacao', label: 'Participação (%)', type: 'number' },
-              { key: 'data_entrada', label: 'Data de Entrada', type: 'date' }
+              { key: 'data_entrada', label: 'Data de Entrada', type: 'date' },
+              { key: 'observacoes', label: 'OBS (Informações Detalhadas)', type: 'textarea' }
             ]}
             displayFields={['nome', 'cpf', 'qualificacao', 'participacao']}
           />
