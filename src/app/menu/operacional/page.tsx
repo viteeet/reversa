@@ -4,8 +4,6 @@ import { useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import Card from '@/components/ui/Card';
-import RelatoriosExport from '@/components/relatorios/RelatoriosExport';
 
 export default function MenuOperacionalPage() {
   const router = useRouter();
@@ -18,73 +16,85 @@ export default function MenuOperacionalPage() {
   }, [router]);
 
   return (
-    <main className="min-h-screen p-6 bg-gradient-to-br from-slate-50 to-blue-50">
-      <div className="container max-w-5xl mx-auto space-y-8">
-        <header className="flex items-center gap-4">
+    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      <div className="container max-w-6xl mx-auto px-4 py-8">
+        {/* Header com botão de voltar */}
+        <header className="mb-12">
           <button 
             onClick={() => router.back()}
-            className="w-12 h-12 flex items-center justify-center rounded-xl bg-white border border-gray-200 hover:border-[#0369a1] hover:bg-blue-50 transition-all shadow-sm"
+            className="inline-flex items-center gap-2 px-4 py-2 mb-6 rounded-lg bg-white border border-gray-200 hover:border-[#0369a1] hover:bg-blue-50 transition-all shadow-sm hover:shadow-md text-[#0369a1] font-medium"
           >
-            <span className="text-xl text-[#0369a1]">←</span>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Voltar
           </button>
           <div>
-            <h1 className="text-4xl font-bold text-[#0369a1]">Operacional</h1>
-            <p className="text-[#64748b] text-lg">Gestão de Cedentes e seus Sacados</p>
+            <h1 className="text-5xl font-bold text-[#0369a1] mb-2">Menu Operacional</h1>
+            <p className="text-[#64748b] text-xl">Gestão de Cedentes e seus Sacados</p>
           </div>
         </header>
 
-        {/* Layout em duas colunas: Cedentes (esquerda) | Info (direita) */}
-        <div className="grid gap-6 md:grid-cols-2">
+        {/* Menu de Opções */}
+        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
           {/* Card Principal - Cedentes */}
-          <Link href="/cedentes" className="block group">
-            <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-200 transform hover:-translate-y-1 border border-gray-100">
-              <div className="p-7">
-                <div className="flex items-start gap-5">
-                  <div className="text-5xl">🏢</div>
-                  <div className="flex-1 space-y-3">
-                    <div>
-                      <h2 className="text-2xl font-bold text-[#0369a1] mb-1">Cedentes</h2>
-                      <p className="text-[#64748b]">Gestão completa de cedentes</p>
-                    </div>
-                    <p className="text-[#64748b] leading-relaxed text-sm">
-                      Cadastro, edição e visualização de cedentes. Consulta de CNPJ, dados complementares e histórico.
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      <span className="px-2.5 py-1 bg-blue-50 text-[#0369a1] rounded-md text-xs font-semibold border border-blue-100">📋 Cadastro</span>
-                      <span className="px-2.5 py-1 bg-blue-50 text-[#0369a1] rounded-md text-xs font-semibold border border-blue-100">👥 Sacados</span>
-                      <span className="px-2.5 py-1 bg-blue-50 text-[#0369a1] rounded-md text-xs font-semibold border border-blue-100">🔍 CNPJ</span>
-                      <span className="px-2.5 py-1 bg-blue-50 text-[#0369a1] rounded-md text-xs font-semibold border border-blue-100">📊 Dados</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-[#0369a1] font-semibold pt-1">
-                      <span>Acessar</span>
-                      <span className="transform group-hover:translate-x-1 transition-transform">→</span>
-                    </div>
+          <Link href="/cedentes" className="group">
+            <div className="relative bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border border-gray-100 overflow-hidden">
+              {/* Efeito de gradiente no hover */}
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-indigo-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              
+              <div className="relative p-8">
+                {/* Ícone */}
+                <div className="w-16 h-16 bg-gradient-to-br from-[#0369a1] to-[#0284c7] rounded-xl flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform duration-300">
+                  <span className="text-3xl">🏢</span>
+                </div>
+                
+                {/* Conteúdo */}
+                <div className="space-y-4">
+                  <div>
+                    <h2 className="text-2xl font-bold text-[#0369a1] mb-2">Cedentes</h2>
+                    <p className="text-[#64748b] text-base">Gestão completa de cedentes e seus sacados</p>
+                  </div>
+                  
+                  <p className="text-[#64748b] leading-relaxed text-sm">
+                    Cadastro, edição e visualização de cedentes. Consulta de CNPJ, dados complementares e histórico completo.
+                  </p>
+                  
+                  {/* Badges */}
+                  <div className="flex flex-wrap gap-2 pt-2">
+                    <span className="px-3 py-1 bg-blue-50 text-[#0369a1] rounded-lg text-xs font-semibold border border-blue-100">📋 Cadastro</span>
+                    <span className="px-3 py-1 bg-blue-50 text-[#0369a1] rounded-lg text-xs font-semibold border border-blue-100">👥 Sacados</span>
+                    <span className="px-3 py-1 bg-blue-50 text-[#0369a1] rounded-lg text-xs font-semibold border border-blue-100">🔍 CNPJ</span>
+                    <span className="px-3 py-1 bg-blue-50 text-[#0369a1] rounded-lg text-xs font-semibold border border-blue-100">📊 Dados</span>
+                  </div>
+                  
+                  {/* Botão de ação */}
+                  <div className="flex items-center gap-2 text-[#0369a1] font-semibold pt-4 border-t border-gray-100">
+                    <span>Acessar Cedentes</span>
+                    <svg className="w-5 h-5 transform group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                    </svg>
                   </div>
                 </div>
               </div>
             </div>
           </Link>
+        </div>
 
-          {/* Info Box */}
-          <div className="bg-white rounded-xl border border-blue-100 p-6 shadow-sm">
-            <div className="flex items-start gap-3">
-              <div className="text-2xl">💡</div>
-              <div className="space-y-2">
-                <h3 className="text-base font-bold text-[#0369a1]">Estrutura do Sistema</h3>
-                <p className="text-[#64748b] leading-relaxed text-sm">
-                  <strong className="text-[#0369a1]">Cedentes</strong> são os clientes principais. Cada cedente pode ter múltiplos <strong className="text-[#0369a1]">Sacados</strong> associados.
-                </p>
-                <p className="text-[#64748b] leading-relaxed text-sm">
-                  <span className="text-[#0369a1]">→</span> Acesse um cedente para gerenciar seus sacados.
-                </p>
-              </div>
+        {/* Informação adicional */}
+        <div className="mt-12 bg-white rounded-2xl border border-blue-100 p-6 shadow-sm">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
+              <span className="text-2xl">💡</span>
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-lg font-bold text-[#0369a1]">Sobre o Sistema</h3>
+              <p className="text-[#64748b] leading-relaxed">
+                <strong className="text-[#0369a1]">Cedentes</strong> são os clientes principais do sistema. Cada cedente pode ter múltiplos <strong className="text-[#0369a1]">Sacados</strong> associados, permitindo uma gestão completa e organizada de relacionamentos comerciais.
+              </p>
             </div>
           </div>
         </div>
-
-  {/* Relatórios de Atividades */}
-  <RelatoriosExport />
-
       </div>
     </main>
   );
