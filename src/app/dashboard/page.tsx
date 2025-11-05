@@ -150,82 +150,108 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Menu Principal - Acesso Rápido */}
+        {/* Menu Principal - Organizado por Categorias */}
         <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-          <h3 className="text-xl font-bold text-[#0369a1] mb-4 flex items-center gap-2">
-            <span className="text-2xl">⚡</span>
-            Menu Principal
-          </h3>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <Link href="/menu/operacional" className="group flex items-center gap-3 p-4 rounded-xl hover:bg-blue-50 transition-all border border-transparent hover:border-blue-200">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                <span className="text-xl">🏢</span>
-              </div>
-              <div>
-                <p className="font-semibold text-[#0369a1]">Operacional</p>
-                <p className="text-xs text-[#64748b]">Cedentes e Sacados</p>
-              </div>
-            </Link>
+          <h3 className="text-xl font-bold text-[#0369a1] mb-6">Menu Principal</h3>
+          
+          <div className="space-y-6">
+            {/* Categoria Operacional */}
+            <div>
+              <h4 className="text-sm font-semibold text-[#64748b] uppercase tracking-wide mb-3">Operacional</h4>
+              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                <Link href="/menu/operacional" className="group flex items-center gap-3 p-4 rounded-xl hover:bg-blue-50 transition-all border border-transparent hover:border-blue-200">
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <span className="text-xl">🏢</span>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-[#0369a1]">Menu Operacional</p>
+                    <p className="text-xs text-[#64748b]">Cedentes e Sacados</p>
+                  </div>
+                </Link>
 
-            <Link href="/menu/financeiro" className="group flex items-center gap-3 p-4 rounded-xl hover:bg-green-50 transition-all border border-transparent hover:border-green-200">
-              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                <span className="text-xl">💰</span>
-              </div>
-              <div>
-                <p className="font-semibold text-[#0369a1]">Financeiro</p>
-                <p className="text-xs text-[#64748b]">Contas e Relatórios</p>
-              </div>
-            </Link>
+                <Link href="/cedentes" className="group flex items-center gap-3 p-4 rounded-xl hover:bg-blue-50 transition-all border border-transparent hover:border-blue-200">
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <span className="text-xl">🏢</span>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-[#0369a1]">Cedentes</p>
+                    <p className="text-xs text-[#64748b]">Gerenciar cadastros</p>
+                  </div>
+                </Link>
 
-            <Link href="/menu/configuracoes" className="group flex items-center gap-3 p-4 rounded-xl hover:bg-purple-50 transition-all border border-transparent hover:border-purple-200">
-              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                <span className="text-xl">⚙️</span>
+                <Link href="/sacados" className="group flex items-center gap-3 p-4 rounded-xl hover:bg-indigo-50 transition-all border border-transparent hover:border-indigo-200">
+                  <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <span className="text-xl">👥</span>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-[#0369a1]">Sacados</p>
+                    <p className="text-xs text-[#64748b]">Visualizar todos</p>
+                  </div>
+                </Link>
               </div>
-              <div>
-                <p className="font-semibold text-[#0369a1]">Configurações</p>
-                <p className="text-xs text-[#64748b]">Sistema e Parâmetros</p>
-              </div>
-            </Link>
+            </div>
 
-            <Link href="/cedentes" className="group flex items-center gap-3 p-4 rounded-xl hover:bg-blue-50 transition-all border border-transparent hover:border-blue-200">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                <span className="text-xl">🏢</span>
-              </div>
-              <div>
-                <p className="font-semibold text-[#0369a1]">Cedentes</p>
-                <p className="text-xs text-[#64748b]">Gerenciar cadastros</p>
-              </div>
-            </Link>
+            {/* Categoria Financeiro */}
+            <div>
+              <h4 className="text-sm font-semibold text-[#64748b] uppercase tracking-wide mb-3">Financeiro</h4>
+              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                <Link href="/menu/financeiro" className="group flex items-center gap-3 p-4 rounded-xl hover:bg-green-50 transition-all border border-transparent hover:border-green-200">
+                  <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <span className="text-xl">💰</span>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-[#0369a1]">Menu Financeiro</p>
+                    <p className="text-xs text-[#64748b]">Contas e Relatórios</p>
+                  </div>
+                </Link>
 
-            <Link href="/sacados" className="group flex items-center gap-3 p-4 rounded-xl hover:bg-indigo-50 transition-all border border-transparent hover:border-indigo-200">
-              <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                <span className="text-xl">👥</span>
-              </div>
-              <div>
-                <p className="font-semibold text-[#0369a1]">Sacados</p>
-                <p className="text-xs text-[#64748b]">Visualizar todos</p>
-              </div>
-            </Link>
+                <Link href="/financeiro/a-receber" className="group flex items-center gap-3 p-4 rounded-xl hover:bg-green-50 transition-all border border-transparent hover:border-green-200">
+                  <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <span className="text-xl">💰</span>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-[#0369a1]">A Receber</p>
+                    <p className="text-xs text-[#64748b]">Contas pendentes</p>
+                  </div>
+                </Link>
 
-            <Link href="/financeiro/a-receber" className="group flex items-center gap-3 p-4 rounded-xl hover:bg-green-50 transition-all border border-transparent hover:border-green-200">
-              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                <span className="text-xl">💰</span>
-              </div>
-              <div>
-                <p className="font-semibold text-[#0369a1]">A Receber</p>
-                <p className="text-xs text-[#64748b]">Contas pendentes</p>
-              </div>
-            </Link>
+                <Link href="/financeiro/a-pagar" className="group flex items-center gap-3 p-4 rounded-xl hover:bg-orange-50 transition-all border border-transparent hover:border-orange-200">
+                  <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <span className="text-xl">📤</span>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-[#0369a1]">A Pagar</p>
+                    <p className="text-xs text-[#64748b]">Contas pendentes</p>
+                  </div>
+                </Link>
 
-            <Link href="/financeiro/a-pagar" className="group flex items-center gap-3 p-4 rounded-xl hover:bg-orange-50 transition-all border border-transparent hover:border-orange-200">
-              <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                <span className="text-xl">📤</span>
+                <Link href="/financeiro/fluxo-caixa" className="group flex items-center gap-3 p-4 rounded-xl hover:bg-blue-50 transition-all border border-transparent hover:border-blue-200">
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <span className="text-xl">💵</span>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-[#0369a1]">Fluxo de Caixa</p>
+                    <p className="text-xs text-[#64748b]">Visão financeira</p>
+                  </div>
+                </Link>
               </div>
-              <div>
-                <p className="font-semibold text-[#0369a1]">A Pagar</p>
-                <p className="text-xs text-[#64748b]">Contas pendentes</p>
+            </div>
+
+            {/* Categoria Configurações */}
+            <div>
+              <h4 className="text-sm font-semibold text-[#64748b] uppercase tracking-wide mb-3">Configurações</h4>
+              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                <Link href="/menu/configuracoes" className="group flex items-center gap-3 p-4 rounded-xl hover:bg-purple-50 transition-all border border-transparent hover:border-purple-200">
+                  <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <span className="text-xl">⚙️</span>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-[#0369a1]">Configurações</p>
+                    <p className="text-xs text-[#64748b]">Sistema e Parâmetros</p>
+                  </div>
+                </Link>
               </div>
-            </Link>
+            </div>
           </div>
         </div>
       </div>

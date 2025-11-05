@@ -17,9 +17,9 @@ export default function MenuOperacionalPage() {
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      <div className="container max-w-7xl mx-auto px-4 py-8">
+      <div className="container max-w-6xl mx-auto px-4 py-8">
         {/* Header com botão de voltar */}
-        <header className="mb-8">
+        <header className="mb-10">
           <button 
             onClick={() => router.back()}
             className="inline-flex items-center gap-2 px-4 py-2 mb-6 rounded-lg bg-white border border-gray-200 hover:border-[#0369a1] hover:bg-blue-50 transition-all shadow-sm hover:shadow-md text-[#0369a1] font-medium"
@@ -30,50 +30,26 @@ export default function MenuOperacionalPage() {
             Voltar
           </button>
           <div>
-            <h1 className="text-5xl font-bold text-[#0369a1] mb-2">Menu Operacional</h1>
-            <p className="text-[#64748b] text-xl">Gestão de Cedentes e seus Sacados</p>
+            <h1 className="text-4xl font-bold text-[#0369a1] mb-2">Menu Operacional</h1>
+            <p className="text-[#64748b] text-lg">Gestão de Cedentes e Sacados</p>
           </div>
         </header>
 
-        {/* Menu de Opções - Cards Principais */}
-        <div className="grid gap-6 md:grid-cols-2 mb-8">
+        {/* Menu de Opções */}
+        <div className="grid gap-6 md:grid-cols-2">
           {/* Card Cedentes */}
           <Link href="/cedentes" className="group">
-            <div className="relative bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border border-gray-100 overflow-hidden">
-              {/* Efeito de gradiente no hover */}
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-indigo-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              
-              <div className="relative p-8">
-                {/* Ícone */}
-                <div className="w-16 h-16 bg-gradient-to-br from-[#0369a1] to-[#0284c7] rounded-xl flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                  <span className="text-3xl">🏢</span>
-                </div>
-                
-                {/* Conteúdo */}
-                <div className="space-y-4">
-                  <div>
-                    <h2 className="text-2xl font-bold text-[#0369a1] mb-2">Cedentes</h2>
-                    <p className="text-[#64748b] text-base">Gestão completa de cedentes e seus sacados</p>
-                  </div>
-                  
-                  <p className="text-[#64748b] leading-relaxed text-sm">
-                    Cadastro, edição e visualização de cedentes. Consulta de CNPJ, dados complementares e histórico completo.
-                  </p>
-                  
-                  {/* Badges */}
-                  <div className="flex flex-wrap gap-2 pt-2">
-                    <span className="px-3 py-1 bg-blue-50 text-[#0369a1] rounded-lg text-xs font-semibold border border-blue-100">📋 Cadastro</span>
-                    <span className="px-3 py-1 bg-blue-50 text-[#0369a1] rounded-lg text-xs font-semibold border border-blue-100">👥 Sacados</span>
-                    <span className="px-3 py-1 bg-blue-50 text-[#0369a1] rounded-lg text-xs font-semibold border border-blue-100">🔍 CNPJ</span>
-                    <span className="px-3 py-1 bg-blue-50 text-[#0369a1] rounded-lg text-xs font-semibold border border-blue-100">📊 Dados</span>
-                  </div>
-                  
-                  {/* Botão de ação */}
-                  <div className="flex items-center gap-2 text-[#0369a1] font-semibold pt-4 border-t border-gray-100">
-                    <span>Acessar Cedentes</span>
-                    <svg className="w-5 h-5 transform group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            <div className="relative bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-200 transform hover:-translate-y-1 border border-gray-100">
+              <div className="p-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <svg className="w-6 h-6 text-[#0369a1]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                     </svg>
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-[#0369a1]">Cedentes</h2>
+                    <p className="text-sm text-[#64748b]">Gerenciar cedentes</p>
                   </div>
                 </div>
               </div>
@@ -82,35 +58,17 @@ export default function MenuOperacionalPage() {
 
           {/* Card Sacados */}
           <Link href="/sacados" className="group">
-            <div className="relative bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border border-gray-100 overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 to-purple-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              
-              <div className="relative p-8">
-                <div className="w-16 h-16 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                  <span className="text-3xl">👥</span>
-                </div>
-                
-                <div className="space-y-4">
-                  <div>
-                    <h2 className="text-2xl font-bold text-[#0369a1] mb-2">Sacados</h2>
-                    <p className="text-[#64748b] text-base">Visualização e gestão de todos os sacados</p>
-                  </div>
-                  
-                  <p className="text-[#64748b] leading-relaxed text-sm">
-                    Acesse a lista completa de sacados, consulte dados via CNPJ, visualize relacionamentos com cedentes e histórico de operações.
-                  </p>
-                  
-                  <div className="flex flex-wrap gap-2 pt-2">
-                    <span className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-lg text-xs font-semibold border border-indigo-100">📋 Lista Completa</span>
-                    <span className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-lg text-xs font-semibold border border-indigo-100">🔗 Relacionamentos</span>
-                    <span className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-lg text-xs font-semibold border border-indigo-100">🔍 Consultas</span>
-                  </div>
-                  
-                  <div className="flex items-center gap-2 text-[#0369a1] font-semibold pt-4 border-t border-gray-100">
-                    <span>Acessar Sacados</span>
-                    <svg className="w-5 h-5 transform group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            <div className="relative bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-200 transform hover:-translate-y-1 border border-gray-100">
+              <div className="p-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
+                    <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                     </svg>
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-[#0369a1]">Sacados</h2>
+                    <p className="text-sm text-[#64748b]">Visualizar sacados</p>
                   </div>
                 </div>
               </div>
