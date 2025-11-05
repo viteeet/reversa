@@ -9,17 +9,6 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import AtividadesManager from '@/components/atividades/AtividadesManager';
-import FoundDataManagerGeneric from '@/components/shared/FoundDataManagerGeneric';
-
-type FoundDataItem = {
-  id?: string;
-  tipo: string;
-  titulo: string;
-  conteudo: string;
-  observacoes?: string;
-  fonte?: string;
-  data_encontrado?: string;
-};
 
 type Cedente = {
   id: string;
@@ -57,7 +46,6 @@ export default function CedentePage() {
   
   const [cedente, setCedente] = useState<Cedente | null>(null);
   const [sacados, setSacados] = useState<Sacado[]>([]);
-  const [foundData, setFoundData] = useState<FoundDataItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'info' | 'sacados' | 'atividades'>('info');
   const [sacadosQuery, setSacadosQuery] = useState('');
@@ -88,39 +76,30 @@ export default function CedentePage() {
 
     // Carrega sacados deste cedente
     await loadSacados();
-
-    // Carrega dados encontrados do cedente
-    await loadFoundData();
     
     setLoading(false);
   }
 
   async function loadSacados() {
-    const { data, error } = await supabase
-      .from('sacados')
-      .select('cnpj, razao_social, nome_fantasia, situacao, porte, atividade_principal_descricao')
-      .eq('cedente_id', id)
-      .order('razao_social', { ascending: true });
-    
-    if (error) {
-      console.error('Erro ao carregar sacados:', error);
-    } else {
-      setSacados(data || []);
-    }
-  }
-
-  async function loadFoundData() {
-    const { data, error } = await supabase
-      .from('cedentes_dados_encontrados')
-      .select('*')
-      .eq('cedente_id', id)
-      .eq('ativo', true)
-      .order('data_encontrado', { ascending: false });
-    
-    if (error) {
-      console.error('Erro ao carregar dados encontrados:', error);
-    } else {
-      setFoundData(data || []);
+    try {
+      const { data, error } = await supabase
+        .from('sacados')
+        .select('cnpj, razao_social, nome_fantasia, situacao, porte, atividade_principal_descricao')
+        .eq('cedente_id', id)
+        .order('razao_social', { ascending: true });
+      
+      if (error) {
+        // Não loga erro se a tabela não existir ou não tiver permissão
+        if (error.code !== 'PGRST116' && error.code !== '42P01' && error.code !== '42501') {
+          console.error('Erro ao carregar sacados:', error);
+        }
+        setSacados([]);
+      } else {
+        setSacados(data || []);
+      }
+    } catch (err) {
+      // Silenciosamente trata erros
+      setSacados([]);
     }
   }
 
@@ -418,16 +397,6 @@ export default function CedentePage() {
                       )}
                     </div>
                   </div>
-                </div>
-
-                {/* Dados Encontrados */}
-                <div className="border-t border-[#e2e8f0] pt-6">
-                  <FoundDataManagerGeneric 
-                    entityId={id}
-                    entityType="cedente"
-                    items={foundData}
-                    onRefresh={loadFoundData}
-                  />
                 </div>
               </div>
             ) : activeTab === 'sacados' ? (

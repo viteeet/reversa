@@ -36,7 +36,7 @@ export default function MenuOperacionalPage() {
         </header>
 
         {/* Menu de Opções */}
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {/* Card Cedentes */}
           <Link href="/cedentes" className="group">
             <div className="relative bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-200 transform hover:-translate-y-1 border border-gray-100">
@@ -69,6 +69,25 @@ export default function MenuOperacionalPage() {
                   <div>
                     <h2 className="text-xl font-bold text-[#0369a1]">Sacados</h2>
                     <p className="text-sm text-[#64748b]">Visualizar sacados</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Link>
+
+          {/* Card Atividades Agendadas */}
+          <Link href="/atividades-agendadas" className="group">
+            <div className="relative bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-200 transform hover:-translate-y-1 border border-gray-100">
+              <div className="p-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                    <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-[#0369a1]">Atividades</h2>
+                    <p className="text-sm text-[#64748b]">Agendadas por data</p>
                   </div>
                 </div>
               </div>

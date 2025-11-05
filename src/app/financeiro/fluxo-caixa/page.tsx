@@ -1,11 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useRouter } from 'next/navigation';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import StatCard from '@/components/ui/StatCard';
 import FilterBar from '@/components/ui/FilterBar';
+import FinanceLineChart from '@/components/financeiro/LineChart';
 
 type FluxoCaixaData = {
   data: string;
@@ -15,80 +17,154 @@ type FluxoCaixaData = {
   saldo_acumulado: number;
 };
 
+type Cedente = {
+  id: string;
+  nome: string;
+  razao_social: string;
+};
+
 export default function FluxoCaixaPage() {
+  const router = useRouter();
   const [data, setData] = useState<FluxoCaixaData[]>([]);
+  const [cedentes, setCedentes] = useState<Cedente[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tipoVisualizacao, setTipoVisualizacao] = useState<'previsto' | 'realizado'>('previsto');
-  const [periodo, setPeriodo] = useState<'mes' | 'ano'>('mes');
+  const [periodoPreset, setPeriodoPreset] = useState<7 | 30 | 90 | null>(30);
   const [filtros, setFiltros] = useState({
-    ano: new Date().getFullYear().toString(),
-    mes: (new Date().getMonth() + 1).toString(),
-    empresa: 'todas'
+    cedente_id: 'todos'
   });
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      const user = data.user;
+      if (!user) { router.replace('/login'); return; }
+      loadCedentes();
+      loadData();
+    });
+  }, [router, periodoPreset]);
+
+  async function loadCedentes() {
+    try {
+      const { data: cedentesData } = await supabase
+        .from('cedentes')
+        .select('id, nome, razao_social')
+        .order('nome', { ascending: true });
+      
+      setCedentes(cedentesData || []);
+    } catch (error) {
+      console.error('Erro ao carregar cedentes:', error);
+    }
+  }
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const { data: lancamentos, error } = await supabase
-        .from('lancamentos')
-        .select('*');
-
-      if (error) throw error;
-
-      // Simular dados de fluxo de caixa
-      const fluxoData: FluxoCaixaData[] = [];
-      const diasNoMes = new Date(parseInt(filtros.ano), parseInt(filtros.mes), 0).getDate();
+      const dataFim = new Date();
+      const dataInicio = new Date();
       
-      for (let dia = 1; dia <= diasNoMes; dia++) {
-        const dataStr = `${filtros.ano}-${filtros.mes.padStart(2, '0')}-${dia.toString().padStart(2, '0')}`;
-        const receitas = Math.random() * 5000 + 1000;
-        const despesas = Math.random() * 3000 + 500;
-        const saldo = receitas - despesas;
+      if (periodoPreset) {
+        dataInicio.setDate(dataInicio.getDate() - periodoPreset);
+      } else {
+        // Se não há preset, usa o mês atual
+        dataInicio.setDate(1);
+      }
+
+      let query = supabase
+        .from('lancamentos')
+        .select('*')
+        .gte('data_competencia', dataInicio.toISOString().split('T')[0])
+        .lte('data_competencia', dataFim.toISOString().split('T')[0])
+        .order('data_competencia', { ascending: true });
+
+      const { data: lancamentos, error } = await query;
+
+      if (error) {
+        // Não loga erro se a tabela não existir
+        if (error.code !== 'PGRST116' && error.code !== '42P01' && error.code !== '42501') {
+          console.error('Erro ao carregar lançamentos:', error);
+        }
+        setData([]);
+        return;
+      }
+
+      // Por enquanto, não filtramos por cedente pois elementos não têm relação direta
+      // TODO: Implementar filtro por cedente quando houver relação no banco
+      const lancamentosFiltrados = lancamentos || [];
+
+      // Agrupar por data
+      const fluxoPorData = new Map<string, { receitas: number; despesas: number }>();
+      
+      lancamentosFiltrados.forEach(lanc => {
+        const data = lanc.data_competencia?.split('T')[0];
+        if (!data) return;
         
+        const atual = fluxoPorData.get(data) || { receitas: 0, despesas: 0 };
+        
+        if (lanc.natureza === 'receita') {
+          atual.receitas += lanc.valor || 0;
+        } else if (lanc.natureza === 'despesa') {
+          atual.despesas += lanc.valor || 0;
+        }
+        
+        fluxoPorData.set(data, atual);
+      });
+
+      // Criar array com todas as datas do período
+      const fluxoData: FluxoCaixaData[] = [];
+      const dataAtual = new Date(dataInicio);
+      let saldoAcumulado = 0;
+
+      while (dataAtual <= dataFim) {
+        const dataStr = dataAtual.toISOString().split('T')[0];
+        const totais = fluxoPorData.get(dataStr) || { receitas: 0, despesas: 0 };
+        const saldo = totais.receitas - totais.despesas;
+        saldoAcumulado += saldo;
+
         fluxoData.push({
           data: dataStr,
-          receitas,
-          despesas,
+          receitas: totais.receitas,
+          despesas: totais.despesas,
           saldo,
-          saldo_acumulado: fluxoData.length > 0 ? fluxoData[fluxoData.length - 1].saldo_acumulado + saldo : saldo
+          saldo_acumulado: saldoAcumulado
         });
+
+        dataAtual.setDate(dataAtual.getDate() + 1);
       }
 
       setData(fluxoData);
     } catch (error) {
-      console.error('Erro ao carregar fluxo de caixa:', error);
+      // Silenciosamente trata erros - tabela pode não existir ainda
+      setData([]);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    loadData();
-  }, [filtros]);
+  const totalReceitas = useMemo(() => data.reduce((acc, item) => acc + item.receitas, 0), [data]);
+  const totalDespesas = useMemo(() => data.reduce((acc, item) => acc + item.despesas, 0), [data]);
+  const saldoFinal = useMemo(() => totalReceitas - totalDespesas, [totalReceitas, totalDespesas]);
+  const saldoAcumulado = useMemo(() => data.length > 0 ? data[data.length - 1].saldo_acumulado : 0, [data]);
 
-  const totalReceitas = data.reduce((acc, item) => acc + item.receitas, 0);
-  const totalDespesas = data.reduce((acc, item) => acc + item.despesas, 0);
-  const saldoFinal = totalReceitas - totalDespesas;
-  const saldoAcumulado = data.length > 0 ? data[data.length - 1].saldo_acumulado : 0;
-
-  const nomesMeses = [
-    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
-  ];
+  const chartData = useMemo(() => {
+    return data.map(item => ({
+      periodo: new Date(item.data).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+      receitas: item.receitas,
+      despesas: item.despesas,
+      saldo: item.saldo
+    }));
+  }, [data]);
 
   return (
-    <main className="min-h-screen p-6">
+    <main className="min-h-screen p-6 bg-white">
       <div className="container max-w-7xl space-y-6">
-        <header className="space-y-4">
-          <div className="flex items-center justify-between">
+        <header className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => router.back()}
+              className="p-2 rounded-lg border border-[#cbd5e1] hover:bg-[#f0f7ff] transition-colors"
+            >←</button>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Fluxo de Caixa</h1>
-              <p className="text-slate-600">Análise de entradas e saídas de caixa</p>
-            </div>
-            <div className="flex items-center gap-4">
-              <p className="text-sm text-slate-600">
-                Última atualização: {new Date().toLocaleString('pt-BR')}
-              </p>
+              <h1 className="text-3xl font-bold text-[#0369a1]">Fluxo de Caixa</h1>
+              <p className="text-[#64748b]">Análise de entradas e saídas de caixa</p>
             </div>
           </div>
         </header>
@@ -117,55 +193,42 @@ export default function FluxoCaixaPage() {
           />
         </div>
 
-        {/* Controles de Visualização */}
+        {/* Presets de Período */}
         <Card>
-          <div className="px-6 py-4">
+          <div className="p-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="flex bg-gray-100 rounded-lg p-1">
-                  <button
-                    onClick={() => setPeriodo('mes')}
-                    className={`px-4 py-2 rounded-md font-medium transition-colors ${
-                      periodo === 'mes'
-                        ? 'bg-blue-600 text-white shadow-sm'
-                        : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                  >
-                    Mês
-                  </button>
-                  <button
-                    onClick={() => setPeriodo('ano')}
-                    className={`px-4 py-2 rounded-md font-medium transition-colors ${
-                      periodo === 'ano'
-                        ? 'bg-blue-600 text-white shadow-sm'
-                        : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                  >
-                    Ano
-                  </button>
-                </div>
-                <div className="flex bg-gray-100 rounded-lg p-1">
-                  <button
-                    onClick={() => setTipoVisualizacao('previsto')}
-                    className={`px-4 py-2 rounded-md font-medium transition-colors ${
-                      tipoVisualizacao === 'previsto'
-                        ? 'bg-green-600 text-white shadow-sm'
-                        : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                  >
-                    Previsto
-                  </button>
-                  <button
-                    onClick={() => setTipoVisualizacao('realizado')}
-                    className={`px-4 py-2 rounded-md font-medium transition-colors ${
-                      tipoVisualizacao === 'realizado'
-                        ? 'bg-green-600 text-white shadow-sm'
-                        : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                  >
-                    Realizado
-                  </button>
-                </div>
+              <h3 className="text-sm font-medium text-[#64748b] mb-3">Período</h3>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setPeriodoPreset(7)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    periodoPreset === 7
+                      ? 'bg-[#0369a1] text-white'
+                      : 'bg-white border border-[#cbd5e1] text-[#64748b] hover:bg-[#f8fafc]'
+                  }`}
+                >
+                  7 dias
+                </button>
+                <button
+                  onClick={() => setPeriodoPreset(30)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    periodoPreset === 30
+                      ? 'bg-[#0369a1] text-white'
+                      : 'bg-white border border-[#cbd5e1] text-[#64748b] hover:bg-[#f8fafc]'
+                  }`}
+                >
+                  30 dias
+                </button>
+                <button
+                  onClick={() => setPeriodoPreset(90)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    periodoPreset === 90
+                      ? 'bg-[#0369a1] text-white'
+                      : 'bg-white border border-[#cbd5e1] text-[#64748b] hover:bg-[#f8fafc]'
+                  }`}
+                >
+                  90 dias
+                </button>
               </div>
             </div>
           </div>
@@ -175,66 +238,41 @@ export default function FluxoCaixaPage() {
         <FilterBar
           filters={filtros}
           onFilterChange={(key, value) => setFiltros({ ...filtros, [key]: value })}
-          onClear={() => setFiltros({ ano: new Date().getFullYear().toString(), mes: (new Date().getMonth() + 1).toString(), empresa: 'todas' })}
+          onClear={() => setFiltros({ cedente_id: 'todos' })}
         >
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-1">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Ano</label>
+              <label className="block text-sm font-medium text-[#64748b] mb-1">Cedente</label>
               <select 
-                value={filtros.ano}
-                onChange={(e) => setFiltros({ ...filtros, ano: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                value={filtros.cedente_id}
+                onChange={(e) => setFiltros({ ...filtros, cedente_id: e.target.value })}
+                className="w-full px-3 py-2 border border-[#cbd5e1] rounded-lg focus:ring-2 focus:ring-[#0369a1] focus:border-[#0369a1]"
+                disabled
               >
-                <option value="2025">2025</option>
-                <option value="2024">2024</option>
-                <option value="2023">2023</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Mês</label>
-              <select 
-                value={filtros.mes}
-                onChange={(e) => setFiltros({ ...filtros, mes: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                {nomesMeses.map((mes, index) => (
-                  <option key={index} value={(index + 1).toString()}>{mes}</option>
+                <option value="todos">Todos os Cedentes</option>
+                {cedentes.map((cedente) => (
+                  <option key={cedente.id} value={cedente.id}>
+                    {cedente.nome || cedente.razao_social}
+                  </option>
                 ))}
               </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Empresa</label>
-              <select 
-                value={filtros.empresa}
-                onChange={(e) => setFiltros({ ...filtros, empresa: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="todas">Todas</option>
-                <option value="empresa1">Empresa 1</option>
-                <option value="empresa2">Empresa 2</option>
-              </select>
+              <p className="text-xs text-[#64748b] mt-1">Filtro por cedente em breve</p>
             </div>
           </div>
         </FilterBar>
 
         {/* Gráfico de Linha */}
-        <Card>
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900">
-              Evolução do Fluxo de Caixa - {nomesMeses[parseInt(filtros.mes) - 1]} {filtros.ano}
-            </h3>
-          </div>
-          <div className="p-6">
-            <div className="h-80 bg-gray-100 rounded-lg flex items-center justify-center">
-              <div className="text-center">
-                <p className="text-gray-500 mb-2">Gráfico de linha do fluxo de caixa</p>
-                <p className="text-sm text-gray-400">
-                  Eixo Y: Valores em R$ | Eixo X: Dias do mês (1-{data.length})
-                </p>
-              </div>
+        {chartData.length > 0 && (
+          <Card>
+            <div className="p-6">
+              <FinanceLineChart 
+                data={chartData} 
+                title="Evolução do Fluxo de Caixa"
+                height={400}
+              />
             </div>
-          </div>
-        </Card>
+          </Card>
+        )}
 
         {/* Tabela de Dados */}
         <Card>

@@ -265,3 +265,101 @@ input, button, textarea, select { font: inherit; color: inherit; }
   color: var(--neutral-fg); 
   border: 1px solid var(--neutral); 
 }
+
+/* ===== OTIMIZAÇÕES PARA IMPRESSÃO ===== */
+@media print {
+  /* Remove elementos de navegação e ações */
+  .reversa-header,
+  .reversa-footer,
+  .no-print,
+  button,
+  .print\:hidden {
+    display: none !important;
+  }
+
+  /* Remove sombras e bordas desnecessárias */
+  .card,
+  .shadow-lg,
+  .shadow-md {
+    box-shadow: none !important;
+    border: 1px solid #e2e8f0 !important;
+  }
+
+  /* Otimiza layout para impressão */
+  body {
+    background: white !important;
+    color: black !important;
+    font-size: 12pt;
+    line-height: 1.4;
+  }
+
+  /* Quebra de página */
+  .page-break-after {
+    page-break-after: always;
+  }
+
+  .page-break-before {
+    page-break-before: always;
+  }
+
+  /* Evita quebra dentro de seções importantes */
+  .no-break {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Remove cores de fundo */
+  .bg-gradient-to-r,
+  .bg-slate-50,
+  .bg-white {
+    background: white !important;
+  }
+
+  /* Garante que badges apareçam bem */
+  .badge {
+    border: 1px solid #000 !important;
+    background: white !important;
+    color: black !important;
+  }
+
+  /* Remove espaçamentos excessivos */
+  .space-y-6 > * + * {
+    margin-top: 1rem !important;
+  }
+
+  /* Ajusta tamanhos de fonte */
+  h1 { font-size: 18pt !important; }
+  h2 { font-size: 16pt !important; }
+  h3 { font-size: 14pt !important; }
+  p, div { font-size: 11pt !important; }
+
+  /* Melhora legibilidade */
+  a {
+    color: black !important;
+    text-decoration: underline !important;
+  }
+
+  /* Remove elementos visuais desnecessários */
+  .border-t,
+  .border-b {
+    border-color: #000 !important;
+  }
+
+  /* Garante que tabelas não quebrem */
+  table {
+    page-break-inside: auto;
+  }
+
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tfoot {
+    display: table-footer-group;
+  }
+}

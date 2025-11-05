@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -15,6 +15,13 @@ type Stats = {
   aPagar: number;
 };
 
+type FluxoCaixaData = {
+  data: string;
+  receitas: number;
+  despesas: number;
+  saldo: number;
+};
+
 export default function Dashboard() {
   const router = useRouter();
   const [stats, setStats] = useState<Stats>({
@@ -25,15 +32,18 @@ export default function Dashboard() {
     aReceber: 0,
     aPagar: 0,
   });
+  const [fluxoCaixa, setFluxoCaixa] = useState<FluxoCaixaData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [periodoPreset, setPeriodoPreset] = useState<7 | 30 | 90>(30);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       const user = data.user;
       if (!user) { router.replace('/login'); return; }
       loadStats();
+      loadFluxoCaixa();
     });
-  }, [router]);
+  }, [router, periodoPreset]);
 
   async function loadStats() {
     try {
@@ -89,26 +99,72 @@ export default function Dashboard() {
     }
   }
 
+  async function loadFluxoCaixa() {
+    try {
+      const dataFim = new Date();
+      const dataInicio = new Date();
+      dataInicio.setDate(dataInicio.getDate() - periodoPreset);
+
+      const { data: lancamentos } = await supabase
+        .from('lancamentos')
+        .select('*')
+        .gte('data_competencia', dataInicio.toISOString().split('T')[0])
+        .lte('data_competencia', dataFim.toISOString().split('T')[0]);
+
+      if (!lancamentos) return;
+
+      // Agrupar por data
+      const fluxoPorData = new Map<string, { receitas: number; despesas: number }>();
+      
+      lancamentos.forEach(lanc => {
+        const data = lanc.data_competencia.split('T')[0];
+        const atual = fluxoPorData.get(data) || { receitas: 0, despesas: 0 };
+        
+        if (lanc.natureza === 'receita') {
+          atual.receitas += lanc.valor || 0;
+        } else {
+          atual.despesas += lanc.valor || 0;
+        }
+        
+        fluxoPorData.set(data, atual);
+      });
+
+      const fluxoData: FluxoCaixaData[] = Array.from(fluxoPorData.entries())
+        .map(([data, totais]) => ({
+          data,
+          receitas: totais.receitas,
+          despesas: totais.despesas,
+          saldo: totais.receitas - totais.despesas
+        }))
+        .sort((a, b) => a.data.localeCompare(b.data))
+        .slice(-periodoPreset);
+
+      setFluxoCaixa(fluxoData);
+    } catch (error) {
+      console.error('Erro ao carregar fluxo de caixa:', error);
+    }
+  }
+
+  const totalReceitas = useMemo(() => fluxoCaixa.reduce((acc, item) => acc + item.receitas, 0), [fluxoCaixa]);
+  const totalDespesas = useMemo(() => fluxoCaixa.reduce((acc, item) => acc + item.despesas, 0), [fluxoCaixa]);
+  const saldoFinal = totalReceitas - totalDespesas;
+
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      <div className="container max-w-7xl mx-auto px-4 py-8 space-y-8">
+      <div className="container max-w-7xl mx-auto px-4 py-8 space-y-6">
         {/* Header */}
-        <header className="text-center space-y-3 pt-6">
-          <h1 className="text-6xl font-black text-[#0369a1] tracking-tight animate-fade-in">
+        <header className="text-center space-y-2 pt-2">
+          <h1 className="text-5xl font-black text-[#0369a1] tracking-tight">
             REVERSA
           </h1>
-          <p className="text-[#64748b] text-xl font-medium">Recuperação de Recebíveis e Ativos</p>
-          <div className="flex items-center justify-center gap-2 text-sm text-[#64748b]">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-            <span>Sistema Online</span>
-          </div>
+          <p className="text-[#64748b] text-lg font-medium">Recuperação de Recebíveis e Ativos</p>
         </header>
 
         {/* Estatísticas Compactas */}
         <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <span className="text-2xl">🏢</span>
+              <div className="w-10 h-10 bg-blue-100 rounded-lg"></div>
               <div>
                 <p className="text-xs text-[#64748b]">Cedentes</p>
                 <p className="text-lg font-bold text-[#0369a1]">
@@ -121,7 +177,7 @@ export default function Dashboard() {
             </div>
             
             <div className="flex items-center gap-2">
-              <span className="text-2xl">👥</span>
+              <div className="w-10 h-10 bg-indigo-100 rounded-lg"></div>
               <div>
                 <p className="text-xs text-[#64748b]">Sacados</p>
                 <p className="text-lg font-bold text-[#0369a1]">{stats.totalSacados}</p>
@@ -129,7 +185,7 @@ export default function Dashboard() {
             </div>
             
             <div className="flex items-center gap-2">
-              <span className="text-2xl">💰</span>
+              <div className="w-10 h-10 bg-green-100 rounded-lg"></div>
               <div>
                 <p className="text-xs text-[#64748b]">A Receber</p>
                 <p className="text-lg font-bold text-green-600">
@@ -139,7 +195,7 @@ export default function Dashboard() {
             </div>
             
             <div className="flex items-center gap-2">
-              <span className="text-2xl">📤</span>
+              <div className="w-10 h-10 bg-orange-100 rounded-lg"></div>
               <div>
                 <p className="text-xs text-[#64748b]">A Pagar</p>
                 <p className="text-lg font-bold text-orange-600">
@@ -149,6 +205,76 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+
+        {/* Fluxo de Caixa Compacto */}
+        <Card>
+          <div className="p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-[#0369a1]">Fluxo de Caixa</h3>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setPeriodoPreset(7)}
+                  className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                    periodoPreset === 7
+                      ? 'bg-[#0369a1] text-white'
+                      : 'bg-white border border-[#cbd5e1] text-[#64748b] hover:bg-[#f8fafc]'
+                  }`}
+                >
+                  7 dias
+                </button>
+                <button
+                  onClick={() => setPeriodoPreset(30)}
+                  className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                    periodoPreset === 30
+                      ? 'bg-[#0369a1] text-white'
+                      : 'bg-white border border-[#cbd5e1] text-[#64748b] hover:bg-[#f8fafc]'
+                  }`}
+                >
+                  30 dias
+                </button>
+                <button
+                  onClick={() => setPeriodoPreset(90)}
+                  className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                    periodoPreset === 90
+                      ? 'bg-[#0369a1] text-white'
+                      : 'bg-white border border-[#cbd5e1] text-[#64748b] hover:bg-[#f8fafc]'
+                  }`}
+                >
+                  90 dias
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4 mb-4">
+              <div className="bg-green-50 rounded-lg p-3">
+                <p className="text-xs text-[#64748b] mb-1">Receitas</p>
+                <p className="text-lg font-bold text-green-600">
+                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalReceitas)}
+                </p>
+              </div>
+              <div className="bg-red-50 rounded-lg p-3">
+                <p className="text-xs text-[#64748b] mb-1">Despesas</p>
+                <p className="text-lg font-bold text-red-600">
+                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalDespesas)}
+                </p>
+              </div>
+              <div className={`rounded-lg p-3 ${saldoFinal >= 0 ? 'bg-green-50' : 'bg-red-50'}`}>
+                <p className="text-xs text-[#64748b] mb-1">Saldo</p>
+                <p className={`text-lg font-bold ${saldoFinal >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(saldoFinal)}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-end">
+              <Link href="/financeiro/fluxo-caixa">
+                <button className="text-sm text-[#0369a1] hover:underline font-medium">
+                  Ver detalhes →
+                </button>
+              </Link>
+            </div>
+          </div>
+        </Card>
 
         {/* Menu Principal - Organizado por Categorias */}
         <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
@@ -186,6 +312,16 @@ export default function Dashboard() {
                   <div>
                     <p className="font-semibold text-[#0369a1]">Sacados</p>
                     <p className="text-xs text-[#64748b]">Visualizar todos</p>
+                  </div>
+                </Link>
+
+                <Link href="/atividades-agendadas" className="group flex items-center gap-3 p-4 rounded-xl hover:bg-purple-50 transition-all border border-transparent hover:border-purple-200">
+                  <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <span className="text-xl">📅</span>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-[#0369a1]">Atividades</p>
+                    <p className="text-xs text-[#64748b]">Agendadas por data</p>
                   </div>
                 </Link>
               </div>

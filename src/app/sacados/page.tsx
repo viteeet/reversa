@@ -77,7 +77,14 @@ export default function SacadosPage() {
     if (error) {
       console.error('Erro ao carregar sacados:', error);
     } else {
-      setItems(data ?? []);
+      // Transforma cedente de array para objeto único ou null
+      const dadosProcessados = (data ?? []).map(item => ({
+        ...item,
+        cedente: Array.isArray(item.cedente) 
+          ? (item.cedente.length > 0 ? item.cedente[0] : null)
+          : item.cedente
+      }));
+      setItems(dadosProcessados);
     }
     setLoading(false);
   }

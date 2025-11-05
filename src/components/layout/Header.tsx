@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import Button from "@/components/ui/Button";
+import NotificationBell from "@/components/notifications/NotificationBell";
 
 export default function Header() {
   const router = useRouter();
@@ -35,14 +36,17 @@ export default function Header() {
           REVERSA
         </Link>
 
-               {/* Menu Hambúrguer */}
-               {(!loading && email) ? (
-                 <div className="flex items-center">
-                   {/* Botão Menu Hambúrguer */}
-                   <button
-                     onClick={() => setIsMenuOpen(!isMenuOpen)}
-                     className="p-2 rounded-lg border border-white/20 hover:bg-white/10 transition-colors"
-                   >
+        {/* Menu Hambúrguer */}
+        {(!loading && email) ? (
+          <div className="flex items-center gap-2">
+            {/* Notificações */}
+            <NotificationBell />
+            
+            {/* Botão Menu Hambúrguer */}
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="p-2 rounded-lg border border-white/20 hover:bg-white/10 transition-colors"
+            >
                      <div className="w-6 h-6 flex flex-col justify-center items-center gap-1">
                        <div
                          className={`w-5 h-0.5 bg-white transition-all duration-300 ${
@@ -83,25 +87,103 @@ export default function Header() {
                 </div>
               </Link>
               
-              <Link href="/menu/operacional" onClick={() => setIsMenuOpen(false)}>
+              <Link href="/busca" onClick={() => setIsMenuOpen(false)}>
                 <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
-                  <div className="text-xl">🏢</div>
+                  <div className="text-xl">🔍</div>
                   <div>
-                    <div className="font-semibold text-gray-900">Operacional</div>
-                    <div className="text-sm text-gray-500">Sacados e Cedentes</div>
+                    <div className="font-semibold text-gray-900">Busca</div>
+                    <div className="text-sm text-gray-500">Busca global</div>
                   </div>
                 </div>
               </Link>
               
-              <Link href="/menu/financeiro" onClick={() => setIsMenuOpen(false)}>
-                <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
-                  <div className="text-xl">💰</div>
-                  <div>
-                    <div className="font-semibold text-gray-900">Financeiro</div>
-                    <div className="text-sm text-gray-500">Contas e Relatórios</div>
-                  </div>
+              {/* Seção Operacional */}
+              <div className="px-3 py-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="text-lg">🏢</div>
+                  <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Operacional</div>
                 </div>
-              </Link>
+                <Link href="/menu/operacional" onClick={() => setIsMenuOpen(false)}>
+                  <div className="flex items-center gap-2 px-2 py-2 rounded hover:bg-gray-50 transition-colors cursor-pointer">
+                    <div className="text-lg">📋</div>
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-gray-700">Menu Operacional</div>
+                      <div className="text-xs text-gray-500">Cedentes e Sacados</div>
+                    </div>
+                  </div>
+                </Link>
+                <Link href="/cedentes" onClick={() => setIsMenuOpen(false)}>
+                  <div className="flex items-center gap-2 px-2 py-2 rounded hover:bg-gray-50 transition-colors cursor-pointer">
+                    <div className="text-lg">🏢</div>
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-gray-700">Cedentes</div>
+                      <div className="text-xs text-gray-500">Gerenciar cadastros</div>
+                    </div>
+                  </div>
+                </Link>
+                <Link href="/sacados" onClick={() => setIsMenuOpen(false)}>
+                  <div className="flex items-center gap-2 px-2 py-2 rounded hover:bg-gray-50 transition-colors cursor-pointer">
+                    <div className="text-lg">👥</div>
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-gray-700">Sacados</div>
+                      <div className="text-xs text-gray-500">Visualizar todos</div>
+                    </div>
+                  </div>
+                </Link>
+                <Link href="/atividades-agendadas" onClick={() => setIsMenuOpen(false)}>
+                  <div className="flex items-center gap-2 px-2 py-2 rounded hover:bg-gray-50 transition-colors cursor-pointer">
+                    <div className="text-lg">📅</div>
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-gray-700">Atividades</div>
+                      <div className="text-xs text-gray-500">Agendadas por data</div>
+                    </div>
+                  </div>
+                </Link>
+              </div>
+              
+              {/* Seção Financeiro */}
+              <div className="px-3 py-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="text-lg">💰</div>
+                  <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Financeiro</div>
+                </div>
+                <Link href="/menu/financeiro" onClick={() => setIsMenuOpen(false)}>
+                  <div className="flex items-center gap-2 px-2 py-2 rounded hover:bg-gray-50 transition-colors cursor-pointer">
+                    <div className="text-lg">💰</div>
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-gray-700">Menu Financeiro</div>
+                      <div className="text-xs text-gray-500">Contas e Relatórios</div>
+                    </div>
+                  </div>
+                </Link>
+                <Link href="/financeiro/a-receber" onClick={() => setIsMenuOpen(false)}>
+                  <div className="flex items-center gap-2 px-2 py-2 rounded hover:bg-gray-50 transition-colors cursor-pointer">
+                    <div className="text-lg">💰</div>
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-gray-700">A Receber</div>
+                      <div className="text-xs text-gray-500">Contas pendentes</div>
+                    </div>
+                  </div>
+                </Link>
+                <Link href="/contas-pagar" onClick={() => setIsMenuOpen(false)}>
+                  <div className="flex items-center gap-2 px-2 py-2 rounded hover:bg-gray-50 transition-colors cursor-pointer">
+                    <div className="text-lg">📤</div>
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-gray-700">A Pagar</div>
+                      <div className="text-xs text-gray-500">Contas pendentes</div>
+                    </div>
+                  </div>
+                </Link>
+                <Link href="/financeiro/fluxo-caixa" onClick={() => setIsMenuOpen(false)}>
+                  <div className="flex items-center gap-2 px-2 py-2 rounded hover:bg-gray-50 transition-colors cursor-pointer">
+                    <div className="text-lg">💵</div>
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-gray-700">Fluxo de Caixa</div>
+                      <div className="text-xs text-gray-500">Visão financeira</div>
+                    </div>
+                  </div>
+                </Link>
+              </div>
               
               <Link href="/menu/configuracoes" onClick={() => setIsMenuOpen(false)}>
                 <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
