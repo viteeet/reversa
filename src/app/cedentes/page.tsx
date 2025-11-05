@@ -29,6 +29,8 @@ type Cedente = {
   ultima_atualizacao: string | null;
 };
 
+type ViewMode = 'table' | 'grid';
+
 export default function CedentesPage() {
   const [items, setItems] = useState<Cedente[]>([]);
   const [form, setForm] = useState({ 
@@ -46,6 +48,8 @@ export default function CedentesPage() {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [viewMode, setViewMode] = useState<ViewMode>('table');
+  const [filterSituacao, setFilterSituacao] = useState<string>('all');
 
   useEffect(() => { load(); }, []);
 
@@ -83,30 +87,49 @@ export default function CedentesPage() {
       ultima_atualizacao: new Date().toISOString(),
     });
     if (error) setErr(error.message);
-    setForm({ 
-      nome: '', razao_social: '', cnpj: '', telefone: '', email: '', endereco: '',
-      porte: '', natureza_juridica: '', situacao: '', data_abertura: '', capital_social: '',
-      atividade_principal_codigo: '', atividade_principal_descricao: '', atividades_secundarias: '',
-      simples_nacional: false
-    });
+    else {
+      setShowCreate(false);
+      setForm({ 
+        nome: '', razao_social: '', cnpj: '', telefone: '', email: '', endereco: '',
+        porte: '', natureza_juridica: '', situacao: '', data_abertura: '', capital_social: '',
+        atividade_principal_codigo: '', atividade_principal_descricao: '', atividades_secundarias: '',
+        simples_nacional: false
+      });
+    }
     await load();
     setPending(false);
   }
 
   async function remove(id: string) {
+    if (!confirm('Tem certeza que deseja excluir este cedente?')) return;
     const { error } = await supabase.from('cedentes').delete().eq('id', id);
     if (error) { alert(error.message); return; }
     await load();
   }
 
   const filtered = useMemo(() => {
+    let result = items;
+    
+    // Filtro por situação
+    if (filterSituacao !== 'all') {
+      if (filterSituacao === 'ativa') {
+        result = result.filter(i => i.situacao === 'ATIVA');
+      } else if (filterSituacao === 'inativa') {
+        result = result.filter(i => i.situacao !== 'ATIVA');
+      }
+    }
+    
+    // Filtro por texto
     const t = q.trim().toLowerCase();
-    if (!t) return items;
-    return items.filter(i => [
-      i.nome, i.razao_social ?? '', i.cnpj ?? '', i.email ?? '', i.telefone ?? '', i.endereco ?? '',
-      i.porte ?? '', i.natureza_juridica ?? '', i.situacao ?? '', i.atividade_principal_descricao ?? ''
-    ].some(v => String(v).toLowerCase().includes(t)));
-  }, [items, q]);
+    if (t) {
+      result = result.filter(i => [
+        i.nome, i.razao_social ?? '', i.cnpj ?? '', i.email ?? '', i.telefone ?? '', i.endereco ?? '',
+        i.porte ?? '', i.natureza_juridica ?? '', i.situacao ?? '', i.atividade_principal_descricao ?? ''
+      ].some(v => String(v).toLowerCase().includes(t)));
+    }
+    
+    return result;
+  }, [items, q, filterSituacao]);
 
   const sorted = useMemo(() => {
     const arr = [...filtered];
@@ -138,44 +161,130 @@ export default function CedentesPage() {
     setPage(1);
   }
 
-  useEffect(() => { setPage(1); }, [q]);
+  useEffect(() => { setPage(1); }, [q, filterSituacao]);
+
+  const stats = useMemo(() => ({
+    total: items.length,
+    ativos: items.filter(i => i.situacao === 'ATIVA').length,
+    inativos: items.filter(i => i.situacao !== 'ATIVA').length,
+  }), [items]);
+
 
   return (
-    <main className="min-h-screen p-6 bg-white">
-      <div className="container max-w-6xl space-y-6">
-        {/* Toolbar */}
-        <header className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      <div className="container max-w-7xl mx-auto px-4 py-8 space-y-6">
+        {/* Header */}
+        <header className="flex flex-col gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-[#0369a1]">Cedentes</h1>
-            <p className="text-[#64748b]">Cadastro e gestão de cedentes</p>
-          </div>
-          <div className="flex items-center gap-2 w-full md:w-auto">
-            <Input
-              placeholder="Buscar cedente..."
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              className="md:w-80 flex-1"
-            />
-            <Button variant="secondary" onClick={() => setQ('')}>Limpar</Button>
-            <Button variant="primary" onClick={() => setShowCreate(v => !v)}>
-              {showCreate ? 'Fechar' : 'Novo Cedente'}
-            </Button>
+            <h1 className="text-4xl font-bold text-[#0369a1] mb-2">Cedentes</h1>
+            <p className="text-[#64748b] text-lg">Gestão completa de cedentes e relacionamentos</p>
           </div>
         </header>
 
+        {/* Estatísticas */}
+        <div className="grid gap-4 md:grid-cols-3">
+          <div className="bg-white rounded-xl shadow-md border border-blue-100 p-5 hover:shadow-lg transition-all">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-[#64748b]">Total de Cedentes</span>
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                <span className="text-xl">🏢</span>
+              </div>
+            </div>
+            <p className="text-3xl font-bold text-[#0369a1]">{stats.total}</p>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-md border border-green-100 p-5 hover:shadow-lg transition-all">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-[#64748b]">Cedentes Ativos</span>
+              <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center">
+                <span className="text-xl">✓</span>
+              </div>
+            </div>
+            <p className="text-3xl font-bold text-green-600">{stats.ativos}</p>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-md border border-gray-100 p-5 hover:shadow-lg transition-all">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-[#64748b]">Cedentes Inativos</span>
+              <div className="w-10 h-10 bg-gradient-to-br from-gray-400 to-gray-500 rounded-lg flex items-center justify-center">
+                <span className="text-xl">⏸</span>
+              </div>
+            </div>
+            <p className="text-3xl font-bold text-[#64748b]">{stats.inativos}</p>
+          </div>
+        </div>
+
+        {/* Toolbar */}
+        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
+          <div className="flex flex-col lg:flex-row gap-4 lg:items-center lg:justify-between">
+            {/* Busca e filtros */}
+            <div className="flex flex-col sm:flex-row gap-3 flex-1">
+              <div className="relative flex-1">
+                <Input
+                  placeholder="🔍 Buscar por nome, CNPJ, email..."
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  className="w-full"
+                />
+              </div>
+              <select
+                value={filterSituacao}
+                onChange={(e) => setFilterSituacao(e.target.value)}
+                className="px-4 py-2 border border-[#cbd5e1] rounded-lg text-sm text-[#0369a1] bg-white hover:bg-blue-50 transition-colors"
+              >
+                <option value="all">📊 Todas as situações</option>
+                <option value="ativa">✅ Apenas Ativos</option>
+                <option value="inativa">⏸ Apenas Inativos</option>
+              </select>
+            </div>
+
+            {/* Botões de ação */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setViewMode(viewMode === 'table' ? 'grid' : 'table')}
+                className="px-4 py-2 rounded-lg border border-[#cbd5e1] bg-white hover:bg-blue-50 transition-all text-[#0369a1] font-medium"
+                title={viewMode === 'table' ? 'Visualizar em Grid' : 'Visualizar em Tabela'}
+              >
+                {viewMode === 'table' ? '⊞' : '≡'}
+              </button>
+              <Button variant="primary" onClick={() => setShowCreate(true)}>
+                ➕ Novo Cedente
+              </Button>
+            </div>
+          </div>
+
+          {/* Contador de resultados */}
+          <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between text-sm">
+            <span className="text-[#64748b]">
+              Exibindo <strong className="text-[#0369a1]">{paginated.length}</strong> de <strong className="text-[#0369a1]">{total}</strong> cedentes
+              {q && <span> (filtrado de <strong>{items.length}</strong>)</span>}
+            </span>
+            {q && (
+              <Button variant="secondary" onClick={() => setQ('')} className="text-xs">
+                Limpar busca
+              </Button>
+            )}
+          </div>
+        </div>
+
         {/* Modal Novo Cedente */}
         {showCreate && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl border border-[#e2e8f0]">
-              <div className="flex items-center justify-between px-5 py-3 border-b">
-                <h2 className="text-lg font-semibold text-[#0369a1]">Novo Cedente</h2>
-                <button
-                  onClick={() => setShowCreate(false)}
-                  className="px-2 py-1 text-[#64748b] hover:text-[#0f172a]"
-                  aria-label="Fechar"
-                >×</button>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl border border-[#e2e8f0] max-h-[90vh] overflow-auto">
+              <div className="sticky top-0 bg-gradient-to-r from-[#0369a1] to-[#0284c7] px-6 py-4 rounded-t-2xl">
+                <div className="flex items-center justify-between text-white">
+                  <div>
+                    <h2 className="text-xl font-bold">Novo Cedente</h2>
+                    <p className="text-sm text-blue-100">Preencha os dados do cedente</p>
+                  </div>
+                  <button
+                    onClick={() => setShowCreate(false)}
+                    className="w-8 h-8 rounded-lg hover:bg-white/20 transition-colors text-2xl"
+                    aria-label="Fechar"
+                  >×</button>
+                </div>
               </div>
-              <div className="p-5 space-y-4">
+              <div className="p-6 space-y-4">
                 <div className="grid gap-4 sm:grid-cols-2">
               <Input
                 label="Nome*"
@@ -241,7 +350,7 @@ export default function CedentesPage() {
                       }
                     }}
                   >
-                    {loadingCnpj ? 'Consultando...' : 'Consultar CNPJ'}
+                    {loadingCnpj ? '⏳ Consultando...' : '🔍 Consultar'}
                   </Button>
                 </div>
               </div>
@@ -264,7 +373,7 @@ export default function CedentesPage() {
               />
             </div>
             
-            <div className="flex gap-3">
+            <div className="flex gap-3 pt-4 border-t">
               <Button 
                 variant="secondary" 
                 onClick={() => setForm({ 
@@ -274,80 +383,78 @@ export default function CedentesPage() {
                   simples_nacional: false
                 })}
               >
-                Limpar
+                🗑️ Limpar
               </Button>
               <Button 
                 variant="primary" 
                 onClick={add} 
                 loading={pending}
                 disabled={!form.nome}
+                className="flex-1"
               >
-                Adicionar Cedente
+                ✓ Adicionar Cedente
               </Button>
             </div>
             
-            {err && <p className="text-sm text-red-600">{err}</p>}
+            {err && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">⚠️ {err}</p>}
               </div>
             </div>
           </div>
         )}
 
+        {/* Visualização - Tabela ou Grid */}
         <Card>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-[#0369a1]">
-                Lista de Cedentes
-                <span className="ml-2 text-sm font-normal text-[#64748b]">({total})</span>
-              </h2>
-            </div>
-            
+          {viewMode === 'table' ? (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gradient-to-r from-[#e0efff] to-[#f0f7ff]">
                   <tr>
                     {(['nome','razao_social','cnpj'] as const).map(col => (
-                      <th key={col} className="px-4 py-3 text-left text-sm font-semibold text-[#0369a1] cursor-pointer select-none" onClick={() => onSort(col)}>
-                        {col === 'nome' ? 'Nome' : col === 'razao_social' ? 'Razão social' : 'CNPJ'}
+                      <th key={col} className="px-4 py-3 text-left text-sm font-semibold text-[#0369a1] cursor-pointer select-none hover:bg-blue-100 transition-colors" onClick={() => onSort(col)}>
+                        {col === 'nome' ? '👤 Nome' : col === 'razao_social' ? '🏢 Razão Social' : '📄 CNPJ'}
                         {sortBy === col && (
                           <span className="ml-1 text-[#64748b]">{sortDir === 'asc' ? '▲' : '▼'}</span>
                         )}
                       </th>
                     ))}
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-[#0369a1] cursor-pointer select-none" onClick={() => onSort('situacao')}>
-                      Resumo
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-[#0369a1] cursor-pointer select-none hover:bg-blue-100 transition-colors" onClick={() => onSort('situacao')}>
+                      📊 Status
                       {sortBy === 'situacao' && (
                         <span className="ml-1 text-[#64748b]">{sortDir === 'asc' ? '▲' : '▼'}</span>
                       )}
                     </th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-[#0369a1]">Ações</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-[#0369a1]">⚡ Ações</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#cbd5e1]">
                   {paginated.length === 0 ? (
-                    <tr><td colSpan={7} className="p-6 text-center text-[#64748b]">Nenhum cedente encontrado.</td></tr>
+                    <tr><td colSpan={5} className="p-8 text-center text-[#64748b]">
+                      <div className="flex flex-col items-center gap-3">
+                        <span className="text-4xl">📭</span>
+                        <p>Nenhum cedente encontrado.</p>
+                      </div>
+                    </td></tr>
                   ) : paginated.map(c => (
-                    <tr key={c.id} className="hover:bg-[#f8fbff] transition-colors">
+                    <tr key={c.id} className="hover:bg-[#f8fbff] transition-colors group">
                       <td className="px-4 py-3 text-sm text-[#1e293b] font-medium">{c.nome}</td>
                       <td className="px-4 py-3 text-sm text-[#64748b]">{c.razao_social ?? '—'}</td>
                       <td className="px-4 py-3 text-sm text-[#64748b] font-mono">{c.cnpj ? formatCpfCnpj(c.cnpj) : '—'}</td>
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          {c.situacao && (
-                            <Badge variant={c.situacao === 'ATIVA' ? 'success' : c.situacao === 'INATIVA' ? 'error' : 'neutral'} size="sm">
-                              {c.situacao}
-                            </Badge>
-                          )}
-                        </div>
+                        {c.situacao && (
+                          <Badge variant={c.situacao === 'ATIVA' ? 'success' : 'neutral'} size="sm">
+                            {c.situacao}
+                          </Badge>
+                        )}
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex gap-1">
-                          <Link href={`/cedentes/${c.id}`} title="Ver">
-                            <button className="p-2 rounded hover:bg-[#e2e8f0]" aria-label="Ver">👁️</button>
+                        <div className="flex gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
+                          <Link href={`/cedentes/${c.id}`} title="Ver detalhes">
+                            <button className="p-2 rounded-lg hover:bg-blue-50 transition-colors" aria-label="Ver">👁️</button>
                           </Link>
                           <Link href={`/cedentes/${c.id}/editar`} title="Editar">
-                            <button className="p-2 rounded hover:bg-[#e2e8f0]" aria-label="Editar">✏️</button>
+                            <button className="p-2 rounded-lg hover:bg-blue-50 transition-colors" aria-label="Editar">✏️</button>
                           </Link>
-                          <button className="p-2 rounded hover:bg-[#fee2e2]" title="Excluir" aria-label="Excluir" onClick={() => remove(c.id)}>🗑️</button>
+                          <button className="p-2 rounded-lg hover:bg-red-50 transition-colors" title="Excluir" aria-label="Excluir" onClick={() => remove(c.id)}>🗑️</button>
                         </div>
                       </td>
                     </tr>
@@ -355,32 +462,77 @@ export default function CedentesPage() {
                 </tbody>
               </table>
             </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 p-4">
+              {paginated.length === 0 ? (
+                <div className="col-span-full p-8 text-center text-[#64748b]">
+                  <div className="flex flex-col items-center gap-3">
+                    <span className="text-4xl">📭</span>
+                    <p>Nenhum cedente encontrado.</p>
+                  </div>
+                </div>
+              ) : paginated.map(c => (
+                <div key={c.id} className="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-lg transition-all hover:-translate-y-1">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <span className="text-2xl">🏢</span>
+                    </div>
+                    {c.situacao && (
+                      <Badge variant={c.situacao === 'ATIVA' ? 'success' : 'neutral'} size="sm">
+                        {c.situacao}
+                      </Badge>
+                    )}
+                  </div>
+                  <h3 className="font-bold text-[#0369a1] mb-1 text-lg">{c.nome}</h3>
+                  {c.razao_social && <p className="text-sm text-[#64748b] mb-2">{c.razao_social}</p>}
+                  {c.cnpj && <p className="text-xs text-[#64748b] font-mono mb-3">{formatCpfCnpj(c.cnpj)}</p>}
+                  <div className="flex gap-2 pt-3 border-t border-gray-100">
+                    <Link href={`/cedentes/${c.id}`} className="flex-1">
+                      <button className="w-full px-3 py-2 rounded-lg bg-blue-50 hover:bg-blue-100 text-[#0369a1] font-medium text-sm transition-colors">
+                        👁️ Ver
+                      </button>
+                    </Link>
+                    <Link href={`/cedentes/${c.id}/editar`}>
+                      <button className="px-3 py-2 rounded-lg bg-blue-50 hover:bg-blue-100 text-[#0369a1] font-medium text-sm transition-colors">
+                        ✏️
+                      </button>
+                    </Link>
+                    <button 
+                      onClick={() => remove(c.id)}
+                      className="px-3 py-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 font-medium text-sm transition-colors"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
-            {/* Paginação */}
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 pt-2">
-              <div className="text-sm text-[#64748b]">
-                Mostrando <strong>{paginated.length}</strong> de <strong>{total}</strong>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  className="px-3 py-1.5 rounded border border-[#cbd5e1] text-sm text-[#0369a1] disabled:opacity-50"
-                  onClick={() => setPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                >Anterior</button>
-                <span className="text-sm text-[#64748b]">Página {currentPage} de {totalPages}</span>
-                <button
-                  className="px-3 py-1.5 rounded border border-[#cbd5e1] text-sm text-[#0369a1] disabled:opacity-50"
-                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                >Próxima</button>
-                <select
-                  className="ml-2 px-2 py-1.5 border border-[#cbd5e1] rounded text-sm text-[#0369a1] bg-white"
-                  value={pageSize}
-                  onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
-                >
-                  {[10, 20, 50].map(n => <option key={n} value={n}>{n}/página</option>)}
-                </select>
-              </div>
+          {/* Paginação */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-4 border-t border-gray-100 bg-gray-50">
+            <div className="text-sm text-[#64748b]">
+              Página <strong className="text-[#0369a1]">{currentPage}</strong> de <strong className="text-[#0369a1]">{totalPages}</strong>
+            </div>
+            <div className="flex items-center gap-2 justify-center">
+              <button
+                className="px-4 py-2 rounded-lg border border-[#cbd5e1] text-sm text-[#0369a1] font-medium bg-white hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >← Anterior</button>
+              <span className="text-sm text-[#64748b] px-2">•</span>
+              <button
+                className="px-4 py-2 rounded-lg border border-[#cbd5e1] text-sm text-[#0369a1] font-medium bg-white hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+              >Próxima →</button>
+              <select
+                className="ml-2 px-3 py-2 border border-[#cbd5e1] rounded-lg text-sm text-[#0369a1] bg-white hover:bg-blue-50 transition-colors"
+                value={pageSize}
+                onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
+              >
+                {[10, 20, 50, 100].map(n => <option key={n} value={n}>{n}/página</option>)}
+              </select>
             </div>
           </div>
         </Card>
@@ -388,5 +540,3 @@ export default function CedentesPage() {
     </main>
   );
 }
-
-
