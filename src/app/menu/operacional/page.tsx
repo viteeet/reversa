@@ -117,50 +117,6 @@ export default function MenuOperacionalPage() {
             </div>
           </Link>
         </div>
-
-        {/* Links Rápidos */}
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 mb-8">
-          <h3 className="text-xl font-bold text-[#0369a1] mb-4 flex items-center gap-2">
-            <span className="text-2xl">⚡</span>
-            Ações Rápidas
-          </h3>
-          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-            <Link href="/cedentes" className="group flex items-center gap-3 p-4 rounded-xl hover:bg-blue-50 transition-all border border-transparent hover:border-blue-200">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                <span className="text-xl">➕</span>
-              </div>
-              <div>
-                <p className="font-semibold text-[#0369a1]">Novo Cedente</p>
-                <p className="text-xs text-[#64748b]">Cadastrar novo cedente</p>
-              </div>
-            </Link>
-
-            <Link href="/sacados/new" className="group flex items-center gap-3 p-4 rounded-xl hover:bg-indigo-50 transition-all border border-transparent hover:border-indigo-200">
-              <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                <span className="text-xl">➕</span>
-              </div>
-              <div>
-                <p className="font-semibold text-[#0369a1]">Novo Sacado</p>
-                <p className="text-xs text-[#64748b]">Cadastrar novo sacado</p>
-              </div>
-            </Link>
-          </div>
-        </div>
-
-        {/* Links Rápidos */}
-        <div className="bg-white rounded-2xl border border-blue-100 p-6 shadow-sm">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
-              <span className="text-2xl">💡</span>
-            </div>
-            <div className="space-y-2">
-              <h3 className="text-lg font-bold text-[#0369a1]">Sobre o Sistema</h3>
-              <p className="text-[#64748b] leading-relaxed">
-                <strong className="text-[#0369a1]">Cedentes</strong> são os clientes principais do sistema. Cada cedente pode ter múltiplos <strong className="text-[#0369a1]">Sacados</strong> associados, permitindo uma gestão completa e organizada de relacionamentos comerciais e recuperação de recebíveis.
-              </p>
-            </div>
-          </div>
-        </div>
       </div>
     </main>
   );
