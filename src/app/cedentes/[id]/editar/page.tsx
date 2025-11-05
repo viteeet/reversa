@@ -9,6 +9,7 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import CompactDataManager from '@/components/shared/CompactDataManager';
+import { categoriasCedentes } from '@/config/cedentesCategorias';
 
 type Cedente = {
   id: string;
@@ -32,13 +33,10 @@ export default function EditarCedentePage() {
   const [cedente, setCedente] = useState<Cedente | null>(null);
   const [loading, setLoading] = useState(true);
   
-  // Estados para cada tipo de dado
-  const [qsa, setQsa] = useState([]);
-  const [enderecos, setEnderecos] = useState([]);
-  const [telefones, setTelefones] = useState([]);
-  const [emails, setEmails] = useState([]);
-  const [pessoasLigadas, setPessoasLigadas] = useState([]);
-  const [empresasLigadas, setEmpresasLigadas] = useState([]);
+  // Estado dinâmico para categorias (usando configuração)
+  const [categoriasData, setCategoriasData] = useState<Record<string, any[]>>({});
+  
+  // Estados específicos (mantidos para compatibilidade)
   const [processosTexto, setProcessosTexto] = useState(''); // TEXTO SIMPLES
   
   // Observações gerais DA EMPRESA (uma única observação)
@@ -73,14 +71,9 @@ export default function EditarCedentePage() {
     
     setCedente(cedenteData);
 
-    // Carrega todos os dados complementares
+    // Carrega todos os dados complementares (dinamicamente baseado na configuração)
     await Promise.all([
-      loadQSA(),
-      loadEnderecos(),
-      loadTelefones(),
-      loadEmails(),
-      loadPessoasLigadas(),
-      loadEmpresasLigadas(),
+      ...categoriasCedentes.map(cat => loadCategoria(cat.id, cat.tableName)),
       loadProcessos(),
       loadObservacoes(),
       loadSacados()
@@ -254,64 +247,46 @@ export default function EditarCedentePage() {
     }
   }
 
-  async function loadQSA() {
-    const { data } = await supabase
-      .from('cedentes_qsa')
-      .select('*')
-      .eq('cedente_id', id)
-      .eq('ativo', true)
-      .order('nome');
-    setQsa(data || []);
-  }
+  // Função genérica para carregar qualquer categoria
+  async function loadCategoria(categoriaId: string, tableName: string) {
+    try {
+      const categoriaConfig = categoriasCedentes.find(c => c.id === categoriaId);
+      if (!categoriaConfig) return;
 
-  async function loadEnderecos() {
-    const { data } = await supabase
-      .from('cedentes_enderecos')
-      .select('*')
-      .eq('cedente_id', id)
-      .eq('ativo', true)
-      .order('principal', { ascending: false });
-    setEnderecos(data || []);
-  }
+      let query = supabase
+        .from(tableName)
+        .select('*')
+        .eq('cedente_id', id)
+        .eq('ativo', true);
 
-  async function loadTelefones() {
-    const { data } = await supabase
-      .from('cedentes_telefones')
-      .select('*')
-      .eq('cedente_id', id)
-      .eq('ativo', true)
-      .order('principal', { ascending: false });
-    setTelefones(data || []);
-  }
+      // Ordenação específica por categoria
+      if (categoriaId === 'qsa' || categoriaId === 'pessoas_ligadas' || categoriaId === 'familiares') {
+        query = query.order('nome');
+      } else if (['enderecos', 'telefones', 'emails'].includes(categoriaId)) {
+        query = query.order('principal', { ascending: false });
+      } else if (categoriaId === 'empresas_ligadas') {
+        query = query.order('razao_social');
+      } else {
+        // Ordenação padrão por created_at
+        query = query.order('created_at', { ascending: false });
+      }
 
-  async function loadEmails() {
-    const { data } = await supabase
-      .from('cedentes_emails')
-      .select('*')
-      .eq('cedente_id', id)
-      .eq('ativo', true)
-      .order('principal', { ascending: false });
-    setEmails(data || []);
-  }
+      const { data, error } = await query;
+      
+      if (error) {
+        // Ignora erros de tabela não existente
+        if (!error.message.includes('does not exist') && !error.message.includes('relation')) {
+          console.error(`Erro ao carregar ${categoriaId}:`, error);
+        }
+        setCategoriasData(prev => ({ ...prev, [categoriaId]: [] }));
+        return;
+      }
 
-  async function loadPessoasLigadas() {
-    const { data } = await supabase
-      .from('cedentes_pessoas_ligadas')
-      .select('*')
-      .eq('cedente_id', id)
-      .eq('ativo', true)
-      .order('nome');
-    setPessoasLigadas(data || []);
-  }
-
-  async function loadEmpresasLigadas() {
-    const { data } = await supabase
-      .from('cedentes_empresas_ligadas')
-      .select('*')
-      .eq('cedente_id', id)
-      .eq('ativo', true)
-      .order('razao_social');
-    setEmpresasLigadas(data || []);
+      setCategoriasData(prev => ({ ...prev, [categoriaId]: data || [] }));
+    } catch (error) {
+      console.error(`Erro ao carregar categoria ${categoriaId}:`, error);
+      setCategoriasData(prev => ({ ...prev, [categoriaId]: [] }));
+    }
   }
 
   async function loadProcessos() {
@@ -473,15 +448,9 @@ export default function EditarCedentePage() {
   }
 
   function getTableNameByType(tipo: string): string {
-    const mapping: Record<string, string> = {
-      'qsa': 'cedentes_qsa',
-      'enderecos': 'cedentes_enderecos',
-      'telefones': 'cedentes_telefones',
-      'emails': 'cedentes_emails',
-      'pessoas_ligadas': 'cedentes_pessoas_ligadas',
-      'empresas_relacionadas': 'cedentes_empresas_ligadas'
-    };
-    return mapping[tipo] || '';
+    // Busca a tabela na configuração usando o apiType
+    const categoria = categoriasCedentes.find(c => c.apiType === tipo);
+    return categoria?.tableName || '';
   }
 
   if (loading) {
@@ -547,102 +516,24 @@ export default function EditarCedentePage() {
           </div>
         </Card>
 
-        {/* Endereços */}
-        <Card>
-          <CompactDataManager
-            title="Endereços"
-            entityId={id}
-            tableName="cedentes_enderecos"
-            items={enderecos}
-            onRefresh={loadEnderecos}
-            onFetchFromAPI={cedente.cnpj ? () => fetchFromAPI('enderecos') : undefined}
-            fields={[
-              { key: 'endereco', label: 'Endereço', type: 'text', required: true, width: 'full' },
-              { key: 'tipo', label: 'Tipo', type: 'select', options: ['comercial', 'residencial', 'correspondencia'] },
-              { key: 'cep', label: 'CEP', type: 'text' },
-              { key: 'cidade', label: 'Cidade', type: 'text' },
-              { key: 'estado', label: 'UF', type: 'text' }
-            ]}
-            displayFields={['endereco', 'tipo', 'cidade']}
-          />
-        </Card>
-
-        {/* Telefones */}
-        <Card>
-          <CompactDataManager
-            title="Telefones"
-            entityId={id}
-            tableName="cedentes_telefones"
-            items={telefones}
-            onRefresh={loadTelefones}
-            onFetchFromAPI={cedente.cnpj ? () => fetchFromAPI('telefones') : undefined}
-            fields={[
-              { key: 'telefone', label: 'Telefone', type: 'tel', required: true },
-              { key: 'tipo', label: 'Tipo', type: 'select', options: ['celular', 'fixo', 'comercial'] },
-              { key: 'nome_contato', label: 'Contato', type: 'text' }
-            ]}
-            displayFields={['telefone', 'tipo', 'nome_contato']}
-          />
-        </Card>
-
-        {/* E-mails */}
-        <Card>
-          <CompactDataManager
-            title="E-mails"
-            entityId={id}
-            tableName="cedentes_emails"
-            items={emails}
-            onRefresh={loadEmails}
-            onFetchFromAPI={cedente.cnpj ? () => fetchFromAPI('emails') : undefined}
-            fields={[
-              { key: 'email', label: 'E-mail', type: 'email', required: true, width: 'half' },
-              { key: 'tipo', label: 'Tipo', type: 'select', options: ['comercial', 'pessoal', 'financeiro'] },
-              { key: 'nome_contato', label: 'Contato', type: 'text' }
-            ]}
-            displayFields={['email', 'tipo', 'nome_contato']}
-          />
-        </Card>
-
-        {/* Pessoas Ligadas */}
-        <Card>
-          <CompactDataManager
-            title="Pessoas Ligadas"
-            entityId={id}
-            tableName="cedentes_pessoas_ligadas"
-            items={pessoasLigadas}
-            onRefresh={loadPessoasLigadas}
-            onFetchFromAPI={cedente.cnpj ? () => fetchFromAPI('pessoas_ligadas') : undefined}
-            fields={[
-              { key: 'cpf', label: 'CPF', type: 'text' },
-              { key: 'nome', label: 'Nome', type: 'text', required: true, width: 'half' },
-              { key: 'tipo_relacionamento', label: 'Relacionamento', type: 'select', 
-                options: ['pai', 'mae', 'conjuge', 'filho', 'irmao', 'socio', 'administrador', 'outro'] },
-              { key: 'observacoes', label: 'Obs', type: 'text', width: 'half' }
-            ]}
-            displayFields={['nome', 'cpf', 'tipo_relacionamento']}
-          />
-        </Card>
-
-        {/* Empresas Ligadas */}
-        <Card>
-          <CompactDataManager
-            title="Empresas Ligadas"
-            entityId={id}
-            tableName="cedentes_empresas_ligadas"
-            items={empresasLigadas}
-            onRefresh={loadEmpresasLigadas}
-            onFetchFromAPI={cedente.cnpj ? () => fetchFromAPI('empresas_relacionadas') : undefined}
-            fields={[
-              { key: 'cnpj_relacionado', label: 'CNPJ', type: 'text', required: true },
-              { key: 'razao_social', label: 'Razão Social', type: 'text', required: true, width: 'half' },
-              { key: 'tipo_relacionamento', label: 'Tipo', type: 'select', 
-                options: ['grupo', 'filial', 'matriz', 'sociedade'] },
-              { key: 'participacao', label: 'Part.%', type: 'number' },
-              { key: 'observacoes', label: 'Obs', type: 'text', width: 'half' }
-            ]}
-            displayFields={['razao_social', 'cnpj_relacionado', 'tipo_relacionamento']}
-          />
-        </Card>
+        {/* Categorias dinâmicas (baseadas na configuração) */}
+        {categoriasCedentes
+          .filter(cat => cat.id !== 'qsa') // QSA é renderizado separadamente
+          .map(categoria => (
+            <Card key={categoria.id}>
+              <CompactDataManager
+                title={categoria.title}
+                entityId={id}
+                tableName={categoria.tableName}
+                items={categoriasData[categoria.id] || []}
+                onRefresh={() => loadCategoria(categoria.id, categoria.tableName)}
+                onFetchFromAPI={cedente.cnpj && categoria.apiType ? () => fetchFromAPI(categoria.apiType!) : undefined}
+                fields={categoria.fields}
+                displayFields={categoria.displayFields}
+                showDetailsButton={categoria.showDetailsButton}
+              />
+            </Card>
+          ))}
 
         {/* Processos Judiciais - SIMPLIFICADO */}
         <Card>
@@ -663,44 +554,44 @@ export default function EditarCedentePage() {
           </div>
         </Card>
 
-        {/* QSA com Botão de Detalhes */}
-        <Card>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between pb-2 border-b border-gray-200">
-              <h3 className="text-base font-semibold text-gray-900">
-                QSA - Quadro de Sócios e Administradores
-              </h3>
-              <div className="flex gap-2">
-                {cedente.cnpj && (
-                  <button
-                    onClick={() => fetchFromAPI('qsa')}
-                    className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded border border-gray-300"
-                  >
-                    🔄 API
-                  </button>
-                )}
-              </div>
-            </div>
+        {/* QSA com Botão de Detalhes (renderizado separadamente) */}
+        {(() => {
+          const categoriaQsa = categoriasCedentes.find(c => c.id === 'qsa');
+          if (!categoriaQsa) return null;
+          
+          return (
+            <Card>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b border-gray-200">
+                  <h3 className="text-base font-semibold text-gray-900">
+                    {categoriaQsa.title}
+                  </h3>
+                  <div className="flex gap-2">
+                    {cedente.cnpj && categoriaQsa.apiType && (
+                      <button
+                        onClick={() => fetchFromAPI(categoriaQsa.apiType!).then(() => loadCategoria('qsa', categoriaQsa.tableName))}
+                        className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded border border-gray-300"
+                      >
+                        🔄 API
+                      </button>
+                    )}
+                  </div>
+                </div>
 
-            <CompactDataManager
-              title=""
-              entityId={id}
-              tableName="cedentes_qsa"
-              items={qsa}
-              onRefresh={loadQSA}
-              fields={[
-                { key: 'cpf', label: 'CPF', type: 'text', placeholder: '000.000.000-00' },
-                { key: 'nome', label: 'Nome', type: 'text', required: true, placeholder: 'Nome completo', width: 'half' },
-                { key: 'qualificacao', label: 'Qualificação', type: 'text', placeholder: 'Administrador, Sócio' },
-                { key: 'participacao', label: 'Part.%', type: 'number', placeholder: '0-100' },
-                { key: 'data_entrada', label: 'Data Entrada', type: 'date' },
-                { key: 'observacoes', label: 'OBS (Detalhes, endereços, telefones, processos, etc.)', type: 'textarea', placeholder: 'Informações completas desta pessoa...', width: 'full' }
-              ]}
-              displayFields={['nome', 'cpf', 'qualificacao', 'participacao']}
-              showDetailsButton={true}
-            />
-          </div>
-        </Card>
+                <CompactDataManager
+                  title=""
+                  entityId={id}
+                  tableName={categoriaQsa.tableName}
+                  items={categoriasData['qsa'] || []}
+                  onRefresh={() => loadCategoria('qsa', categoriaQsa.tableName)}
+                  fields={categoriaQsa.fields}
+                  displayFields={categoriaQsa.displayFields}
+                  showDetailsButton={categoriaQsa.showDetailsButton}
+                />
+              </div>
+            </Card>
+          );
+        })()}
 
         {/* Sacados Relacionados */}
         <Card>

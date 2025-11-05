@@ -12,6 +12,7 @@ export default function Header() {
   const [email, setEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isAppsMenuOpen, setIsAppsMenuOpen] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -41,6 +42,56 @@ export default function Header() {
           <div className="flex items-center gap-2">
             {/* Notificações */}
             <NotificationBell />
+            
+            {/* Botão Menu de Apps (Quebra-cabeça) */}
+            <div className="relative">
+              <button
+                onClick={() => setIsAppsMenuOpen(!isAppsMenuOpen)}
+                className="p-2 rounded-lg border border-white/20 hover:bg-white/10 transition-colors"
+                title="Apps"
+              >
+                <svg 
+                  className="w-6 h-6 text-white" 
+                  fill="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M20.5 11H19V7c0-1.1-.9-2-2-2h-4V3.5C13 2.12 11.88 1 10.5 1S8 2.12 8 3.5V5H4c-1.1 0-1.99.9-1.99 2v3.8H3.5c1.49 0 2.7 1.21 2.7 2.7s-1.21 2.7-2.7 2.7H2V20c0 1.1.9 2 2 2h3.8v-1.5c0-1.49 1.21-2.7 2.7-2.7 1.49 0 2.7 1.21 2.7 2.7V22H17c1.1 0 2-.9 2-2v-4h1.5c1.38 0 2.5-1.12 2.5-2.5S21.88 11 20.5 11z"/>
+                </svg>
+              </button>
+              
+              {/* Menu Dropdown de Apps */}
+              {isAppsMenuOpen && (
+                <div 
+                  className="absolute top-full right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50"
+                  style={{ animation: 'slideDown 0.2s ease-out' }}
+                >
+                  <div className="p-2">
+                    <div className="px-3 py-2 border-b border-gray-200">
+                      <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Apps</div>
+                    </div>
+                    
+                    <a 
+                      href="https://www.redecnpj.com.br/demo/" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      onClick={() => setIsAppsMenuOpen(false)}
+                      className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                    >
+                      <div className="text-xl">🔗</div>
+                      <div className="flex-1">
+                        <div className="font-semibold text-gray-900">RedeCNPJ</div>
+                        <div className="text-sm text-gray-500">Mapa de relacionamentos</div>
+                      </div>
+                      <div className="text-gray-400">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                      </div>
+                    </a>
+                  </div>
+                </div>
+              )}
+            </div>
             
             {/* Botão Menu Hambúrguer */}
             <button
@@ -227,11 +278,14 @@ export default function Header() {
           </div>
         )}
 
-        {/* Overlay para fechar o menu */}
-        {isMenuOpen && (
+        {/* Overlay para fechar os menus */}
+        {(isMenuOpen || isAppsMenuOpen) && (
           <div 
             className="fixed inset-0 z-40" 
-            onClick={() => setIsMenuOpen(false)}
+            onClick={() => {
+              setIsMenuOpen(false);
+              setIsAppsMenuOpen(false);
+            }}
           />
         )}
       </div>
