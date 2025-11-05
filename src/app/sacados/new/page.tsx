@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { FormEvent, useState, useEffect } from 'react';
+import { FormEvent, useState, useEffect, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
 import { formatCpfCnpj } from '@/lib/format';
 
@@ -11,7 +11,7 @@ type Cedente = {
   razao_social: string | null;
 };
 
-export default function NewSacadoPage() {
+function NewSacadoContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const cedente_id_param = searchParams.get('cedente_id');
@@ -235,5 +235,22 @@ export default function NewSacadoPage() {
         </form>
       </div>
     </main>
+  );
+}
+
+export default function NewSacadoPage() {
+  return (
+    <Suspense fallback={
+      <main className="min-h-screen p-6">
+        <div className="container max-w-xl space-y-4">
+          <div className="text-center py-8">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#0369a1]"></div>
+            <p className="mt-2 text-[#64748b]">Carregando...</p>
+          </div>
+        </div>
+      </main>
+    }>
+      <NewSacadoContent />
+    </Suspense>
   );
 }
