@@ -104,163 +104,89 @@ export default function Dashboard() {
           </div>
         </header>
 
-        {/* Estatísticas Rápidas */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          {/* Total Cedentes */}
-          <div className="bg-white rounded-2xl shadow-lg border border-blue-100 p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
-                <span className="text-2xl">🏢</span>
-              </div>
-              {loading && <div className="animate-spin w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>}
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-[#64748b]">Total de Cedentes</p>
-              <p className="text-3xl font-bold text-[#0369a1]">{stats.totalCedentes}</p>
-              <div className="flex items-center gap-2 text-xs">
-                <span className="text-green-600 font-medium">✓ {stats.cedentesAtivos} ativos</span>
-                {stats.cedentesInativos > 0 && (
-                  <span className="text-gray-500">• {stats.cedentesInativos} inativos</span>
-                )}
+        {/* Estatísticas Compactas */}
+        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">🏢</span>
+              <div>
+                <p className="text-xs text-[#64748b]">Cedentes</p>
+                <p className="text-lg font-bold text-[#0369a1]">
+                  {stats.totalCedentes}
+                  <span className="text-xs font-normal text-[#64748b] ml-2">
+                    ({stats.cedentesAtivos} ativos)
+                  </span>
+                </p>
               </div>
             </div>
-          </div>
-
-          {/* Total Sacados */}
-          <div className="bg-white rounded-2xl shadow-lg border border-indigo-100 p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
-                <span className="text-2xl">👥</span>
+            
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">👥</span>
+              <div>
+                <p className="text-xs text-[#64748b]">Sacados</p>
+                <p className="text-lg font-bold text-[#0369a1]">{stats.totalSacados}</p>
               </div>
-              {loading && <div className="animate-spin w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full"></div>}
             </div>
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-[#64748b]">Total de Sacados</p>
-              <p className="text-3xl font-bold text-[#0369a1]">{stats.totalSacados}</p>
-              <p className="text-xs text-[#64748b]">Cadastrados no sistema</p>
-            </div>
-          </div>
-
-          {/* Contas a Receber */}
-          <div className="bg-white rounded-2xl shadow-lg border border-green-100 p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg">
-                <span className="text-2xl">💰</span>
+            
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">💰</span>
+              <div>
+                <p className="text-xs text-[#64748b]">A Receber</p>
+                <p className="text-lg font-bold text-green-600">
+                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.aReceber)}
+                </p>
               </div>
-              {loading && <div className="animate-spin w-5 h-5 border-2 border-green-500 border-t-transparent rounded-full"></div>}
             </div>
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-[#64748b]">A Receber</p>
-              <p className="text-3xl font-bold text-green-600">
-                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.aReceber)}
-              </p>
-              <p className="text-xs text-[#64748b]">Pendente de recebimento</p>
-            </div>
-          </div>
-
-          {/* Contas a Pagar */}
-          <div className="bg-white rounded-2xl shadow-lg border border-orange-100 p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg">
-                <span className="text-2xl">📤</span>
+            
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">📤</span>
+              <div>
+                <p className="text-xs text-[#64748b]">A Pagar</p>
+                <p className="text-lg font-bold text-orange-600">
+                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.aPagar)}
+                </p>
               </div>
-              {loading && <div className="animate-spin w-5 h-5 border-2 border-orange-500 border-t-transparent rounded-full"></div>}
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-[#64748b]">A Pagar</p>
-              <p className="text-3xl font-bold text-orange-600">
-                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.aPagar)}
-              </p>
-              <p className="text-xs text-[#64748b]">Pendente de pagamento</p>
             </div>
           </div>
         </div>
 
-        {/* Menu Principal - 3 Cards */}
-        <div className="grid gap-6 md:grid-cols-3">
-          <Link href="/menu/operacional" className="group">
-            <div className="relative bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border border-gray-100 overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-indigo-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              <div className="relative p-8">
-                <div className="w-16 h-16 bg-gradient-to-br from-[#0369a1] to-[#0284c7] rounded-xl flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                  <span className="text-4xl">🏢</span>
-                </div>
-                <h2 className="text-2xl font-bold text-[#0369a1] mb-3">Operacional</h2>
-                <p className="text-[#64748b] text-sm leading-relaxed mb-4">
-                  Gestão de Cedentes com Sacados integrados
-                </p>
-                <div className="flex flex-wrap gap-2 mb-4">
-                  <span className="px-3 py-1 bg-blue-50 text-[#0369a1] rounded-lg text-xs font-semibold border border-blue-100">Cedentes</span>
-                  <span className="px-3 py-1 bg-blue-50 text-[#0369a1] rounded-lg text-xs font-semibold border border-blue-100">Sacados</span>
-                </div>
-                <div className="flex items-center gap-2 text-[#0369a1] font-semibold text-sm pt-4 border-t border-gray-100">
-                  <span>Acessar</span>
-                  <svg className="w-5 h-5 transform group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-          </Link>
-
-          <Link href="/menu/financeiro" className="group">
-            <div className="relative bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border border-gray-100 overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-green-50 to-emerald-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              <div className="relative p-8">
-                <div className="w-16 h-16 bg-gradient-to-br from-green-600 to-emerald-600 rounded-xl flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                  <span className="text-4xl">💰</span>
-                </div>
-                <h2 className="text-2xl font-bold text-[#0369a1] mb-3">Financeiro</h2>
-                <p className="text-[#64748b] text-sm leading-relaxed mb-4">
-                  Fluxo de Caixa, Relatórios e Contas
-                </p>
-                <div className="flex flex-wrap gap-2 mb-4">
-                  <span className="px-3 py-1 bg-green-50 text-green-700 rounded-lg text-xs font-semibold border border-green-200">Contas</span>
-                  <span className="px-3 py-1 bg-green-50 text-green-700 rounded-lg text-xs font-semibold border border-green-200">Relatórios</span>
-                </div>
-                <div className="flex items-center gap-2 text-[#0369a1] font-semibold text-sm pt-4 border-t border-gray-100">
-                  <span>Acessar</span>
-                  <svg className="w-5 h-5 transform group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-          </Link>
-
-          <Link href="/menu/configuracoes" className="group">
-            <div className="relative bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border border-gray-100 overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-violet-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              <div className="relative p-8">
-                <div className="w-16 h-16 bg-gradient-to-br from-purple-600 to-violet-600 rounded-xl flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                  <span className="text-4xl">⚙️</span>
-                </div>
-                <h2 className="text-2xl font-bold text-[#0369a1] mb-3">Configurações</h2>
-                <p className="text-[#64748b] text-sm leading-relaxed mb-4">
-                  Sistema, Usuários e Parâmetros
-                </p>
-                <div className="flex flex-wrap gap-2 mb-4">
-                  <span className="px-3 py-1 bg-purple-50 text-purple-700 rounded-lg text-xs font-semibold border border-purple-200">Sistema</span>
-                  <span className="px-3 py-1 bg-purple-50 text-purple-700 rounded-lg text-xs font-semibold border border-purple-200">Usuários</span>
-                </div>
-                <div className="flex items-center gap-2 text-[#0369a1] font-semibold text-sm pt-4 border-t border-gray-100">
-                  <span>Acessar</span>
-                  <svg className="w-5 h-5 transform group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-          </Link>
-        </div>
-
-        {/* Acesso Rápido */}
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+        {/* Menu Principal - Acesso Rápido */}
+        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
           <h3 className="text-xl font-bold text-[#0369a1] mb-4 flex items-center gap-2">
             <span className="text-2xl">⚡</span>
-            Acesso Rápido
+            Menu Principal
           </h3>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <Link href="/menu/operacional" className="group flex items-center gap-3 p-4 rounded-xl hover:bg-blue-50 transition-all border border-transparent hover:border-blue-200">
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                <span className="text-xl">🏢</span>
+              </div>
+              <div>
+                <p className="font-semibold text-[#0369a1]">Operacional</p>
+                <p className="text-xs text-[#64748b]">Cedentes e Sacados</p>
+              </div>
+            </Link>
+
+            <Link href="/menu/financeiro" className="group flex items-center gap-3 p-4 rounded-xl hover:bg-green-50 transition-all border border-transparent hover:border-green-200">
+              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                <span className="text-xl">💰</span>
+              </div>
+              <div>
+                <p className="font-semibold text-[#0369a1]">Financeiro</p>
+                <p className="text-xs text-[#64748b]">Contas e Relatórios</p>
+              </div>
+            </Link>
+
+            <Link href="/menu/configuracoes" className="group flex items-center gap-3 p-4 rounded-xl hover:bg-purple-50 transition-all border border-transparent hover:border-purple-200">
+              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                <span className="text-xl">⚙️</span>
+              </div>
+              <div>
+                <p className="font-semibold text-[#0369a1]">Configurações</p>
+                <p className="text-xs text-[#64748b]">Sistema e Parâmetros</p>
+              </div>
+            </Link>
+
             <Link href="/cedentes" className="group flex items-center gap-3 p-4 rounded-xl hover:bg-blue-50 transition-all border border-transparent hover:border-blue-200">
               <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
                 <span className="text-xl">🏢</span>

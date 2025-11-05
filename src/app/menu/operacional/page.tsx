@@ -1,78 +1,19 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-type Stats = {
-  totalCedentes: number;
-  totalSacados: number;
-  cedentesAtivos: number;
-  cedentesInativos: number;
-  sacadosPorCedente: number;
-};
-
 export default function MenuOperacionalPage() {
   const router = useRouter();
-  const [stats, setStats] = useState<Stats>({
-    totalCedentes: 0,
-    totalSacados: 0,
-    cedentesAtivos: 0,
-    cedentesInativos: 0,
-    sacadosPorCedente: 0,
-  });
-  const [loading, setLoading] = useState(true);
   
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       const user = data.user;
       if (!user) { router.replace('/login'); return; }
-      loadStats();
     });
   }, [router]);
-
-  async function loadStats() {
-    try {
-      setLoading(true);
-
-      // Buscar estatísticas dos cedentes
-      const { count: totalCedentes } = await supabase
-        .from('cedentes')
-        .select('*', { count: 'exact', head: true });
-
-      const { count: cedentesAtivos } = await supabase
-        .from('cedentes')
-        .select('*', { count: 'exact', head: true })
-        .eq('situacao', 'ATIVA');
-
-      const { count: cedentesInativos } = await supabase
-        .from('cedentes')
-        .select('*', { count: 'exact', head: true })
-        .neq('situacao', 'ATIVA');
-
-      // Buscar estatísticas dos sacados
-      const { count: totalSacados } = await supabase
-        .from('sacados')
-        .select('*', { count: 'exact', head: true });
-
-      const sacadosPorCedente = totalCedentes && totalCedentes > 0 
-        ? Math.round((totalSacados || 0) / totalCedentes * 10) / 10 
-        : 0;
-
-      setStats({
-        totalCedentes: totalCedentes || 0,
-        totalSacados: totalSacados || 0,
-        cedentesAtivos: cedentesAtivos || 0,
-        cedentesInativos: cedentesInativos || 0,
-        sacadosPorCedente,
-      });
-    } catch (error) {
-      console.error('Erro ao carregar estatísticas:', error);
-    } finally {
-      setLoading(false);
-    }
-  }
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
@@ -93,58 +34,6 @@ export default function MenuOperacionalPage() {
             <p className="text-[#64748b] text-xl">Gestão de Cedentes e seus Sacados</p>
           </div>
         </header>
-
-        {/* Estatísticas Operacionais */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
-          {/* Total Cedentes */}
-          <div className="bg-white rounded-xl shadow-lg border border-blue-100 p-5 hover:shadow-xl transition-all duration-300">
-            <div className="flex items-center justify-between mb-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-xl">🏢</span>
-              </div>
-              {loading && <div className="animate-spin w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>}
-            </div>
-            <p className="text-sm font-medium text-[#64748b] mb-1">Total Cedentes</p>
-            <p className="text-2xl font-bold text-[#0369a1]">{stats.totalCedentes}</p>
-          </div>
-
-          {/* Cedentes Ativos */}
-          <div className="bg-white rounded-xl shadow-lg border border-green-100 p-5 hover:shadow-xl transition-all duration-300">
-            <div className="flex items-center justify-between mb-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center">
-                <span className="text-xl">✓</span>
-              </div>
-              {loading && <div className="animate-spin w-4 h-4 border-2 border-green-500 border-t-transparent rounded-full"></div>}
-            </div>
-            <p className="text-sm font-medium text-[#64748b] mb-1">Cedentes Ativos</p>
-            <p className="text-2xl font-bold text-green-600">{stats.cedentesAtivos}</p>
-          </div>
-
-          {/* Total Sacados */}
-          <div className="bg-white rounded-xl shadow-lg border border-indigo-100 p-5 hover:shadow-xl transition-all duration-300">
-            <div className="flex items-center justify-between mb-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg flex items-center justify-center">
-                <span className="text-xl">👥</span>
-              </div>
-              {loading && <div className="animate-spin w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full"></div>}
-            </div>
-            <p className="text-sm font-medium text-[#64748b] mb-1">Total Sacados</p>
-            <p className="text-2xl font-bold text-[#0369a1]">{stats.totalSacados}</p>
-          </div>
-
-          {/* Média Sacados/Cedente */}
-          <div className="bg-white rounded-xl shadow-lg border border-purple-100 p-5 hover:shadow-xl transition-all duration-300">
-            <div className="flex items-center justify-between mb-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <span className="text-xl">📊</span>
-              </div>
-              {loading && <div className="animate-spin w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full"></div>}
-            </div>
-            <p className="text-sm font-medium text-[#64748b] mb-1">Média Sacados</p>
-            <p className="text-2xl font-bold text-purple-600">{stats.sacadosPorCedente}</p>
-            <p className="text-xs text-[#64748b] mt-1">Por cedente</p>
-          </div>
-        </div>
 
         {/* Menu de Opções - Cards Principais */}
         <div className="grid gap-6 md:grid-cols-2 mb-8">
@@ -177,18 +66,6 @@ export default function MenuOperacionalPage() {
                     <span className="px-3 py-1 bg-blue-50 text-[#0369a1] rounded-lg text-xs font-semibold border border-blue-100">👥 Sacados</span>
                     <span className="px-3 py-1 bg-blue-50 text-[#0369a1] rounded-lg text-xs font-semibold border border-blue-100">🔍 CNPJ</span>
                     <span className="px-3 py-1 bg-blue-50 text-[#0369a1] rounded-lg text-xs font-semibold border border-blue-100">📊 Dados</span>
-                  </div>
-                  
-                  {/* Estatísticas */}
-                  <div className="grid grid-cols-2 gap-3 pt-4">
-                    <div className="bg-blue-50 rounded-lg p-3 border border-blue-100">
-                      <p className="text-xs text-[#64748b] mb-1">Total</p>
-                      <p className="text-xl font-bold text-[#0369a1]">{stats.totalCedentes}</p>
-                    </div>
-                    <div className="bg-green-50 rounded-lg p-3 border border-green-100">
-                      <p className="text-xs text-[#64748b] mb-1">Ativos</p>
-                      <p className="text-xl font-bold text-green-600">{stats.cedentesAtivos}</p>
-                    </div>
                   </div>
                   
                   {/* Botão de ação */}
@@ -229,12 +106,6 @@ export default function MenuOperacionalPage() {
                     <span className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-lg text-xs font-semibold border border-indigo-100">🔍 Consultas</span>
                   </div>
                   
-                  <div className="bg-indigo-50 rounded-lg p-4 border border-indigo-100">
-                    <p className="text-xs text-[#64748b] mb-1">Total de Sacados</p>
-                    <p className="text-2xl font-bold text-indigo-600">{stats.totalSacados}</p>
-                    <p className="text-xs text-[#64748b] mt-2">Cadastrados no sistema</p>
-                  </div>
-                  
                   <div className="flex items-center gap-2 text-[#0369a1] font-semibold pt-4 border-t border-gray-100">
                     <span>Acessar Sacados</span>
                     <svg className="w-5 h-5 transform group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -273,20 +144,10 @@ export default function MenuOperacionalPage() {
                 <p className="text-xs text-[#64748b]">Cadastrar novo sacado</p>
               </div>
             </Link>
-
-            <Link href="/utilitarios/bi-cvm" className="group flex items-center gap-3 p-4 rounded-xl hover:bg-purple-50 transition-all border border-transparent hover:border-purple-200">
-              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                <span className="text-xl">🔍</span>
-              </div>
-              <div>
-                <p className="font-semibold text-[#0369a1]">Consulta BI/CVM</p>
-                <p className="text-xs text-[#64748b]">Dados externos</p>
-              </div>
-            </Link>
           </div>
         </div>
 
-        {/* Informação adicional */}
+        {/* Links Rápidos */}
         <div className="bg-white rounded-2xl border border-blue-100 p-6 shadow-sm">
           <div className="flex items-start gap-4">
             <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
