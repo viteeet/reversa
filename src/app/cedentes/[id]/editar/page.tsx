@@ -60,6 +60,7 @@ export default function EditarCedentePage() {
   // Estados para navegação lateral e botão voltar ao topo
   const [activeSection, setActiveSection] = useState<string>('');
   const [showBackToTop, setShowBackToTop] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false); // Recolhida por padrão
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
   
   const { showToast } = useToast();
@@ -561,10 +562,22 @@ export default function EditarCedentePage() {
   return (
     <div className="flex min-h-screen bg-white">
       {/* Menu Lateral Fixo - Navegação por Seções */}
-      <aside className="hidden lg:block fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 bg-white border-r border-gray-200 overflow-y-auto z-30">
+      <aside className={`hidden lg:block fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 bg-white border-r border-gray-200 overflow-y-auto z-30 transition-transform duration-300 ease-in-out ${
+        sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+      }`}>
         <div className="p-4 space-y-2">
-          <div className="mb-4">
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Navegação</h3>
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Navegação</h3>
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className="p-1 text-gray-400 hover:text-gray-600 rounded hover:bg-gray-100"
+              aria-label="Recolher navegação"
+              title="Recolher"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
 
           {/* Lista de Seções */}
@@ -605,8 +618,22 @@ export default function EditarCedentePage() {
         </div>
       </aside>
 
+      {/* Botão para Expandir Sidebar */}
+      {!sidebarOpen && (
+        <button
+          onClick={() => setSidebarOpen(true)}
+          className="hidden lg:fixed left-4 top-20 z-40 p-2 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-all duration-200 hover:scale-110"
+          aria-label="Expandir navegação"
+          title="Mostrar navegação"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+      )}
+
       {/* Conteúdo Principal */}
-      <main className="flex-1 lg:ml-64">
+      <main className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'lg:ml-64' : ''}`}>
         <div className="container max-w-6xl mx-auto p-6 space-y-6">
           <header className="flex items-center justify-between">
             <div>
