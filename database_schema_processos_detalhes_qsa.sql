@@ -113,3 +113,9 @@ WHERE tablename IN ('cedentes_qsa_detalhes', 'sacados_qsa_detalhes');
 SELECT tablename, policyname FROM pg_policies 
 WHERE tablename IN ('cedentes_qsa_detalhes', 'sacados_qsa_detalhes');
 
+-- ================================================================================
+-- RECARREGAR CACHE DO POSTGREST (IMPORTANTE!)
+-- ================================================================================
+-- Isso força o PostgREST a reconhecer as mudanças no schema imediatamente
+NOTIFY pgrst, 'reload schema';
+

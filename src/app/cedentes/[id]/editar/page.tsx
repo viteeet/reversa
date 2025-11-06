@@ -40,9 +40,13 @@ export default function EditarCedentePage() {
   
   // Estados específicos (mantidos para compatibilidade)
   const [processosTexto, setProcessosTexto] = useState(''); // TEXTO SIMPLES
+  const [lastSavedProcessos, setLastSavedProcessos] = useState('');
+  const [savingProcessos, setSavingProcessos] = useState(false);
   
   // Observações gerais DA EMPRESA (uma única observação)
   const [observacoesGerais, setObservacoesGerais] = useState('');
+  const [lastSavedObservacoes, setLastSavedObservacoes] = useState('');
+  const [savingObservacoes, setSavingObservacoes] = useState(false);
   
   // Modal de detalhes de pessoa do QSA
   const [showQsaDetails, setShowQsaDetails] = useState(false);
@@ -375,7 +379,14 @@ export default function EditarCedentePage() {
       .eq('cedente_id', id)
       .single();
     
-    if (data) setProcessosTexto(data.processos_texto || '');
+    if (data) {
+      const txt = data.processos_texto || '';
+      setProcessosTexto(txt);
+      setLastSavedProcessos(txt);
+    } else {
+      setProcessosTexto('');
+      setLastSavedProcessos('');
+    }
   }
 
   async function loadObservacoes() {
@@ -386,7 +397,14 @@ export default function EditarCedentePage() {
       .eq('cedente_id', id)
       .single();
     
-    if (data) setObservacoesGerais(data.observacoes);
+    if (data) {
+      const txt = data.observacoes || '';
+      setObservacoesGerais(txt);
+      setLastSavedObservacoes(txt);
+    } else {
+      setObservacoesGerais('');
+      setLastSavedObservacoes('');
+    }
   }
 
   async function saveObservacaoGeral(observacoes: string) {
@@ -396,19 +414,24 @@ export default function EditarCedentePage() {
         .upsert({
           cedente_id: id,
           observacoes,
+          processos_texto: processosTexto, // Mantém o valor atual de processos
           updated_at: new Date().toISOString()
         }, {
           onConflict: 'cedente_id'
         });
       
       if (error) throw error;
+      return true;
     } catch (error) {
       console.error('Erro ao salvar observação:', error);
-      const errMsg = (error as any)?.message || '';
+      const errObj = error as any;
+      const errMsg = errObj?.message || '';
+      const errCode = errObj?.code || '';
       // Informa o usuário quando a tabela não existir
-      if (errMsg.includes('does not exist') || errMsg.includes('relation') || errMsg.includes('permission')) {
-        showToast('Não foi possível salvar Observações Gerais. Verifique se a estrutura do banco foi aplicada (cedentes_observacoes_gerais).', 'error');
+      if (errCode === 'PGRST205' || errMsg.includes('does not exist') || errMsg.includes('relation') || errMsg.includes('permission')) {
+        showToast('Não foi possível salvar Observações Gerais. Rode os scripts database_schema_processos_observacoes.sql e database_schema_processos_detalhes_qsa.sql e recarregue o cache (NOTIFY pgrst, \"reload schema\").', 'error');
       }
+      return false;
     }
   }
 
@@ -418,6 +441,7 @@ export default function EditarCedentePage() {
         .from('cedentes_observacoes_gerais')
         .upsert({
           cedente_id: id,
+          observacoes: observacoesGerais, // Mantém o valor atual de observações
           processos_texto: texto,
           updated_at: new Date().toISOString()
         }, {
@@ -425,12 +449,16 @@ export default function EditarCedentePage() {
         });
       
       if (error) throw error;
+      return true;
     } catch (error) {
       console.error('Erro ao salvar processos:', error);
-      const errMsg = (error as any)?.message || '';
-      if (errMsg.includes('does not exist') || errMsg.includes('column') || errMsg.includes('permission')) {
-        showToast('Não foi possível salvar Processos. Garanta que a coluna processos_texto existe (rode database_schema_processos_detalhes_qsa.sql).', 'error');
+      const errObj = error as any;
+      const errMsg = errObj?.message || '';
+      const errCode = errObj?.code || '';
+      if (errCode === 'PGRST205' || errMsg.includes('does not exist') || errMsg.includes('column') || errMsg.includes('permission')) {
+        showToast('Não foi possível salvar Processos. Garanta que a tabela/coluna existe (rode os scripts SQL) e recarregue o cache (NOTIFY pgrst, \"reload schema\").', 'error');
       }
+      return false;
     }
   }
 
@@ -669,11 +697,29 @@ export default function EditarCedentePage() {
                   value={observacoesGerais}
                   onChange={e => {
                     setObservacoesGerais(e.target.value);
-                    saveObservacaoGeral(e.target.value);
                   }}
                   placeholder="Digite observações gerais sobre esta empresa: contexto, histórico, alertas, etc..."
                 />
-                <p className="text-xs text-gray-500">Salva automaticamente ao digitar</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-gray-500">Clique em salvar para persistir</p>
+                  <div className="flex gap-2">
+                    <button
+                      className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50"
+                      disabled={savingObservacoes || observacoesGerais === lastSavedObservacoes}
+                      onClick={async () => {
+                        setSavingObservacoes(true);
+                        const ok = await saveObservacaoGeral(observacoesGerais);
+                        setSavingObservacoes(false);
+                        if (ok) {
+                          setLastSavedObservacoes(observacoesGerais);
+                          showToast('Observações salvas!', 'success');
+                        }
+                      }}
+                    >
+                      {savingObservacoes ? 'Salvando...' : 'Salvar'}
+                    </button>
+                  </div>
+                </div>
               </div>
             </Card>
           </div>
@@ -746,11 +792,29 @@ export default function EditarCedentePage() {
                   value={processosTexto}
                   onChange={e => {
                     setProcessosTexto(e.target.value);
-                    saveProcessosTexto(e.target.value);
                   }}
                   placeholder="Cole aqui todos os processos e informações relevantes encontradas...&#10;&#10;Exemplo:&#10;PROCESSOS: 13&#10;&#10;Processo 1: ...&#10;Processo 2: ...&#10;&#10;INFORMAÇÕES:&#10;- Detalhes importantes&#10;- Endereços relacionados&#10;- Contatos úteis"
                 />
-                <p className="text-xs text-gray-500">Salva automaticamente ao digitar</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-gray-500">Clique em salvar para persistir</p>
+                  <div className="flex gap-2">
+                    <button
+                      className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50"
+                      disabled={savingProcessos || processosTexto === lastSavedProcessos}
+                      onClick={async () => {
+                        setSavingProcessos(true);
+                        const ok = await saveProcessosTexto(processosTexto);
+                        setSavingProcessos(false);
+                        if (ok) {
+                          setLastSavedProcessos(processosTexto);
+                          showToast('Processos salvos!', 'success');
+                        }
+                      }}
+                    >
+                      {savingProcessos ? 'Salvando...' : 'Salvar'}
+                    </button>
+                  </div>
+                </div>
               </div>
             </Card>
           </div>
