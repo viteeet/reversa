@@ -1,5 +1,10 @@
 import { NextResponse } from 'next/server';
 
+// Ensure Node.js runtime on Vercel and disable caching/static optimization
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 function onlyDigits(value: string): string {
   return (value || '').replace(/\D+/g, '');
 }
@@ -46,7 +51,8 @@ export async function GET(req: Request) {
       let res = await fetchWithTimeout(url, {
         headers: { 
           'Authorization': token,
-          'Accept': 'application/json'
+          'Accept': 'application/json',
+          'User-Agent': 'ReversaApp/1.0 (+https://reversa.vercel.app)'
         },
         cache: 'no-store',
       }, 20000); // 20 segundos de timeout
@@ -59,7 +65,8 @@ export async function GET(req: Request) {
         res = await fetchWithTimeout(url, {
           headers: { 
             'Authorization': `Bearer ${token}`,
-            'Accept': 'application/json' 
+            'Accept': 'application/json',
+            'User-Agent': 'ReversaApp/1.0 (+https://reversa.vercel.app)'
           },
           cache: 'no-store',
         }, 20000);
@@ -72,7 +79,8 @@ export async function GET(req: Request) {
         res = await fetchWithTimeout(url, {
           headers: { 
             'Authorization': `Token token=${token}`,
-            'Accept': 'application/json' 
+            'Accept': 'application/json',
+            'User-Agent': 'ReversaApp/1.0 (+https://reversa.vercel.app)'
           },
           cache: 'no-store',
         }, 20000);
@@ -82,9 +90,42 @@ export async function GET(req: Request) {
       return res;
     }
 
-    const res = token 
-      ? await fetchComToken() 
-      : await fetchWithTimeout(`https://publica.cnpj.ws/cnpj/${cnpj}`, { cache: 'no-store' }, 20000);
+    // Tenta com token (se existir). Se falhar com qualquer status não-ok, faz fallback na pública.
+    let res: Response | null = null;
+    if (token) {
+      try {
+        res = await fetchComToken();
+      } catch (err) {
+        console.warn('[CNPJWS API] Erro ao usar API com token, tentando pública...', err);
+        res = null;
+      }
+      if (!res || !res.ok) {
+        console.log('[CNPJWS API] Fallback para API pública');
+        res = await fetchWithTimeout(
+          `https://publica.cnpj.ws/cnpj/${cnpj}`,
+          { 
+            cache: 'no-store',
+            headers: {
+              'Accept': 'application/json',
+              'User-Agent': 'ReversaApp/1.0 (+https://reversa.vercel.app)'
+            }
+          },
+          20000
+        );
+      }
+    } else {
+      res = await fetchWithTimeout(
+        `https://publica.cnpj.ws/cnpj/${cnpj}`,
+        { 
+          cache: 'no-store',
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'ReversaApp/1.0 (+https://reversa.vercel.app)'
+          }
+        },
+        20000
+      );
+    }
 
     console.log('[CNPJWS API] Status final:', res.status);
 
