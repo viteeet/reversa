@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
@@ -10,6 +10,7 @@ import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import CompactDataManager from '@/components/shared/CompactDataManager';
 import { categoriasCedentes } from '@/config/cedentesCategorias';
+import { useToast } from '@/components/ui/ToastContainer';
 
 type Cedente = {
   id: string;
@@ -32,6 +33,7 @@ export default function EditarCedentePage() {
   
   const [cedente, setCedente] = useState<Cedente | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingCategorias, setLoadingCategorias] = useState<Record<string, boolean>>({});
   
   // Estado dinâmico para categorias (usando configuração)
   const [categoriasData, setCategoriasData] = useState<Record<string, any[]>>({});
@@ -55,9 +57,80 @@ export default function EditarCedentePage() {
   const [loadingSacadoCnpj, setLoadingSacadoCnpj] = useState(false);
   const [savingSacado, setSavingSacado] = useState(false);
 
+  // Estados para navegação lateral e botão voltar ao topo
+  const [activeSection, setActiveSection] = useState<string>('');
+  const [showBackToTop, setShowBackToTop] = useState(false);
+  const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  
+  const { showToast } = useToast();
+
   useEffect(() => {
     loadAllData();
   }, [id]);
+
+  // Scroll spy - detecta seção ativa e mostra botão voltar ao topo
+  useEffect(() => {
+    const handleScroll = () => {
+      // Mostra/oculta botão voltar ao topo
+      setShowBackToTop(window.scrollY > 400);
+
+      // Detecta seção ativa
+      const sections = Object.keys(sectionRefs.current);
+      const scrollPosition = window.scrollY + 150; // Offset do header fixo
+
+      for (let i = sections.length - 1; i >= 0; i--) {
+        const sectionId = sections[i];
+        const element = sectionRefs.current[sectionId];
+        if (element) {
+          const offsetTop = element.offsetTop;
+          if (scrollPosition >= offsetTop) {
+            setActiveSection(sectionId);
+            break;
+          }
+        }
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    handleScroll(); // Chama uma vez para setar inicial
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [categoriasData]);
+
+  // Função para scroll suave até seção
+  const scrollToSection = (sectionId: string) => {
+    const element = sectionRefs.current[sectionId];
+    if (element) {
+      const offset = 80; // Altura do header fixo
+      const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
+      const offsetPosition = elementPosition - offset;
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  // Função para voltar ao topo
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  };
+
+  // Lista de seções para navegação
+  const secoes = [
+    { id: 'observacoes', label: 'Observações Gerais', icon: '💬' },
+    { id: 'enderecos', label: 'Endereços', icon: '📍' },
+    { id: 'telefones', label: 'Telefones', icon: '📞' },
+    { id: 'emails', label: 'E-mails', icon: '📧' },
+    { id: 'pessoas_ligadas', label: 'Pessoas Ligadas', icon: '👥' },
+    { id: 'empresas_ligadas', label: 'Empresas Ligadas', icon: '🏢' },
+    { id: 'processos', label: 'Processos', icon: '⚖️' },
+    { id: 'qsa', label: 'QSA', icon: '👔' },
+    { id: 'sacados', label: 'Sacados', icon: '📋' },
+  ];
 
   async function loadAllData() {
     setLoading(true);
@@ -123,7 +196,7 @@ export default function EditarCedentePage() {
   async function consultarCnpjSacado() {
     const raw = sacadoForm.cnpj.replace(/\D+/g, '');
     if (!raw || raw.length !== 14) {
-      alert('CNPJ inválido');
+      showToast('CNPJ inválido', 'error');
       return;
     }
 
@@ -133,7 +206,7 @@ export default function EditarCedentePage() {
       const data = await res.json();
       
       if (!res.ok) {
-        alert(data?.error || 'Erro ao consultar CNPJ');
+        showToast(data?.error || 'Erro ao consultar CNPJ', 'error');
         return;
       }
 
@@ -147,7 +220,7 @@ export default function EditarCedentePage() {
         nome_fantasia: fantasia
       }));
     } catch (err) {
-      alert('Erro ao consultar CNPJ');
+      showToast('Erro ao consultar CNPJ', 'error');
     } finally {
       setLoadingSacadoCnpj(false);
     }
@@ -156,7 +229,7 @@ export default function EditarCedentePage() {
   async function adicionarSacado() {
     const raw = sacadoForm.cnpj.replace(/\D+/g, '');
     if (!raw || !sacadoForm.razao_social.trim()) {
-      alert('Preencha CNPJ e Razão Social');
+      showToast('Preencha CNPJ e Razão Social', 'warning');
       return;
     }
 
@@ -171,7 +244,7 @@ export default function EditarCedentePage() {
 
       // Se já existe (e não é erro de "não encontrado")
       if (existing && !checkError) {
-        alert('Sacado já cadastrado com este CNPJ');
+        showToast('Sacado já cadastrado com este CNPJ', 'warning');
         setSavingSacado(false);
         return;
       }
@@ -207,20 +280,21 @@ export default function EditarCedentePage() {
         
         // Mostra mensagem amigável ao usuário
         if (errorMessage.includes('duplicate') || errorMessage.includes('unique constraint') || errorCode === '23505') {
-          alert('Sacado já cadastrado com este CNPJ');
+          showToast('Sacado já cadastrado com este CNPJ', 'warning');
         } else if (errorMessage) {
-          alert(`Erro ao adicionar sacado: ${error.message || 'Erro desconhecido'}`);
+          showToast(`Erro ao adicionar sacado: ${error.message || 'Erro desconhecido'}`, 'error');
         } else {
-          alert('Erro ao adicionar sacado');
+          showToast('Erro ao adicionar sacado', 'error');
         }
       } else {
-        setSacadoForm({ cnpj: '', razao_social: '', nome_fantasia: '' });
-        setShowAddSacado(false);
+      setSacadoForm({ cnpj: '', razao_social: '', nome_fantasia: '' });
+      setShowAddSacado(false);
+      showToast('Sacado adicionado com sucesso!', 'success');
         await loadSacados();
       }
     } catch (err) {
       console.error('Erro inesperado ao adicionar sacado:', err);
-      alert('Erro inesperado ao adicionar sacado');
+      showToast('Erro inesperado ao adicionar sacado', 'error');
     } finally {
       setSavingSacado(false);
     }
@@ -237,18 +311,19 @@ export default function EditarCedentePage() {
       
       if (error) {
         console.error('Erro ao remover sacado:', error);
-        alert('Erro ao remover sacado');
+        showToast('Erro ao remover sacado', 'error');
       } else {
         await loadSacados();
       }
     } catch (err) {
       console.error('Erro ao remover sacado:', err);
-      alert('Erro ao remover sacado');
+      showToast('Erro ao remover sacado', 'error');
     }
   }
 
   // Função genérica para carregar qualquer categoria
   async function loadCategoria(categoriaId: string, tableName: string) {
+    setLoadingCategorias(prev => ({ ...prev, [categoriaId]: true }));
     try {
       const categoriaConfig = categoriasCedentes.find(c => c.id === categoriaId);
       if (!categoriaConfig) return;
@@ -260,7 +335,7 @@ export default function EditarCedentePage() {
         .eq('ativo', true);
 
       // Ordenação específica por categoria
-      if (categoriaId === 'qsa' || categoriaId === 'pessoas_ligadas' || categoriaId === 'familiares') {
+      if (categoriaId === 'qsa' || categoriaId === 'pessoas_ligadas') {
         query = query.order('nome');
       } else if (['enderecos', 'telefones', 'emails'].includes(categoriaId)) {
         query = query.order('principal', { ascending: false });
@@ -286,6 +361,8 @@ export default function EditarCedentePage() {
     } catch (error) {
       console.error(`Erro ao carregar categoria ${categoriaId}:`, error);
       setCategoriasData(prev => ({ ...prev, [categoriaId]: [] }));
+    } finally {
+      setLoadingCategorias(prev => ({ ...prev, [categoriaId]: false }));
     }
   }
 
@@ -364,13 +441,13 @@ export default function EditarCedentePage() {
       
       if (error) throw error;
       
-      alert('Detalhes salvos com sucesso!');
+      showToast('Detalhes salvos com sucesso!', 'success');
       setShowQsaDetails(false);
       setSelectedQsa(null);
       setQsaDetalhes('');
     } catch (error) {
       console.error('Erro ao salvar detalhes da pessoa:', error);
-      alert('Erro ao salvar detalhes');
+      showToast('Erro ao salvar detalhes', 'error');
     }
   }
 
@@ -395,7 +472,7 @@ export default function EditarCedentePage() {
 
   async function fetchFromAPI(tipo: string) {
     if (!cedente?.cnpj) {
-      alert('Cedente sem CNPJ cadastrado');
+      showToast('Cedente sem CNPJ cadastrado', 'warning');
       return;
     }
 
@@ -438,7 +515,7 @@ export default function EditarCedentePage() {
 
         if (error) {
           console.error('Erro ao salvar dados da API:', error);
-          alert('Alguns dados não puderam ser salvos');
+          showToast('Alguns dados não puderam ser salvos', 'warning');
         }
       }
     } catch (error) {
@@ -482,119 +559,211 @@ export default function EditarCedentePage() {
   }
 
   return (
-    <main className="min-h-screen p-6 bg-white">
-      <div className="container max-w-6xl space-y-6">
-        <header className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-[#0369a1]">
-              {cedente.nome}
-            </h1>
-            {cedente.razao_social && <p className="text-[#64748b]">{cedente.razao_social}</p>}
-            {cedente.cnpj && <p className="text-sm text-[#64748b] font-mono">{cedente.cnpj}</p>}
+    <div className="flex min-h-screen bg-white">
+      {/* Menu Lateral Fixo - Navegação por Seções */}
+      <aside className="hidden lg:block fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 bg-white border-r border-gray-200 overflow-y-auto z-30">
+        <div className="p-4 space-y-2">
+          <div className="mb-4">
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Navegação</h3>
           </div>
-          <Button variant="secondary" onClick={() => router.back()}>
-            Voltar
-          </Button>
-        </header>
 
-        {/* Observações Gerais da Empresa - TOPO */}
-        <Card>
-          <div className="space-y-2">
-            <label className="block text-sm font-semibold text-gray-800">
-              💬 Observações Gerais - {cedente.nome}
-            </label>
-            <textarea
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[100px] resize-y"
-              value={observacoesGerais}
-              onChange={e => {
-                setObservacoesGerais(e.target.value);
-                saveObservacaoGeral(e.target.value);
-              }}
-              placeholder="Digite observações gerais sobre esta empresa: contexto, histórico, alertas, etc..."
-            />
-            <p className="text-xs text-gray-500">Salva automaticamente ao digitar</p>
-          </div>
-        </Card>
+          {/* Lista de Seções */}
+          <nav className="space-y-1">
+            {secoes.map((secao) => {
+              const isActive = activeSection === secao.id;
+              const categoria = categoriasCedentes.find(c => c.id === secao.id);
+              const itemCount = categoria ? (categoriasData[secao.id] || []).length : 
+                                secao.id === 'observacoes' ? (observacoesGerais ? 1 : 0) : 
+                                secao.id === 'processos' ? (processosTexto ? 1 : 0) :
+                                secao.id === 'sacados' ? sacados.length : 0;
 
-        {/* Categorias dinâmicas (baseadas na configuração) */}
-        {categoriasCedentes
-          .filter(cat => cat.id !== 'qsa') // QSA é renderizado separadamente
-          .map(categoria => (
-            <Card key={categoria.id}>
-              <CompactDataManager
-                title={categoria.title}
-                entityId={id}
-                tableName={categoria.tableName}
-                items={categoriasData[categoria.id] || []}
-                onRefresh={() => loadCategoria(categoria.id, categoria.tableName)}
-                onFetchFromAPI={cedente.cnpj && categoria.apiType ? () => fetchFromAPI(categoria.apiType!) : undefined}
-                fields={categoria.fields}
-                displayFields={categoria.displayFields}
-                showDetailsButton={categoria.showDetailsButton}
-              />
-            </Card>
-          ))}
+              return (
+                <button
+                  key={secao.id}
+                  onClick={() => scrollToSection(secao.id)}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-between ${
+                    isActive
+                      ? 'bg-blue-50 text-blue-700 font-medium border-l-4 border-blue-600'
+                      : 'text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <span>{secao.icon}</span>
+                    <span className="truncate">{secao.label}</span>
+                  </span>
+                  {itemCount > 0 && (
+                    <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${
+                      isActive ? 'bg-blue-200 text-blue-800' : 'bg-gray-200 text-gray-600'
+                    }`}>
+                      {itemCount}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+      </aside>
 
-        {/* Processos Judiciais - SIMPLIFICADO */}
-        <Card>
-          <div className="space-y-2">
-            <label className="block text-sm font-semibold text-gray-800">
-              ⚖️ Processos Judiciais e Informações Relevantes
-            </label>
-            <textarea
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[300px] resize-y font-mono"
-              value={processosTexto}
-              onChange={e => {
-                setProcessosTexto(e.target.value);
-                saveProcessosTexto(e.target.value);
-              }}
-              placeholder="Cole aqui todos os processos e informações relevantes encontradas...&#10;&#10;Exemplo:&#10;PROCESSOS: 13&#10;&#10;Processo 1: ...&#10;Processo 2: ...&#10;&#10;INFORMAÇÕES:&#10;- Detalhes importantes&#10;- Endereços relacionados&#10;- Contatos úteis"
-            />
-            <p className="text-xs text-gray-500">Salva automaticamente ao digitar</p>
-          </div>
-        </Card>
+      {/* Conteúdo Principal */}
+      <main className="flex-1 lg:ml-64">
+        <div className="container max-w-6xl mx-auto p-6 space-y-6">
+          <header className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-[#0369a1]">
+                {cedente.nome}
+              </h1>
+              {cedente.razao_social && <p className="text-[#64748b]">{cedente.razao_social}</p>}
+              {cedente.cnpj && <p className="text-sm text-[#64748b] font-mono">{cedente.cnpj}</p>}
+            </div>
+            <Button variant="secondary" onClick={() => router.back()}>
+              Voltar
+            </Button>
+          </header>
 
-        {/* QSA com Botão de Detalhes (renderizado separadamente) */}
-        {(() => {
-          const categoriaQsa = categoriasCedentes.find(c => c.id === 'qsa');
-          if (!categoriaQsa) return null;
-          
-          return (
+          {/* Observações Gerais da Empresa - TOPO */}
+          <div id="observacoes" ref={(el) => { sectionRefs.current['observacoes'] = el; }}>
             <Card>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between pb-2 border-b border-gray-200">
-                  <h3 className="text-base font-semibold text-gray-900">
-                    {categoriaQsa.title}
-                  </h3>
-                  <div className="flex gap-2">
-                    {cedente.cnpj && categoriaQsa.apiType && (
-                      <button
-                        onClick={() => fetchFromAPI(categoriaQsa.apiType!).then(() => loadCategoria('qsa', categoriaQsa.tableName))}
-                        className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded border border-gray-300"
-                      >
-                        🔄 API
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                <CompactDataManager
-                  title=""
-                  entityId={id}
-                  tableName={categoriaQsa.tableName}
-                  items={categoriasData['qsa'] || []}
-                  onRefresh={() => loadCategoria('qsa', categoriaQsa.tableName)}
-                  fields={categoriaQsa.fields}
-                  displayFields={categoriaQsa.displayFields}
-                  showDetailsButton={categoriaQsa.showDetailsButton}
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-gray-800">
+                  💬 Observações Gerais - {cedente.nome}
+                </label>
+                <textarea
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[100px] resize-y"
+                  value={observacoesGerais}
+                  onChange={e => {
+                    setObservacoesGerais(e.target.value);
+                    saveObservacaoGeral(e.target.value);
+                  }}
+                  placeholder="Digite observações gerais sobre esta empresa: contexto, histórico, alertas, etc..."
                 />
+                <p className="text-xs text-gray-500">Salva automaticamente ao digitar</p>
               </div>
             </Card>
-          );
-        })()}
+          </div>
 
-        {/* Sacados Relacionados */}
-        <Card>
+          {/* Categorias dinâmicas (baseadas na configuração) - Agrupadas */}
+          {(() => {
+            // Agrupa categorias por grupo
+            const categoriasPorGrupo: Record<string, typeof categoriasCedentes> = {};
+            categoriasCedentes
+              .filter(cat => cat.id !== 'qsa') // QSA é renderizado separadamente
+              .forEach(categoria => {
+                const grupo = categoria.group || 'outros';
+                if (!categoriasPorGrupo[grupo]) {
+                  categoriasPorGrupo[grupo] = [];
+                }
+                categoriasPorGrupo[grupo].push(categoria);
+              });
+
+            // Labels dos grupos
+            const grupoLabels: Record<string, string> = {
+              'contatos': '📞 Informações de Contato',
+              'relacionamentos': '👥 Relacionamentos',
+              'outros': '📋 Outros'
+            };
+
+            return Object.entries(categoriasPorGrupo).map(([grupo, categorias]) => (
+              <div key={grupo} className="space-y-4">
+                {grupo !== 'outros' && (
+                  <h2 className="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2">
+                    {grupoLabels[grupo] || grupo}
+                  </h2>
+                )}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {categorias.map(categoria => (
+                    <div 
+                      key={categoria.id} 
+                      id={categoria.id}
+                      ref={(el) => { sectionRefs.current[categoria.id] = el; }}
+                    >
+                      <Card className="h-full">
+                        <CompactDataManager
+                          title={categoria.title}
+                          entityId={id}
+                          tableName={categoria.tableName}
+                          items={categoriasData[categoria.id] || []}
+                          onRefresh={() => loadCategoria(categoria.id, categoria.tableName)}
+                          onFetchFromAPI={cedente.cnpj && categoria.apiType ? () => fetchFromAPI(categoria.apiType!) : undefined}
+                          fields={categoria.fields}
+                          displayFields={categoria.displayFields}
+                          showDetailsButton={categoria.showDetailsButton}
+                          isLoading={loadingCategorias[categoria.id]}
+                        />
+                      </Card>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ));
+          })()}
+
+          {/* Processos Judiciais - SIMPLIFICADO */}
+          <div id="processos" ref={(el) => { sectionRefs.current['processos'] = el; }}>
+            <Card>
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-gray-800">
+                  ⚖️ Processos Judiciais e Informações Relevantes
+                </label>
+                <textarea
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[300px] resize-y font-mono"
+                  value={processosTexto}
+                  onChange={e => {
+                    setProcessosTexto(e.target.value);
+                    saveProcessosTexto(e.target.value);
+                  }}
+                  placeholder="Cole aqui todos os processos e informações relevantes encontradas...&#10;&#10;Exemplo:&#10;PROCESSOS: 13&#10;&#10;Processo 1: ...&#10;Processo 2: ...&#10;&#10;INFORMAÇÕES:&#10;- Detalhes importantes&#10;- Endereços relacionados&#10;- Contatos úteis"
+                />
+                <p className="text-xs text-gray-500">Salva automaticamente ao digitar</p>
+              </div>
+            </Card>
+          </div>
+
+          {/* QSA com Botão de Detalhes (renderizado separadamente) */}
+          {(() => {
+            const categoriaQsa = categoriasCedentes.find(c => c.id === 'qsa');
+            if (!categoriaQsa) return null;
+            
+            return (
+              <div id="qsa" ref={(el) => { sectionRefs.current['qsa'] = el; }}>
+                <Card>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between pb-2 border-b border-gray-200">
+                      <h3 className="text-base font-semibold text-gray-900">
+                        {categoriaQsa.title}
+                      </h3>
+                      <div className="flex gap-2">
+                        {cedente.cnpj && categoriaQsa.apiType && (
+                          <button
+                            onClick={() => fetchFromAPI(categoriaQsa.apiType!).then(() => loadCategoria('qsa', categoriaQsa.tableName))}
+                            className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded border border-gray-300"
+                          >
+                            🔄 API
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <CompactDataManager
+                      title=""
+                      entityId={id}
+                      tableName={categoriaQsa.tableName}
+                      items={categoriasData['qsa'] || []}
+                      onRefresh={() => loadCategoria('qsa', categoriaQsa.tableName)}
+                      fields={categoriaQsa.fields}
+                      displayFields={categoriaQsa.displayFields}
+                      showDetailsButton={categoriaQsa.showDetailsButton}
+                      isLoading={loadingCategorias['qsa']}
+                    />
+                  </div>
+                </Card>
+              </div>
+            );
+          })()}
+
+          {/* Sacados Relacionados */}
+          <div id="sacados" ref={(el) => { sectionRefs.current['sacados'] = el; }}>
+            <Card>
           <div className="space-y-4">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 pb-2 border-b border-gray-200">
               <div>
@@ -687,23 +856,39 @@ export default function EditarCedentePage() {
               </div>
             )}
           </div>
-        </Card>
+          </Card>
+          </div>
 
-        {/* Botões de Ação */}
-        <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-          <Button variant="secondary" onClick={() => router.back()}>
-            Cancelar
-          </Button>
-          <Button 
-            variant="primary" 
-            onClick={() => {
-              router.push(`/cedentes/${id}`);
-            }}
-          >
-            Salvar e Voltar
-          </Button>
+          {/* Botões de Ação */}
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+            <Button variant="secondary" onClick={() => router.back()}>
+              Cancelar
+            </Button>
+            <Button 
+              variant="primary" 
+              onClick={() => {
+                router.push(`/cedentes/${id}`);
+              }}
+            >
+              Salvar e Voltar
+            </Button>
+          </div>
         </div>
-      </div>
+      </main>
+
+      {/* Botão Voltar ao Topo - Flutuante */}
+      {showBackToTop && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-8 right-8 z-50 p-3 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-all duration-200 hover:scale-110"
+          title="Voltar ao topo"
+          aria-label="Voltar ao topo"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+          </svg>
+        </button>
+      )}
 
       {/* Modal Adicionar Sacado */}
       {showAddSacado && (
@@ -787,7 +972,7 @@ export default function EditarCedentePage() {
           </div>
         </div>
       )}
-    </main>
+    </div>
   );
 }
 

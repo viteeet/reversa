@@ -60,13 +60,18 @@ CREATE TABLE IF NOT EXISTS cedentes_emails (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Tabela de pessoas ligadas - Cedentes
+-- Tabela de pessoas ligadas / familiares - Cedentes
 CREATE TABLE IF NOT EXISTS cedentes_pessoas_ligadas (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   cedente_id UUID NOT NULL REFERENCES cedentes(id) ON DELETE CASCADE,
   cpf VARCHAR(14),
   nome VARCHAR(255) NOT NULL,
-  tipo_relacionamento VARCHAR(100),
+  tipo_relacionamento VARCHAR(100), -- 'pai', 'mae', 'conjuge', 'filho', 'filha', 'irmao', 'irma', 'avô', 'avó', 'neto', 'neta', 'socio', 'administrador', 'outro'
+  telefone VARCHAR(20),
+  email VARCHAR(255),
+  endereco TEXT,
+  cidade VARCHAR(100),
+  estado VARCHAR(2),
   observacoes TEXT,
   origem VARCHAR(50) DEFAULT 'manual',
   ativo BOOLEAN DEFAULT true,

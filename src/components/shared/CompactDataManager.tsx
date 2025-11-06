@@ -3,6 +3,9 @@
 import { useState } from 'react';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
+import Tooltip from '@/components/ui/Tooltip';
+import Skeleton from '@/components/ui/Skeleton';
+import { useToast } from '@/components/ui/ToastContainer';
 import { supabase } from '@/lib/supabase';
 
 type DataItem = {
@@ -24,10 +27,12 @@ type CompactDataManagerProps = {
     required?: boolean;
     placeholder?: string;
     width?: 'full' | 'half' | 'third';
+    tooltip?: string;
   }[];
   displayFields: string[];
   onFetchFromAPI?: () => Promise<void>;
   showDetailsButton?: boolean;
+  isLoading?: boolean;
 };
 
 export default function CompactDataManager({
@@ -39,7 +44,8 @@ export default function CompactDataManager({
   fields,
   displayFields,
   onFetchFromAPI,
-  showDetailsButton = false
+  showDetailsButton = false,
+  isLoading = false
 }: CompactDataManagerProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [newItemForm, setNewItemForm] = useState<Record<string, any>>({});
@@ -48,6 +54,8 @@ export default function CompactDataManager({
   const [loading, setLoading] = useState(false);
   const [fetchingAPI, setFetchingAPI] = useState(false);
   const [showDetailsId, setShowDetailsId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   const resetNewForm = () => {
     const initialForm: Record<string, any> = {};
@@ -83,7 +91,7 @@ export default function CompactDataManager({
       .map(f => f.label);
     
     if (missingFields.length > 0) {
-      alert(`Preencha: ${missingFields.join(', ')}`);
+      showToast(`Preencha os campos obrigatórios: ${missingFields.join(', ')}`, 'warning');
       return;
     }
 
@@ -104,9 +112,10 @@ export default function CompactDataManager({
 
       await onRefresh();
       handleCancelNew();
-    } catch (error) {
+      showToast('Item adicionado com sucesso!', 'success');
+    } catch (error: any) {
       console.error('Erro ao salvar:', error);
-      alert('Erro ao salvar');
+      showToast(error.message || 'Erro ao salvar item', 'error');
     } finally {
       setLoading(false);
     }
@@ -128,24 +137,29 @@ export default function CompactDataManager({
 
       await onRefresh();
       handleCancelEdit();
-    } catch (error) {
+      showToast('Item atualizado com sucesso!', 'success');
+    } catch (error: any) {
       console.error('Erro ao atualizar:', error);
-      alert('Erro ao atualizar');
+      showToast(error.message || 'Erro ao atualizar item', 'error');
     } finally {
       setLoading(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Excluir este item?')) return;
+    if (!confirm('Tem certeza que deseja excluir este item?')) return;
     
+    setDeletingId(id);
     try {
       const { error } = await supabase.from(tableName).delete().eq('id', id);
       if (error) throw error;
       await onRefresh();
-    } catch (error) {
+      showToast('Item excluído com sucesso!', 'success');
+    } catch (error: any) {
       console.error('Erro ao excluir:', error);
-      alert('Erro ao excluir');
+      showToast(error.message || 'Erro ao excluir item', 'error');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -155,20 +169,21 @@ export default function CompactDataManager({
     try {
       await onFetchFromAPI();
       await onRefresh();
-    } catch (error) {
+      showToast('Dados atualizados da API com sucesso!', 'success');
+    } catch (error: any) {
       console.error('Erro API:', error);
-      alert('Erro ao buscar da API');
+      showToast(error.message || 'Erro ao buscar dados da API', 'error');
     } finally {
       setFetchingAPI(false);
     }
   };
 
-  const renderField = (field: any, value: any, onChange: (val: any) => void, isCompact: boolean = false) => {
-    const baseClass = `px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500`;
+  const renderField = (field: any, value: any, onChange: (val: any) => void) => {
+    const baseClass = `w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors`;
     
     if (field.type === 'select') {
       return (
-        <select className={`${baseClass} bg-white`} value={value || ''} onChange={e => onChange(e.target.value)}>
+        <select className={baseClass} value={value || ''} onChange={e => onChange(e.target.value)}>
           <option value="">-</option>
           {field.options?.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
         </select>
@@ -178,7 +193,7 @@ export default function CompactDataManager({
     if (field.type === 'textarea') {
       return (
         <textarea
-          className={`${baseClass} min-h-[60px] resize-none`}
+          className={`${baseClass} min-h-[80px] resize-y`}
           value={value || ''}
           onChange={e => onChange(e.target.value)}
           placeholder={field.placeholder}
@@ -197,6 +212,59 @@ export default function CompactDataManager({
     );
   };
 
+  const renderFieldLabel = (field: any) => {
+    return (
+      <div className="flex items-center gap-1.5 mb-1">
+        <label className="text-xs font-medium text-gray-700">
+          {field.label}
+          {field.required && <span className="text-red-500 ml-0.5">*</span>}
+        </label>
+        {field.tooltip && (
+          <Tooltip content={field.tooltip} position="top">
+            <button
+              type="button"
+              className="text-gray-400 hover:text-gray-600 transition-colors"
+              onClick={(e) => e.preventDefault()}
+            >
+              <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+              </svg>
+            </button>
+          </Tooltip>
+        )}
+      </div>
+    );
+  };
+
+  // Loading skeleton
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center justify-between border-b border-gray-200 pb-2">
+          <Skeleton width="200px" height="20px" />
+          <div className="flex gap-2">
+            <Skeleton width="60px" height="28px" />
+            <Skeleton width="70px" height="28px" />
+          </div>
+        </div>
+        <div className="space-y-2">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="border rounded-lg p-3 bg-white">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {displayFields.slice(0, 4).map((_, idx) => (
+                  <div key={idx}>
+                    <Skeleton width="80px" height="14px" className="mb-1" />
+                    <Skeleton width="100%" height="32px" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3">
       {/* Header compacto */}
@@ -207,125 +275,193 @@ export default function CompactDataManager({
             <button 
               onClick={handleFetchAPI}
               disabled={fetchingAPI}
-              className="px-3 py-1 text-xs font-medium text-gray-700 bg-gray-100 rounded hover:bg-gray-200 disabled:opacity-50"
+              className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
             >
-              {fetchingAPI ? '...' : 'API'}
+              {fetchingAPI ? (
+                <>
+                  <div className="animate-spin rounded-full h-3 w-3 border-2 border-gray-400 border-t-transparent"></div>
+                  <span>Carregando...</span>
+                </>
+              ) : (
+                <>
+                  <span>🔄</span>
+                  <span>API</span>
+                </>
+              )}
             </button>
           )}
           <button 
             onClick={handleAddNew}
-            disabled={showNewForm}
-            className="px-3 py-1 text-xs font-medium text-white bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50"
+            disabled={showNewForm || loading}
+            className="px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
           >
-            + Novo
+            <span>+</span>
+            <span>Novo</span>
           </button>
         </div>
       </div>
 
-      {/* Formulário de novo item - compacto */}
+      {/* Formulário de novo item - com animação */}
       {showNewForm && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-blue-800">Novo</span>
-            <div className="flex gap-1">
-              <button onClick={handleSaveNew} disabled={loading} className="px-2 py-0.5 text-xs font-medium text-white bg-blue-600 rounded hover:bg-blue-700">
-                Salvar
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 animate-fade-in transition-item">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-semibold text-blue-800">Novo Registro</span>
+            <div className="flex gap-2">
+              <button 
+                onClick={handleSaveNew} 
+                disabled={loading} 
+                className="px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
+              >
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-3 w-3 border-2 border-white border-t-transparent"></div>
+                    <span>Salvando...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>✓</span>
+                    <span>Salvar</span>
+                  </>
+                )}
               </button>
-              <button onClick={handleCancelNew} className="px-2 py-0.5 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded hover:bg-gray-50">
+              <button 
+                onClick={handleCancelNew} 
+                disabled={loading}
+                className="px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 transition-colors"
+              >
                 Cancelar
               </button>
             </div>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {fields.map(field => (
-              <div key={field.key} className={field.width === 'full' ? 'col-span-full' : field.width === 'half' ? 'col-span-2' : ''}>
-                <label className="block text-xs font-medium text-gray-700 mb-0.5">
-                  {field.label}{field.required && '*'}
-                </label>
-                {renderField(field, newItemForm[field.key], (val: any) => setNewItemForm({ ...newItemForm, [field.key]: val }), true)}
+              <div 
+                key={field.key} 
+                className={field.width === 'full' ? 'md:col-span-2 lg:col-span-3' : field.width === 'half' ? 'md:col-span-1 lg:col-span-2' : ''}
+              >
+                {renderFieldLabel(field)}
+                {renderField(field, newItemForm[field.key], (val: any) => setNewItemForm({ ...newItemForm, [field.key]: val }))}
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* Lista de items - compacta */}
+      {/* Lista de items - com transições */}
       {items.length === 0 ? (
-        <div className="text-center py-6 text-sm text-gray-400 border border-dashed border-gray-200 rounded">
-          Nenhum registro
+        <div className="text-center py-8 text-sm text-gray-400 border border-dashed border-gray-300 rounded-lg bg-gray-50">
+          <p>Nenhum registro encontrado</p>
+          <p className="text-xs mt-1 text-gray-400">Clique em "Novo" para adicionar</p>
         </div>
       ) : (
         <div className="space-y-2">
-          {items.map(item => (
-            <div key={item.id} className={`border rounded-lg p-2.5 transition-colors ${editingId === item.id ? 'bg-yellow-50 border-yellow-300' : 'bg-white border-gray-200 hover:border-gray-300'}`}>
+          {items.map((item, index) => (
+            <div 
+              key={item.id} 
+              className={`border rounded-lg p-3 transition-all duration-300 animate-fade-in ${
+                editingId === item.id 
+                  ? 'bg-yellow-50 border-yellow-300 shadow-md' 
+                  : 'bg-white border-gray-200 hover:border-gray-300 hover:shadow-sm'
+              } ${deletingId === item.id ? 'opacity-50 pointer-events-none' : ''}`}
+              style={{ animationDelay: `${index * 50}ms` }}
+            >
               {editingId === item.id ? (
                 // Modo edição
-                <>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-semibold text-yellow-800">Editando</span>
-                    <div className="flex gap-1">
-                      <button onClick={() => handleSaveEdit(item.id!)} disabled={loading} className="px-2 py-0.5 text-xs font-medium text-white bg-yellow-600 rounded hover:bg-yellow-700">
-                        Salvar
+                <div className="animate-fade-in">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs font-semibold text-yellow-800">Editando Registro</span>
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => handleSaveEdit(item.id!)} 
+                        disabled={loading} 
+                        className="px-3 py-1.5 text-xs font-medium text-white bg-yellow-600 rounded-md hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
+                      >
+                        {loading ? (
+                          <>
+                            <div className="animate-spin rounded-full h-3 w-3 border-2 border-white border-t-transparent"></div>
+                            <span>Salvando...</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>✓</span>
+                            <span>Salvar</span>
+                          </>
+                        )}
                       </button>
-                      <button onClick={handleCancelEdit} className="px-2 py-0.5 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded hover:bg-gray-50">
+                      <button 
+                        onClick={handleCancelEdit} 
+                        disabled={loading}
+                        className="px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                      >
                         Cancelar
                       </button>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                     {fields.map(field => (
-                      <div key={field.key} className={field.width === 'full' ? 'col-span-full' : field.width === 'half' ? 'col-span-2' : ''}>
-                        <label className="block text-xs font-medium text-gray-700 mb-0.5">
-                          {field.label}{field.required && '*'}
-                        </label>
-                        {renderField(field, editForm[field.key], (val: any) => setEditForm({ ...editForm, [field.key]: val }), true)}
+                      <div 
+                        key={field.key} 
+                        className={field.width === 'full' ? 'md:col-span-2 lg:col-span-3' : field.width === 'half' ? 'md:col-span-1 lg:col-span-2' : ''}
+                      >
+                        {renderFieldLabel(field)}
+                        {renderField(field, editForm[field.key], (val: any) => setEditForm({ ...editForm, [field.key]: val }))}
                       </div>
                     ))}
                   </div>
-                </>
+                </div>
               ) : (
-                // Modo visualização - super compacto
+                // Modo visualização - compacto
                 <>
                   <div className="flex items-center justify-between gap-3">
-                    <div className="flex-1 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-1">
+                    <div className="flex-1 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-1.5">
                       {displayFields.map(field => {
                         const fieldConfig = fields.find(f => f.key === field);
                         return (
-                          <div key={field} className="flex items-baseline gap-1">
+                          <div key={field} className="flex items-baseline gap-1.5 min-w-0">
                             <span className="text-xs font-medium text-gray-500 shrink-0">{fieldConfig?.label}:</span>
                             <span className="text-sm text-gray-900 truncate">{item[field] || '—'}</span>
                           </div>
                         );
                       })}
-                      <div className="flex items-baseline gap-1">
+                      <div className="flex items-baseline gap-1.5">
                         <Badge variant={item.origem === 'api' ? 'info' : 'neutral'} size="sm">
                           {item.origem === 'api' ? 'API' : 'Manual'}
                         </Badge>
                       </div>
                     </div>
-                    <div className="flex gap-1 shrink-0">
+                    <div className="flex gap-1.5 shrink-0">
                       {showDetailsButton && (
                         <button
                           onClick={() => setShowDetailsId(showDetailsId === item.id ? null : item.id!)}
-                          className="px-2 py-0.5 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded hover:bg-gray-50"
-                          title={showDetailsId === item.id ? "Ocultar OBS" : "Ver OBS"}
+                          className="px-2.5 py-1 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                          title={showDetailsId === item.id ? "Ocultar Observações" : "Ver Observações"}
                         >
                           {showDetailsId === item.id ? '▲' : '▼'}
                         </button>
                       )}
-                      <button onClick={() => handleEdit(item)} className="px-2 py-0.5 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded hover:bg-gray-50">
+                      <button 
+                        onClick={() => handleEdit(item)} 
+                        disabled={loading || deletingId === item.id}
+                        className="px-2.5 py-1 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                      >
                         Editar
                       </button>
-                      <button onClick={() => handleDelete(item.id!)} className="px-2 py-0.5 text-xs font-medium text-red-600 bg-white border border-red-300 rounded hover:bg-red-50">
-                        Excluir
+                      <button 
+                        onClick={() => handleDelete(item.id!)} 
+                        disabled={loading || deletingId === item.id}
+                        className="px-2.5 py-1 text-xs font-medium text-red-600 bg-white border border-red-300 rounded-md hover:bg-red-50 disabled:opacity-50 transition-colors"
+                      >
+                        {deletingId === item.id ? '...' : 'Excluir'}
                       </button>
                     </div>
                   </div>
                   {showDetailsButton && showDetailsId === item.id && item.observacoes && (
-                    <div className="mt-2 pt-2 border-t border-gray-200">
+                    <div className="mt-3 pt-3 border-t border-gray-200 animate-fade-in">
                       <div className="text-sm">
-                        <span className="font-semibold text-[#0369a1]">OBS:</span>
-                        <div className="mt-1 text-[#1e293b] whitespace-pre-wrap bg-gray-50 p-2 rounded">{item.observacoes}</div>
+                        <span className="font-semibold text-blue-700">Observações:</span>
+                        <div className="mt-1.5 text-gray-700 whitespace-pre-wrap bg-gray-50 p-3 rounded-md border border-gray-200">
+                          {item.observacoes}
+                        </div>
                       </div>
                     </div>
                   )}

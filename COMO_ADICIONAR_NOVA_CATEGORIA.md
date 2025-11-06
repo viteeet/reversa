@@ -136,10 +136,9 @@ Veja o arquivo `src/config/cedentesCategorias.ts` para exemplos de categorias j�
 - Endereços
 - Telefones
 - E-mails
-- Pessoas Ligadas
+- Pessoas Ligadas / Familiares (com CPF, telefone, email e endereço)
 - Empresas Ligadas
 - QSA
-- Familiares (com CPF, telefone, email e endereço)
 
 ## Notas Importantes
 
