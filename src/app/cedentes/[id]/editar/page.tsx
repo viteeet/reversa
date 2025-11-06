@@ -670,14 +670,14 @@ export default function EditarCedentePage() {
                     {grupoLabels[grupo] || grupo}
                   </h2>
                 )}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="space-y-4">
                   {categorias.map(categoria => (
                     <div 
                       key={categoria.id} 
                       id={categoria.id}
                       ref={(el) => { sectionRefs.current[categoria.id] = el; }}
                     >
-                      <Card className="h-full">
+                      <Card>
                         <CompactDataManager
                           title={categoria.title}
                           entityId={id}
