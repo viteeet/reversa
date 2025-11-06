@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { FormEvent, useState, useEffect, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
 import { formatCpfCnpj } from '@/lib/format';
+import { consultarCnpj } from '@/lib/cnpjws';
 
 type Cedente = {
   id: string;
@@ -153,44 +154,34 @@ function NewSacadoContent() {
               disabled={loadingCnpj}
               onClick={async () => {
                 try {
-                  setLoadingCnpj(true); setErr(null);
+                  setLoadingCnpj(true); 
+                  setErr(null);
+                  
                   const raw = (form.cnpj || '').replace(/\D+/g, '');
-                  if (!raw) { setErr('Informe um CNPJ válido'); return; }
-                  const res = await fetch(`/api/cnpjws?cnpj=${raw}`);
-                  const data = await res.json();
-                  if (!res.ok) { setErr(data?.error || 'Erro ao consultar'); return; }
-                  const rz = data?.nome || '';
-                  const fantasia = data?.fantasia || '';
-                  const telefone = data?.telefone || '';
-                  const email = data?.email || '';
-                  const endereco = [
-                    data?.logradouro,
-                    data?.numero,
-                    data?.complemento,
-                    data?.bairro,
-                    data?.municipio,
-                    data?.uf,
-                    data?.cep,
-                  ].filter(Boolean).join(', ');
-                  const porte = data?.porte || '';
-                  const natureza_juridica = data?.natureza_juridica || '';
-                  const situacao = data?.situacao || '';
-                  const data_abertura = data?.abertura || '';
-                  const capital_social = data?.capital_social || '';
-                  const atividade_principal_codigo = data?.atividade_principal?.[0]?.code || '';
-                  const atividade_principal_descricao = data?.atividade_principal?.[0]?.text || '';
-                  const atividades_secundarias = data?.atividades_secundarias?.map(a => `${a.code} - ${a.text}`).join('; ') || '';
-                  const simples_nacional = data?.simples?.optante || false;
+                  if (!raw) { 
+                    setErr('Informe um CNPJ válido'); 
+                    return; 
+                  }
+                  
+                  // Usa o helper que normaliza a resposta
+                  const dadosCnpj = await consultarCnpj(raw);
+                  
                   setForm(f => ({
                     ...f,
-                    razao_social: rz,
-                    nome_fantasia: fantasia,
-                    telefone_receita: telefone,
-                    email_receita: email,
-                    endereco_receita: endereco,
-                    porte, natureza_juridica, situacao, data_abertura, capital_social,
-                    atividade_principal_codigo, atividade_principal_descricao, atividades_secundarias,
-                    simples_nacional
+                    razao_social: dadosCnpj.razao_social,
+                    nome_fantasia: dadosCnpj.nome_fantasia,
+                    telefone_receita: dadosCnpj.telefone,
+                    email_receita: dadosCnpj.email,
+                    endereco_receita: dadosCnpj.endereco,
+                    porte: dadosCnpj.porte,
+                    natureza_juridica: dadosCnpj.natureza_juridica,
+                    situacao: dadosCnpj.situacao,
+                    data_abertura: dadosCnpj.data_abertura,
+                    capital_social: dadosCnpj.capital_social,
+                    atividade_principal_codigo: dadosCnpj.atividade_principal_codigo,
+                    atividade_principal_descricao: dadosCnpj.atividade_principal_descricao,
+                    atividades_secundarias: dadosCnpj.atividades_secundarias,
+                    simples_nacional: dadosCnpj.simples_nacional
                   }));
                 } catch (e) {
                   setErr(e instanceof Error ? e.message : 'Erro inesperado');

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { formatCpfCnpj } from '@/lib/format';
+import { consultarCnpj } from '@/lib/cnpjws';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
@@ -312,39 +313,25 @@ export default function CedentesPage() {
                         setLoadingCnpj(true);
                         const raw = (form.cnpj || '').replace(/\D+/g, '');
                         if (!raw) return;
-                        const res = await fetch(`/api/cnpjws?cnpj=${raw}`);
-                        const data = await res.json();
-                        if (!res.ok) { alert(data?.error || 'Erro ao consultar CNPJ'); return; }
-                        const estabelecimento = data?.estabelecimento || {};
-                        const nome = estabelecimento?.nome_fantasia || '';
-                        const rz = data?.razao_social || '';
-                        const telefone = estabelecimento?.telefone1 ? `(${estabelecimento.ddd1}) ${estabelecimento.telefone1}` : '';
-                        const email = estabelecimento?.email || '';
-                        const endereco = [
-                          estabelecimento?.tipo_logradouro,
-                          estabelecimento?.logradouro,
-                          estabelecimento?.numero,
-                          estabelecimento?.complemento,
-                          estabelecimento?.bairro,
-                          estabelecimento?.cidade?.nome,
-                          estabelecimento?.estado?.sigla,
-                          estabelecimento?.cep,
-                        ].filter(Boolean).join(', ');
-                        const porte = data?.porte?.descricao || '';
-                        const natureza_juridica = data?.natureza_juridica?.descricao || '';
-                        const situacao = estabelecimento?.situacao_cadastral || '';
-                        const data_abertura = estabelecimento?.data_inicio_atividade || '';
-                        const capital_social = data?.capital_social || '';
-                        const atividade_principal_codigo = estabelecimento?.atividade_principal?.subclasse || '';
-                        const atividade_principal_descricao = estabelecimento?.atividade_principal?.descricao || '';
-                        const atividades_secundarias = estabelecimento?.atividades_secundarias?.map(a => `${a.subclasse} - ${a.descricao}`).join('; ') || '';
-                        const simples_nacional = data?.simples?.simples === 'Sim';
-                        setForm(f => ({ 
-                          ...f, nome, razao_social: rz, telefone, email, endereco,
-                          porte, natureza_juridica, situacao, data_abertura, capital_social,
-                          atividade_principal_codigo, atividade_principal_descricao, atividades_secundarias,
-                          simples_nacional
+                        
+                        // Usa o helper que normaliza a resposta
+                        const dadosCnpj = await consultarCnpj(raw);
+                        
+                        setForm(f => ({
+                          ...f,
+                          nome: dadosCnpj.nome_fantasia,
+                          razao_social: dadosCnpj.razao_social,
+                          telefone: dadosCnpj.telefone,
+                          email: dadosCnpj.email,
+                          endereco: dadosCnpj.endereco,
+                          porte: dadosCnpj.porte,
+                          natureza_juridica: dadosCnpj.natureza_juridica,
+                          situacao: dadosCnpj.situacao,
                         }));
+                        
+                      } catch (error) {
+                        const msg = error instanceof Error ? error.message : 'Erro ao consultar CNPJ';
+                        alert(msg);
                       } finally {
                         setLoadingCnpj(false);
                       }
