@@ -36,7 +36,8 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'cnpj requerido' }, { status: 400 });
     }
 
-    const token = process.env.CNPJWS_TOKEN || '';
+  const token = process.env.CNPJWS_TOKEN || '';
+  const forcePublic = (process.env.CNPJWS_FORCE_PUBLIC || '').toLowerCase() === 'true' || process.env.CNPJWS_FORCE_PUBLIC === '1';
     
     console.log('[CNPJWS API] CNPJ:', cnpj);
     console.log('[CNPJWS API] Token exists:', !!token);
@@ -86,13 +87,27 @@ export async function GET(req: Request) {
         }, 20000);
         console.log('[CNPJWS API] Resposta (Token token=):', res.status);
       }
+
+      // Tenta cabeçalho X-API-KEY (alguns providers aceitam este formato)
+      if (res.status === 401 || res.status === 403) {
+        console.log('[CNPJWS API] Tentando X-API-KEY header...');
+        res = await fetchWithTimeout(url, {
+          headers: {
+            'X-API-KEY': token,
+            'Accept': 'application/json',
+            'User-Agent': 'ReversaApp/1.0 (+https://reversa.vercel.app)'
+          },
+          cache: 'no-store',
+        }, 20000);
+        console.log('[CNPJWS API] Resposta (X-API-KEY):', res.status);
+      }
       
       return res;
     }
 
     // Tenta com token (se existir). Se falhar com qualquer status não-ok, faz fallback na pública.
     let res: Response | null = null;
-    if (token) {
+    if (!forcePublic && token) {
       try {
         res = await fetchComToken();
       } catch (err) {
@@ -136,7 +151,8 @@ export async function GET(req: Request) {
         error: 'Erro CNPJ.ws', 
         details: text,
         status: res.status,
-        hasToken: !!token 
+        hasToken: !!token,
+        forcePublic
       }, { status: res.status });
     }
     

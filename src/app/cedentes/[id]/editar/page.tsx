@@ -404,6 +404,11 @@ export default function EditarCedentePage() {
       if (error) throw error;
     } catch (error) {
       console.error('Erro ao salvar observação:', error);
+      const errMsg = (error as any)?.message || '';
+      // Informa o usuário quando a tabela não existir
+      if (errMsg.includes('does not exist') || errMsg.includes('relation') || errMsg.includes('permission')) {
+        showToast('Não foi possível salvar Observações Gerais. Verifique se a estrutura do banco foi aplicada (cedentes_observacoes_gerais).', 'error');
+      }
     }
   }
 
@@ -422,6 +427,10 @@ export default function EditarCedentePage() {
       if (error) throw error;
     } catch (error) {
       console.error('Erro ao salvar processos:', error);
+      const errMsg = (error as any)?.message || '';
+      if (errMsg.includes('does not exist') || errMsg.includes('column') || errMsg.includes('permission')) {
+        showToast('Não foi possível salvar Processos. Garanta que a coluna processos_texto existe (rode database_schema_processos_detalhes_qsa.sql).', 'error');
+      }
     }
   }
 
@@ -781,6 +790,7 @@ export default function EditarCedentePage() {
                       displayFields={categoriaQsa.displayFields}
                       showDetailsButton={categoriaQsa.showDetailsButton}
                       isLoading={loadingCategorias['qsa']}
+                      onOpenDetails={openQsaDetails}
                     />
                   </div>
                 </Card>

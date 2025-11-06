@@ -33,6 +33,7 @@ type CompactDataManagerProps = {
   onFetchFromAPI?: () => Promise<void>;
   showDetailsButton?: boolean;
   isLoading?: boolean;
+  onOpenDetails?: (item: DataItem) => void;
 };
 
 export default function CompactDataManager({
@@ -45,7 +46,8 @@ export default function CompactDataManager({
   displayFields,
   onFetchFromAPI,
   showDetailsButton = false,
-  isLoading = false
+  isLoading = false,
+  onOpenDetails
 }: CompactDataManagerProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [newItemForm, setNewItemForm] = useState<Record<string, any>>({});
@@ -97,25 +99,59 @@ export default function CompactDataManager({
 
     setLoading(true);
     try {
-      const dataToSave: any = {
-        ...newItemForm,
-        cedente_id: entityId,
-        origem: 'manual',
-        ativo: true
-      };
+      // Normaliza tipos para o banco (evita "" em campos numéricos/data)
+      const normalized: any = { cedente_id: entityId, origem: 'manual', ativo: true };
+      for (const f of fields) {
+        const raw = newItemForm[f.key];
+        if (f.type === 'number') {
+          normalized[f.key] = raw === '' || raw === null || raw === undefined ? null : Number(String(raw).replace(/,/g, '.'));
+        } else if (f.type === 'date') {
+          normalized[f.key] = raw ? raw : null;
+        } else {
+          normalized[f.key] = raw ?? null;
+        }
+      }
 
-      if (dataToSave.cpf) dataToSave.cpf = dataToSave.cpf.replace(/\D+/g, '');
-      if (dataToSave.cnpj_relacionado) dataToSave.cnpj_relacionado = dataToSave.cnpj_relacionado.replace(/\D+/g, '');
+      if (normalized.cpf) normalized.cpf = String(normalized.cpf).replace(/\D+/g, '');
+      if (normalized.cnpj_relacionado) normalized.cnpj_relacionado = String(normalized.cnpj_relacionado).replace(/\D+/g, '');
 
-      const { error } = await supabase.from(tableName).insert(dataToSave);
+      // Caso especial: QSA possui detalhes/observações em tabela separada
+      let observacoesQsa: string | undefined;
+      if (tableName === 'cedentes_qsa' && 'observacoes' in normalized) {
+        observacoesQsa = normalized.observacoes || '';
+        delete normalized.observacoes; // não existe essa coluna em cedentes_qsa
+      }
+
+      // Inserir e retornar id para possíveis relações
+      const { data: inserted, error } = await supabase
+        .from(tableName)
+        .insert(normalized)
+        .select('id')
+        .single();
       if (error) throw error;
+
+      // Se tiver observações de QSA, salva na tabela detalhes
+      if (tableName === 'cedentes_qsa' && inserted?.id && observacoesQsa !== undefined) {
+        const { error: errDet } = await supabase
+          .from('cedentes_qsa_detalhes')
+          .upsert({
+            qsa_id: inserted.id,
+            cedente_id: entityId,
+            detalhes_completos: observacoesQsa || '',
+          }, { onConflict: 'qsa_id' });
+        if (errDet) throw errDet;
+      }
 
       await onRefresh();
       handleCancelNew();
       showToast('Item adicionado com sucesso!', 'success');
     } catch (error: any) {
       console.error('Erro ao salvar:', error);
-      showToast(error.message || 'Erro ao salvar item', 'error');
+      // Mensagem mais amigável para tipos numéricos inválidos
+      const msg = (error?.code === '22P02')
+        ? 'Valor inválido em campo numérico. Use apenas números (ex: 10.5)'
+        : (error.message || 'Erro ao salvar item');
+      showToast(msg, 'error');
     } finally {
       setLoading(false);
     }
@@ -124,23 +160,54 @@ export default function CompactDataManager({
   const handleSaveEdit = async (id: string) => {
     setLoading(true);
     try {
+      // Normaliza tipos para o banco (evita "" em campos numéricos/data)
       const dataToUpdate: any = { ...editForm };
       delete dataToUpdate.id;
       delete dataToUpdate.created_at;
       delete dataToUpdate.updated_at;
+      for (const f of fields) {
+        if (!(f.key in dataToUpdate)) continue;
+        const raw = dataToUpdate[f.key];
+        if (f.type === 'number') {
+          dataToUpdate[f.key] = raw === '' || raw === null || raw === undefined ? null : Number(String(raw).replace(/,/g, '.'));
+        } else if (f.type === 'date') {
+          dataToUpdate[f.key] = raw ? raw : null;
+        }
+      }
 
-      if (dataToUpdate.cpf) dataToUpdate.cpf = dataToUpdate.cpf.replace(/\D+/g, '');
-      if (dataToUpdate.cnpj_relacionado) dataToUpdate.cnpj_relacionado = dataToUpdate.cnpj_relacionado.replace(/\D+/g, '');
+      if (dataToUpdate.cpf) dataToUpdate.cpf = String(dataToUpdate.cpf).replace(/\D+/g, '');
+      if (dataToUpdate.cnpj_relacionado) dataToUpdate.cnpj_relacionado = String(dataToUpdate.cnpj_relacionado).replace(/\D+/g, '');
+
+      // Caso especial: QSA - mover observações para tabela de detalhes
+      let observacoesQsa: string | undefined;
+      if (tableName === 'cedentes_qsa' && 'observacoes' in dataToUpdate) {
+        observacoesQsa = dataToUpdate.observacoes || '';
+        delete dataToUpdate.observacoes;
+      }
 
       const { error } = await supabase.from(tableName).update(dataToUpdate).eq('id', id);
       if (error) throw error;
+
+      if (tableName === 'cedentes_qsa' && observacoesQsa !== undefined) {
+        const { error: errDet } = await supabase
+          .from('cedentes_qsa_detalhes')
+          .upsert({
+            qsa_id: id,
+            cedente_id: entityId,
+            detalhes_completos: observacoesQsa || '',
+          }, { onConflict: 'qsa_id' });
+        if (errDet) throw errDet;
+      }
 
       await onRefresh();
       handleCancelEdit();
       showToast('Item atualizado com sucesso!', 'success');
     } catch (error: any) {
       console.error('Erro ao atualizar:', error);
-      showToast(error.message || 'Erro ao atualizar item', 'error');
+      const msg = (error?.code === '22P02')
+        ? 'Valor inválido em campo numérico. Use apenas números (ex: 10.5)'
+        : (error.message || 'Erro ao atualizar item');
+      showToast(msg, 'error');
     } finally {
       setLoading(false);
     }
@@ -431,13 +498,23 @@ export default function CompactDataManager({
                     </div>
                     <div className="flex gap-1.5 shrink-0">
                       {showDetailsButton && (
-                        <button
-                          onClick={() => setShowDetailsId(showDetailsId === item.id ? null : item.id!)}
-                          className="px-2.5 py-1 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-                          title={showDetailsId === item.id ? "Ocultar Observações" : "Ver Observações"}
-                        >
-                          {showDetailsId === item.id ? '▲' : '▼'}
-                        </button>
+                        onOpenDetails ? (
+                          <button
+                            onClick={() => onOpenDetails(item)}
+                            className="px-2.5 py-1 text-xs font-medium text-blue-700 bg-white border border-blue-300 rounded-md hover:bg-blue-50 transition-colors"
+                            title="Abrir detalhes"
+                          >
+                            Detalhes
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => setShowDetailsId(showDetailsId === item.id ? null : item.id!)}
+                            className="px-2.5 py-1 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                            title={showDetailsId === item.id ? "Ocultar Observações" : "Ver Observações"}
+                          >
+                            {showDetailsId === item.id ? '▲' : '▼'}
+                          </button>
+                        )
                       )}
                       <button 
                         onClick={() => handleEdit(item)} 
