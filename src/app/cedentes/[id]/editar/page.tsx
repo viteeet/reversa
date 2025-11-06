@@ -240,6 +240,14 @@ export default function EditarCedentePage() {
 
     setSavingSacado(true);
     try {
+      // Pega o user_id do usuário autenticado
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        showToast('Usuário não autenticado', 'error');
+        setSavingSacado(false);
+        return;
+      }
+
       // Verifica se já existe
       const { data: existing, error: checkError } = await supabase
         .from('sacados')
@@ -258,6 +266,7 @@ export default function EditarCedentePage() {
       const { error } = await supabase.from('sacados').insert({
         cnpj: raw,
         cedente_id: id,
+        user_id: user.id,
         razao_social: sacadoForm.razao_social.trim(),
         nome_fantasia: sacadoForm.nome_fantasia.trim() || null,
       });
@@ -700,26 +709,6 @@ export default function EditarCedentePage() {
                   }}
                   placeholder="Digite observações gerais sobre esta empresa: contexto, histórico, alertas, etc..."
                 />
-                <div className="flex items-center justify-between">
-                  <p className="text-xs text-gray-500">Clique em salvar para persistir</p>
-                  <div className="flex gap-2">
-                    <button
-                      className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50"
-                      disabled={savingObservacoes || observacoesGerais === lastSavedObservacoes}
-                      onClick={async () => {
-                        setSavingObservacoes(true);
-                        const ok = await saveObservacaoGeral(observacoesGerais);
-                        setSavingObservacoes(false);
-                        if (ok) {
-                          setLastSavedObservacoes(observacoesGerais);
-                          showToast('Observações salvas!', 'success');
-                        }
-                      }}
-                    >
-                      {savingObservacoes ? 'Salvando...' : 'Salvar'}
-                    </button>
-                  </div>
-                </div>
               </div>
             </Card>
           </div>
@@ -795,26 +784,6 @@ export default function EditarCedentePage() {
                   }}
                   placeholder="Cole aqui todos os processos e informações relevantes encontradas...&#10;&#10;Exemplo:&#10;PROCESSOS: 13&#10;&#10;Processo 1: ...&#10;Processo 2: ...&#10;&#10;INFORMAÇÕES:&#10;- Detalhes importantes&#10;- Endereços relacionados&#10;- Contatos úteis"
                 />
-                <div className="flex items-center justify-between">
-                  <p className="text-xs text-gray-500">Clique em salvar para persistir</p>
-                  <div className="flex gap-2">
-                    <button
-                      className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50"
-                      disabled={savingProcessos || processosTexto === lastSavedProcessos}
-                      onClick={async () => {
-                        setSavingProcessos(true);
-                        const ok = await saveProcessosTexto(processosTexto);
-                        setSavingProcessos(false);
-                        if (ok) {
-                          setLastSavedProcessos(processosTexto);
-                          showToast('Processos salvos!', 'success');
-                        }
-                      }}
-                    >
-                      {savingProcessos ? 'Salvando...' : 'Salvar'}
-                    </button>
-                  </div>
-                </div>
               </div>
             </Card>
           </div>
@@ -963,15 +932,20 @@ export default function EditarCedentePage() {
           {/* Botões de Ação */}
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
             <Button variant="secondary" onClick={() => router.back()}>
-              Cancelar
+              Voltar
             </Button>
             <Button 
               variant="primary" 
-              onClick={() => {
-                router.push(`/cedentes/${id}`);
+              onClick={async () => {
+                // Salva observações e processos
+                await Promise.all([
+                  saveObservacaoGeral(observacoesGerais),
+                  saveProcessosTexto(processosTexto)
+                ]);
+                showToast('Dados salvos com sucesso!', 'success');
               }}
             >
-              Salvar e Voltar
+              Salvar
             </Button>
           </div>
         </div>
