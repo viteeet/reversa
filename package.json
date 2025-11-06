@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "update-schema": "node scripts/update-schema-simple.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.79.0",
