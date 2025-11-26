@@ -698,9 +698,9 @@ export default function EditarCedentePage() {
             ? `${processosTexto}\n${processoTexto}` 
             : processoTexto;
           
-          setProcessosTexto(novoTexto);
-          await saveProcessosTexto(novoTexto);
-          showToast('Processos adicionados com sucesso!', 'success');
+      setProcessosTexto(novoTexto);
+      await saveProcessosTexto(novoTexto);
+      // Processos adicionados silenciosamente - sem popup
         } else {
           showToast('Nenhum processo encontrado para este CPF', 'warning');
         }
@@ -746,7 +746,7 @@ export default function EditarCedentePage() {
         throw error;
       }
 
-      showToast(`${dados.length} registro(s) importado(s) com sucesso!`, 'success');
+      // Dados importados silenciosamente - sem popup de sucesso
       await loadCategoria(tipo, tableName);
     } catch (error) {
       console.error('Erro ao buscar da API:', error);
@@ -795,7 +795,7 @@ export default function EditarCedentePage() {
         : processosTexto.trim();
 
       setQsaDetalhes(novosDetalhes);
-      showToast('Processos adicionados aos detalhes!', 'success');
+      // Processos adicionados silenciosamente - sem popup
     } catch (error) {
       console.error('Erro ao buscar processos:', error);
       showToast('Erro ao buscar processos', 'error');

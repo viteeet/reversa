@@ -136,9 +136,10 @@ export default function DataManager({
     try {
       await onFetchFromAPI();
       await onRefresh();
+      // Importação silenciosa - sem popup de sucesso
     } catch (error) {
       console.error('Erro ao buscar da API:', error);
-      alert('Erro ao buscar dados da API');
+      // Erros são logados no console apenas
     } finally {
       setFetchingAPI(false);
     }
