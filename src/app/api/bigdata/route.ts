@@ -6,25 +6,45 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const cnpj = searchParams.get('cnpj');
+  const cpf = searchParams.get('cpf'); // Para buscar processos por CPF
   const tipo = searchParams.get('tipo'); // 'completo', 'qsa', 'enderecos', 'telefones', 'emails', 'processos'
 
-  if (!cnpj) {
-    return NextResponse.json({ error: 'CNPJ não fornecido' }, { status: 400 });
+  // Processos precisam de CPF, outros dados precisam de CNPJ
+  if (tipo === 'processos') {
+    if (!cpf) {
+      return NextResponse.json({ error: 'CPF não fornecido para buscar processos' }, { status: 400 });
+    }
+  } else {
+    if (!cnpj) {
+      return NextResponse.json({ error: 'CNPJ não fornecido' }, { status: 400 });
+    }
   }
 
   const accessToken = process.env.BIGDATA_ACCESS_TOKEN || '';
   const tokenId = process.env.BIGDATA_TOKEN_ID || '';
 
   if (!accessToken || !tokenId) {
-    console.warn('BigData API não configurada - usando dados mock');
+    console.warn('BigData API não configurada');
     return NextResponse.json({
-      mock: true,
-      message: 'API não configurada - retornando dados de exemplo',
-      data: getMockData(tipo || 'completo')
-    });
+      error: 'API BigData não configurada. Configure BIGDATA_ACCESS_TOKEN e BIGDATA_TOKEN_ID nas variáveis de ambiente.',
+      mock: false
+    }, { status: 503 });
   }
 
   try {
+    // Busca processos por CPF
+    if (tipo === 'processos') {
+      const cpfLimpo = cpf.replace(/\D/g, '');
+      const processosData = await fetchBigDataProcessos(cpfLimpo, accessToken, tokenId);
+      
+      if (!processosData) {
+        throw new Error('Dados de processos não encontrados');
+      }
+
+      const converted = convertProcessosToOurFormat(processosData);
+      return NextResponse.json(converted);
+    }
+    
     const cnpjLimpo = cnpj.replace(/\D/g, '');
     
     // Se for para buscar QSA, usa endpoint específico
@@ -54,12 +74,11 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Erro ao buscar dados da BigData:', error);
     
-    // Em caso de erro, retorna dados mock
+    // Em caso de erro, retorna erro ao invés de dados mock
     return NextResponse.json({
-      mock: true,
-      message: error instanceof Error ? error.message : 'Erro desconhecido',
-      data: getMockData(tipo || 'completo')
-    });
+      error: error instanceof Error ? error.message : 'Erro desconhecido ao buscar dados da API BigData',
+      mock: false
+    }, { status: 500 });
   }
 }
 
@@ -291,158 +310,136 @@ function extractEmails(emails: any) {
   return emailList;
 }
 
-// Função para retornar dados mock durante desenvolvimento
-function getMockData(tipo: string) {
-  const mockData: Record<string, any> = {
-    qsa: [
-      {
-        cpf: '123.456.789-00',
-        nome: 'João da Silva',
-        qualificacao: 'Sócio Administrador',
-        participacao: 50.0,
-        data_entrada: '2020-01-15'
-      },
-      {
-        cpf: '987.654.321-00',
-        nome: 'Maria Santos',
-        qualificacao: 'Sócio',
-        participacao: 50.0,
-        data_entrada: '2020-01-15'
-      }
-    ],
-    enderecos: [
-      {
-        endereco: 'Rua das Flores, 123, Centro',
-        tipo: 'comercial',
-        cep: '12345-678',
-        cidade: 'São Paulo',
-        estado: 'SP',
-        principal: true
-      },
-      {
-        endereco: 'Av. Paulista, 1000, Bela Vista',
-        tipo: 'correspondencia',
-        cep: '01310-100',
-        cidade: 'São Paulo',
-        estado: 'SP',
-        principal: false
-      }
-    ],
-    telefones: [
-      {
-        telefone: '(11) 98888-7777',
-        tipo: 'celular',
-        nome_contato: 'João da Silva',
-        principal: true
-      },
-      {
-        telefone: '(11) 3333-4444',
-        tipo: 'fixo',
-        nome_contato: 'Recepção',
-        principal: false
-      }
-    ],
-    emails: [
-      {
-        email: 'contato@empresa.com.br',
-        tipo: 'comercial',
-        nome_contato: 'Comercial',
-        principal: true
-      },
-      {
-        email: 'financeiro@empresa.com.br',
-        tipo: 'financeiro',
-        nome_contato: 'Financeiro',
-        principal: false
-      }
-    ],
-    pessoas_ligadas: [
-      {
-        cpf: '111.222.333-44',
-        nome: 'José Silva',
-        tipo_relacionamento: 'pai',
-        observacoes: 'Pai do sócio João da Silva'
-      },
-      {
-        cpf: '555.666.777-88',
-        nome: 'Ana Santos',
-        tipo_relacionamento: 'conjuge',
-        observacoes: 'Cônjuge da sócia Maria Santos'
-      }
-    ],
-    empresas_relacionadas: [
-      {
-        cnpj: '11.222.333/0001-44',
-        razao_social: 'EMPRESA RELACIONADA LTDA',
-        tipo_relacionamento: 'grupo',
-        participacao: 30.0,
-        observacoes: 'Empresa do mesmo grupo econômico'
-      }
-    ],
-    processos: [
-      {
-        numero_processo: '1000123-45.2023.8.26.0100',
-        tipo: 'civel',
-        tribunal: 'TJSP',
-        vara: '1ª Vara Cível',
-        data_distribuicao: '2023-03-15',
-        status: 'em_andamento',
-        valor: 50000.00,
-        observacoes: 'Ação de cobrança'
-      },
-      {
-        numero_processo: '2000456-78.2023.5.02.0001',
-        tipo: 'trabalhista',
-        tribunal: 'TRT-2',
-        vara: '5ª Vara do Trabalho',
-        data_distribuicao: '2023-06-20',
-        status: 'julgado',
-        valor: 15000.00,
-        observacoes: 'Ação trabalhista - julgada procedente'
-      }
-    ],
-    completo: {
-      qsa: [
-        {
-          cpf: '123.456.789-00',
-          nome: 'João da Silva',
-          qualificacao: 'Sócio Administrador',
-          participacao: 50.0,
-          data_entrada: '2020-01-15'
-        }
-      ],
-      enderecos: [
-        {
-          endereco: 'Rua das Flores, 123, Centro',
-          tipo: 'comercial',
-          cep: '12345-678',
-          cidade: 'São Paulo',
-          estado: 'SP',
-          principal: true
-        }
-      ],
-      telefones: [
-        {
-          telefone: '(11) 98888-7777',
-          tipo: 'celular',
-          nome_contato: 'João da Silva',
-          principal: true
-        }
-      ],
-      emails: [
-        {
-          email: 'contato@empresa.com.br',
-          tipo: 'comercial',
-          nome_contato: 'Comercial',
-          principal: true
-        }
-      ],
-      pessoas_ligadas: [],
-      empresas_relacionadas: [],
-      processos: []
-    }
+async function fetchBigDataProcessos(cpf: string, accessToken: string, tokenId: string) {
+  const url = 'https://plataforma.bigdatacorp.com.br/pessoas';
+  
+  const requestBody = {
+    Datasets: 'lawsuits_distribution_data',
+    q: `doc{${cpf}}`,
+    Limit: 1
   };
 
-  return mockData[tipo] || mockData.completo;
+  console.log('⚖️ Buscando processos judiciais do CPF:', cpf);
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'accept': 'application/json',
+        'content-type': 'application/json',
+        'AccessToken': accessToken,
+        'TokenId': tokenId
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    console.log('📊 Resposta BigData (processos):', response.status);
+
+    if (!response.ok) {
+      console.error('❌ Erro HTTP:', response.status);
+      return null;
+    }
+
+    const data = await response.json();
+    
+    if (data.Status?.lawsuits_distribution_data?.[0]?.Code === 0 && data.Result?.[0]) {
+      console.log('✅ Dados de processos recebidos');
+      return data.Result[0];
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('❌ Erro ao chamar BigData Processos:', error);
+    return null;
+  }
 }
+
+function convertProcessosToOurFormat(processosResult: any) {
+  const processos = [];
+  
+  if (!processosResult?.LawsuitsDistributionData) {
+    return [];
+  }
+
+  const distData = processosResult.LawsuitsDistributionData;
+  const totalProcessos = distData.TotalLawsuits || 0;
+
+  // Se não houver processos, retorna array vazio
+  if (totalProcessos === 0) {
+    return [];
+  }
+
+  // Como a API retorna estatísticas agregadas e não processos individuais,
+  // vamos criar um texto formatado com todas as informações disponíveis
+  const observacoes = [];
+  
+  observacoes.push(`TOTAL DE PROCESSOS: ${totalProcessos}`);
+
+  // Tipo de procedimento
+  if (distData.TypeDistribution && Object.keys(distData.TypeDistribution).length > 0) {
+    observacoes.push('\nTIPOS DE PROCEDIMENTO:');
+    for (const [tipo, count] of Object.entries(distData.TypeDistribution)) {
+      observacoes.push(`  - ${tipo}: ${count}`);
+    }
+  }
+
+  // Tribunais
+  if (distData.CourtNameDistribution && Object.keys(distData.CourtNameDistribution).length > 0) {
+    observacoes.push('\nTRIBUNAIS:');
+    for (const [tribunal, count] of Object.entries(distData.CourtNameDistribution)) {
+      observacoes.push(`  - ${tribunal}: ${count}`);
+    }
+  }
+
+  // Status
+  if (distData.StatusDistribution && Object.keys(distData.StatusDistribution).length > 0) {
+    observacoes.push('\nSTATUS:');
+    for (const [status, count] of Object.entries(distData.StatusDistribution)) {
+      observacoes.push(`  - ${status}: ${count}`);
+    }
+  }
+
+  // Estados
+  if (distData.StateDistribution && Object.keys(distData.StateDistribution).length > 0) {
+    observacoes.push('\nESTADOS:');
+    for (const [estado, count] of Object.entries(distData.StateDistribution)) {
+      observacoes.push(`  - ${estado}: ${count}`);
+    }
+  }
+
+  // Tipo de parte
+  if (distData.PartyTypeDistribution && Object.keys(distData.PartyTypeDistribution).length > 0) {
+    observacoes.push('\nTIPO DE PARTE:');
+    for (const [tipo, count] of Object.entries(distData.PartyTypeDistribution)) {
+      observacoes.push(`  - ${tipo === 'AUTHOR' ? 'AUTOR' : tipo === 'DEFENDANT' ? 'RÉU' : tipo}: ${count}`);
+    }
+  }
+
+  // Assuntos CNJ
+  if (distData.CnjSubjectDistribution && Object.keys(distData.CnjSubjectDistribution).length > 0) {
+    observacoes.push('\nASSUNTOS (CNJ):');
+    for (const [assunto, count] of Object.entries(distData.CnjSubjectDistribution)) {
+      observacoes.push(`  - ${assunto}: ${count}`);
+    }
+  }
+
+  // Cria um processo único com todas as informações agregadas
+  processos.push({
+    numero_processo: `RESUMO-${totalProcessos}-PROCESSOS`,
+    tribunal: Object.keys(distData.CourtNameDistribution || {})[0] || 'NÃO INFORMADO',
+    vara: distData.CourtTypeDistribution ? Object.keys(distData.CourtTypeDistribution)[0] : null,
+    tipo_acao: distData.TypeDistribution ? Object.keys(distData.TypeDistribution)[0] : null,
+    valor_causa: null,
+    data_distribuicao: null,
+    status: distData.StatusDistribution ? Object.keys(distData.StatusDistribution)[0] : null,
+    parte_contraria: null,
+    observacoes: observacoes.join('\n'),
+    link_processo: null
+  });
+
+  console.log(`✅ ${totalProcessos} processos encontrados (resumo criado)`);
+  
+  return processos;
+}
+
 

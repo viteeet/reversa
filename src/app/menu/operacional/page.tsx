@@ -21,7 +21,7 @@ export default function MenuOperacionalPage() {
         {/* Header com botão de voltar */}
         <header className="mb-10">
           <button 
-            onClick={() => router.back()}
+            onClick={() => router.push('/dashboard')}
             className="inline-flex items-center gap-2 px-4 py-2 mb-6 rounded-lg bg-white border border-gray-200 hover:border-[#0369a1] hover:bg-blue-50 transition-all shadow-sm hover:shadow-md text-[#0369a1] font-medium"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

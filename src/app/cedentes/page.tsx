@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { formatCpfCnpj } from '@/lib/format';
@@ -33,6 +34,7 @@ type Cedente = {
 type ViewMode = 'table' | 'grid';
 
 export default function CedentesPage() {
+  const router = useRouter();
   const [items, setItems] = useState<Cedente[]>([]);
   const [form, setForm] = useState({ 
     nome: '', razao_social: '', cnpj: '', telefone: '', email: '', endereco: '',
@@ -52,7 +54,13 @@ export default function CedentesPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('table');
   const [filterSituacao, setFilterSituacao] = useState<string>('all');
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      const user = data.user;
+      if (!user) { router.replace('/login'); return; }
+      load();
+    });
+  }, [router]);
 
   async function load() {
     const { data, error } = await supabase
@@ -164,56 +172,25 @@ export default function CedentesPage() {
 
   useEffect(() => { setPage(1); }, [q, filterSituacao]);
 
-  const stats = useMemo(() => ({
-    total: items.length,
-    ativos: items.filter(i => i.situacao === 'ATIVA').length,
-    inativos: items.filter(i => i.situacao !== 'ATIVA').length,
-  }), [items]);
-
-
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <div className="container max-w-7xl mx-auto px-4 py-8 space-y-6">
         {/* Header */}
         <header className="flex flex-col gap-4">
           <div>
+            <button 
+              onClick={() => router.push('/menu/operacional')}
+              className="inline-flex items-center gap-2 px-4 py-2 mb-4 rounded-lg bg-white border border-gray-200 hover:border-[#0369a1] hover:bg-blue-50 transition-all shadow-sm hover:shadow-md text-[#0369a1] font-medium"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Voltar
+            </button>
             <h1 className="text-4xl font-bold text-[#0369a1] mb-2">Cedentes</h1>
             <p className="text-[#64748b] text-lg">Gestão completa de cedentes e relacionamentos</p>
           </div>
         </header>
-
-        {/* Estatísticas */}
-        <div className="grid gap-4 md:grid-cols-3">
-          <div className="bg-white rounded-xl shadow-md border border-blue-100 p-5 hover:shadow-lg transition-all">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-[#64748b]">Total de Cedentes</span>
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-xl">🏢</span>
-              </div>
-            </div>
-            <p className="text-3xl font-bold text-[#0369a1]">{stats.total}</p>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-md border border-green-100 p-5 hover:shadow-lg transition-all">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-[#64748b]">Cedentes Ativos</span>
-              <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center">
-                <span className="text-xl">✓</span>
-              </div>
-            </div>
-            <p className="text-3xl font-bold text-green-600">{stats.ativos}</p>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-md border border-gray-100 p-5 hover:shadow-lg transition-all">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-[#64748b]">Cedentes Inativos</span>
-              <div className="w-10 h-10 bg-gradient-to-br from-gray-400 to-gray-500 rounded-lg flex items-center justify-center">
-                <span className="text-xl">⏸</span>
-              </div>
-            </div>
-            <p className="text-3xl font-bold text-[#64748b]">{stats.inativos}</p>
-          </div>
-        </div>
 
         {/* Toolbar */}
         <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
@@ -398,19 +375,19 @@ export default function CedentesPage() {
                   <tr>
                     {(['nome','razao_social','cnpj'] as const).map(col => (
                       <th key={col} className="px-4 py-3 text-left text-sm font-semibold text-[#0369a1] cursor-pointer select-none hover:bg-blue-100 transition-colors" onClick={() => onSort(col)}>
-                        {col === 'nome' ? '👤 Nome' : col === 'razao_social' ? '🏢 Razão Social' : '📄 CNPJ'}
+                        {col === 'nome' ? 'Nome' : col === 'razao_social' ? 'Razão Social' : 'CNPJ'}
                         {sortBy === col && (
                           <span className="ml-1 text-[#64748b]">{sortDir === 'asc' ? '▲' : '▼'}</span>
                         )}
                       </th>
                     ))}
                     <th className="px-4 py-3 text-left text-sm font-semibold text-[#0369a1] cursor-pointer select-none hover:bg-blue-100 transition-colors" onClick={() => onSort('situacao')}>
-                      📊 Status
+                      Status
                       {sortBy === 'situacao' && (
                         <span className="ml-1 text-[#64748b]">{sortDir === 'asc' ? '▲' : '▼'}</span>
                       )}
                     </th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-[#0369a1]">⚡ Ações</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-[#0369a1]">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#cbd5e1]">

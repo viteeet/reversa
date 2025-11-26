@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Badge from '@/components/ui/Badge';
@@ -186,8 +186,8 @@ export default function DataManager({
             </thead>
             <tbody className="divide-y divide-[#cbd5e1]">
               {items.map(item => (
-                <>
-                  <tr key={item.id} className="hover:bg-[#f8fbff] transition-colors">
+                <React.Fragment key={item.id}>
+                  <tr className="hover:bg-[#f8fbff] transition-colors">
                     {displayFields.map(field => (
                       <td key={field} className="px-4 py-3 text-sm text-[#1e293b]">
                         {item[field] || '—'}
@@ -230,7 +230,7 @@ export default function DataManager({
                     </td>
                   </tr>
                   {showDetailsButton && showDetailsId === item.id && item.observacoes && (
-                    <tr key={`${item.id}-details`} className="bg-[#f0f7ff]">
+                    <tr className="bg-[#f0f7ff]">
                       <td colSpan={displayFields.length + 2} className="px-4 py-3">
                         <div className="text-sm">
                           <span className="font-semibold text-[#0369a1]">OBS:</span>
@@ -239,7 +239,7 @@ export default function DataManager({
                       </td>
                     </tr>
                   )}
-                </>
+                </React.Fragment>
               ))}
             </tbody>
           </table>

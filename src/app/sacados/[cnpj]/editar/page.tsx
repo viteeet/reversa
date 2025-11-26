@@ -136,44 +136,53 @@ export default function EditarSacadoPage() {
       const response = await res.json();
       
       if (!res.ok) {
-        throw new Error(response.error || 'Erro ao buscar dados');
+        const errorMsg = response.error || 'Erro ao buscar dados da API BigData';
+        alert(errorMsg);
+        throw new Error(errorMsg);
       }
 
-      const dados = response.mock ? response.data : response;
+      const dados = Array.isArray(response) ? response : (response.data || []);
+      
+      // Verifica se há dados para salvar
+      if (!Array.isArray(dados) || dados.length === 0) {
+        alert('Nenhum dado encontrado na API para este CNPJ');
+        return;
+      }
       
       // Salva os dados no banco
-      if (Array.isArray(dados) && dados.length > 0) {
-        const tableName = getTableNameByType(tipo);
-        
-        // PASSO 1: Remove dados antigos da API para evitar duplicatas
-        // (mantém dados adicionados manualmente - origem='manual')
-        const { error: deleteError } = await supabase
-          .from(tableName)
-          .delete()
-          .eq('sacado_cnpj', cnpj)
-          .eq('origem', 'api');
+      const tableName = getTableNameByType(tipo);
+      
+      // PASSO 1: Remove dados antigos da API para evitar duplicatas
+      // (mantém dados adicionados manualmente - origem='manual')
+      const { error: deleteError } = await supabase
+        .from(tableName)
+        .delete()
+        .eq('sacado_cnpj', cnpj)
+        .eq('origem', 'api');
 
-        if (deleteError) {
-          console.error('Erro ao limpar dados antigos da API:', deleteError);
-        }
-
-        // PASSO 2: Insere os novos dados da API
-        const dataToInsert = dados.map(item => ({
-          ...item,
-          sacado_cnpj: cnpj,
-          origem: 'api',
-          ativo: true
-        }));
-
-        const { error } = await supabase
-          .from(tableName)
-          .insert(dataToInsert);
-
-        if (error) {
-          console.error('Erro ao salvar dados da API:', error);
-          alert('Alguns dados não puderam ser salvos');
-        }
+      if (deleteError) {
+        console.error('Erro ao limpar dados antigos da API:', deleteError);
       }
+
+      // PASSO 2: Insere os novos dados da API
+      const dataToInsert = dados.map(item => ({
+        ...item,
+        sacado_cnpj: cnpj,
+        origem: 'api',
+        ativo: true
+      }));
+
+      const { error } = await supabase
+        .from(tableName)
+        .insert(dataToInsert);
+
+      if (error) {
+        console.error('Erro ao salvar dados da API:', error);
+        alert('Erro ao salvar dados da API');
+        throw error;
+      }
+
+      alert(`${dados.length} registro(s) importado(s) com sucesso!`);
     } catch (error) {
       console.error('Erro ao buscar da API:', error);
       throw error;
@@ -212,7 +221,13 @@ export default function EditarSacadoPage() {
         <div className="container max-w-6xl">
           <div className="text-center py-8">
             <p className="text-slate-600">Sacado não encontrado</p>
-            <Button variant="primary" onClick={() => router.back()} className="mt-4">
+            <Button variant="primary" onClick={() => {
+  if (typeof window !== 'undefined' && window.history.length > 1) {
+    router.back();
+  } else {
+    router.push(`/sacados/${encodeURIComponent(cnpj)}`);
+  }
+}} className="mt-4">
               Voltar
             </Button>
           </div>
@@ -236,7 +251,13 @@ export default function EditarSacadoPage() {
             <Button variant="secondary" onClick={() => router.push(`/sacados/${encodeURIComponent(cnpj)}/cobranca`)}>
               Ver Ficha
             </Button>
-            <Button variant="secondary" onClick={() => router.back()}>
+            <Button variant="secondary" onClick={() => {
+  if (typeof window !== 'undefined' && window.history.length > 1) {
+    router.back();
+  } else {
+    router.push(`/sacados/${encodeURIComponent(cnpj)}`);
+  }
+}}>
               Voltar
             </Button>
           </div>

@@ -46,6 +46,7 @@ export default function AReceberPage() {
   const [err, setErr] = useState<string | null>(null);
   const [novo, setNovo] = useState({ conta_id: '', categoria_id: '', meio_pagamento_id: '', valor: '', vencimento: '', descricao: '' });
   const [showModal, setShowModal] = useState(false);
+  const [editandoId, setEditandoId] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -125,6 +126,75 @@ export default function AReceberPage() {
     setPending(false);
   }
 
+  async function desfazerRecebido(id: string) {
+    if (!confirm('Deseja desfazer o recebimento desta conta?')) return;
+    setPending(true);
+    const { error } = await supabase.from('lancamentos').update({ status: 'pendente', data_pagamento: null }).eq('id', id);
+    if (error) alert(error.message);
+    await load();
+    setPending(false);
+  }
+
+  function abrirEdicao(item: Lanc) {
+    setEditandoId(item.id);
+    setNovo({
+      conta_id: item.conta_id,
+      categoria_id: item.categoria_id,
+      meio_pagamento_id: item.meio_pagamento_id || '',
+      valor: item.valor.toString(),
+      vencimento: item.data_competencia,
+      descricao: item.descricao || '',
+    });
+    setShowModal(true);
+  }
+
+  function cancelarEdicao() {
+    setEditandoId(null);
+    setNovo({ conta_id: '', categoria_id: '', meio_pagamento_id: '', valor: '', vencimento: '', descricao: '' });
+    setShowModal(false);
+  }
+
+  async function salvar() {
+    if (editandoId) {
+      await atualizar();
+    } else {
+      await add();
+    }
+  }
+
+  async function atualizar() {
+    if (!editandoId) return;
+    setPending(true); setErr(null);
+    const valorNum = Number(novo.valor);
+    if (!valorNum || Number.isNaN(valorNum)) { setErr('Informe um valor válido'); setPending(false); return; }
+    if (!novo.vencimento) { setErr('Informe o vencimento'); setPending(false); return; }
+    
+    const { error } = await supabase.from('lancamentos').update({
+      conta_id: novo.conta_id,
+      categoria_id: novo.categoria_id,
+      descricao: novo.descricao || null,
+      valor: valorNum,
+      data_competencia: novo.vencimento,
+      meio_pagamento_id: novo.meio_pagamento_id || null,
+    }).eq('id', editandoId);
+    
+    if (error) setErr(error.message);
+    else {
+      await load();
+      cancelarEdicao();
+    }
+    setPending(false);
+  }
+
+  async function excluir(id: string) {
+    if (!confirm('Tem certeza que deseja excluir esta receita?')) return;
+    setPending(true);
+    const { error } = await supabase.from('lancamentos').delete().eq('id', id);
+    if (error) alert(error.message);
+    await load();
+    setPending(false);
+  }
+
   const totalReceber = useMemo(() => items.filter(l => l.status === 'pendente').reduce((acc, l) => acc + l.valor, 0), [items]);
   const totalRecebido = useMemo(() => items.filter(l => l.status === 'pago').reduce((acc, l) => acc + l.valor, 0), [items]);
   const totalGeral = useMemo(() => items.reduce((acc, l) => acc + l.valor, 0), [items]);
@@ -171,12 +241,22 @@ export default function AReceberPage() {
       key: 'id' as keyof Lanc,
       label: 'Ações',
       render: (value: string, item: Lanc) => (
-        <div className="flex gap-1">
-          {item.status !== 'pago' && (
+        <div className="flex gap-1 flex-wrap">
+          {item.status !== 'pago' ? (
             <Button size="sm" variant="success" onClick={() => marcarRecebido(item.id)}>
               Marcar Recebido
             </Button>
+          ) : (
+            <Button size="sm" variant="warning" onClick={() => desfazerRecebido(item.id)}>
+              Desfazer Recebimento
+            </Button>
           )}
+          <Button size="sm" variant="secondary" onClick={() => abrirEdicao(item)}>
+            Editar
+          </Button>
+          <Button size="sm" variant="error" onClick={() => excluir(item.id)}>
+            Excluir
+          </Button>
         </div>
       ),
     },
@@ -189,7 +269,13 @@ export default function AReceberPage() {
           <div className="flex items-center justify-between">
             <div>
               <button 
-                onClick={() => router.back()}
+                onClick={() => {
+                  if (typeof window !== 'undefined' && window.history.length > 1) {
+                    router.back();
+                  } else {
+                    router.push('/menu/financeiro');
+                  }
+                }}
                 className="inline-flex items-center gap-2 px-4 py-2 mb-4 rounded-lg bg-white border border-gray-200 hover:border-[#0369a1] hover:bg-blue-50 transition-all shadow-sm hover:shadow-md text-[#0369a1] font-medium"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -269,7 +355,11 @@ export default function AReceberPage() {
         <div className="flex justify-end">
           <Button 
             variant="primary" 
-            onClick={() => setShowModal(true)}
+            onClick={() => {
+              setEditandoId(null);
+              setNovo({ conta_id: '', categoria_id: '', meio_pagamento_id: '', valor: '', vencimento: '', descricao: '' });
+              setShowModal(true);
+            }}
           >
             Nova Receita
           </Button>
@@ -284,8 +374,8 @@ export default function AReceberPage() {
 
       <Modal
         isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        title="Nova Receita"
+        onClose={cancelarEdicao}
+        title={editandoId ? "Editar Receita" : "Nova Receita"}
         size="lg"
       >
         <div className="space-y-4">
@@ -335,17 +425,17 @@ export default function AReceberPage() {
           <div className="flex justify-end gap-3 pt-4 border-t">
             <Button 
               variant="secondary" 
-              onClick={() => setShowModal(false)}
+              onClick={cancelarEdicao}
             >
               Cancelar
             </Button>
             <Button 
               variant="primary" 
-              onClick={add} 
+              onClick={salvar} 
               loading={pending}
               disabled={!novo.conta_id || !novo.categoria_id || !novo.valor || !novo.vencimento}
             >
-              Adicionar
+              {editandoId ? 'Salvar' : 'Adicionar'}
             </Button>
           </div>
         </div>

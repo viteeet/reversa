@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useRouter } from 'next/navigation';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
@@ -33,6 +34,7 @@ type Lanc = {
 };
 
 export default function ContasPagarPage() {
+  const router = useRouter();
   const [periodo, setPeriodo] = useState<{ini: string, fim: string}>(() => {
     const now = new Date();
     const ini = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0,10);
@@ -49,8 +51,15 @@ export default function ContasPagarPage() {
   const [err, setErr] = useState<string | null>(null);
   const [novo, setNovo] = useState({ conta_id: '', categoria_id: '', meio_pagamento_id: '', valor: '', vencimento: '', descricao: '', natureza: 'despesa' as 'despesa'|'receita' });
   const [showModal, setShowModal] = useState(false);
+  const [editandoId, setEditandoId] = useState<string | null>(null);
 
-  useEffect(() => { loadLookups(); }, []);
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      const user = data.user;
+      if (!user) { router.replace('/login'); return; }
+      loadLookups();
+    });
+  }, [router]);
   const load = useCallback(async () => {
     setPending(true); setErr(null);
     let q = supabase
@@ -123,7 +132,8 @@ export default function ContasPagarPage() {
     setPending(false);
   }
 
-  async function estornar(id: string) {
+  async function desfazerPago(id: string) {
+    if (!confirm('Deseja desfazer o pagamento/recebimento desta conta?')) return;
     setPending(true);
     const { error } = await supabase.from('lancamentos').update({ status: 'pendente', data_pagamento: null }).eq('id', id);
     if (error) alert(error.message);
@@ -131,10 +141,66 @@ export default function ContasPagarPage() {
     setPending(false);
   }
 
-  async function remove(id: string) {
+  function abrirEdicao(item: Lanc) {
+    setEditandoId(item.id);
+    setNovo({
+      conta_id: item.conta_id,
+      categoria_id: item.categoria_id,
+      meio_pagamento_id: item.meio_pagamento_id || '',
+      valor: item.valor.toString(),
+      vencimento: item.data_competencia,
+      descricao: item.descricao || '',
+      natureza: item.natureza,
+    });
+    setShowModal(true);
+  }
+
+  function cancelarEdicao() {
+    setEditandoId(null);
+    setNovo({ conta_id: '', categoria_id: '', meio_pagamento_id: '', valor: '', vencimento: '', descricao: '', natureza: 'despesa' });
+    setShowModal(false);
+  }
+
+  async function salvar() {
+    if (editandoId) {
+      await atualizar();
+    } else {
+      await add();
+    }
+  }
+
+  async function atualizar() {
+    if (!editandoId) return;
+    setPending(true); setErr(null);
+    const valorNum = Number(novo.valor);
+    if (!valorNum || Number.isNaN(valorNum)) { setErr('Informe um valor válido'); setPending(false); return; }
+    if (!novo.vencimento) { setErr('Informe o vencimento'); setPending(false); return; }
+    
+    const { error } = await supabase.from('lancamentos').update({
+      conta_id: novo.conta_id,
+      categoria_id: novo.categoria_id,
+      descricao: novo.descricao || null,
+      valor: valorNum,
+      data_competencia: novo.vencimento,
+      meio_pagamento_id: novo.meio_pagamento_id || null,
+      natureza: novo.natureza,
+    }).eq('id', editandoId);
+    
+    if (error) setErr(error.message);
+    else {
+      await load();
+      cancelarEdicao();
+    }
+    setPending(false);
+  }
+
+  async function excluir(id: string) {
+    if (!confirm('Tem certeza que deseja excluir este lançamento?')) return;
+    setPending(true);
     const { error } = await supabase.from('lancamentos').delete().eq('id', id);
-    if (error) { alert(error.message); return; }
+    if (error) { alert(error.message); setPending(false); return; }
     await load();
+    setPending(false);
   }
 
   const totalReceitas = useMemo(() => items.filter(l => l.natureza === 'receita').reduce((acc, l) => acc + l.valor, 0), [items]);
@@ -198,18 +264,21 @@ export default function ContasPagarPage() {
       key: 'id' as keyof Lanc,
       label: 'Ações',
       render: (value: string, item: Lanc) => (
-        <div className="flex gap-1">
+        <div className="flex gap-1 flex-wrap">
           {item.status !== 'pago' ? (
             <Button size="sm" variant="success" onClick={() => marcarPago(item.id)}>
-              ✓
+              Marcar {item.natureza === 'receita' ? 'Recebido' : 'Pago'}
             </Button>
           ) : (
-            <Button size="sm" variant="warning" onClick={() => estornar(item.id)}>
-              ↶
+            <Button size="sm" variant="warning" onClick={() => desfazerPago(item.id)}>
+              Desfazer
             </Button>
           )}
-          <Button size="sm" variant="error" onClick={() => remove(item.id)}>
-            ✕
+          <Button size="sm" variant="secondary" onClick={() => abrirEdicao(item)}>
+            Editar
+          </Button>
+          <Button size="sm" variant="error" onClick={() => excluir(item.id)}>
+            Excluir
           </Button>
         </div>
       ),
@@ -222,8 +291,23 @@ export default function ContasPagarPage() {
         <header className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Fluxo de Caixa</h1>
-              <p className="text-slate-600">Controle de receitas e despesas</p>
+              <button 
+                onClick={() => {
+                  if (typeof window !== 'undefined' && window.history.length > 1) {
+                    router.back();
+                  } else {
+                    router.push('/menu/financeiro');
+                  }
+                }}
+                className="inline-flex items-center gap-2 px-4 py-2 mb-4 rounded-lg bg-white border border-gray-200 hover:border-[#0369a1] hover:bg-blue-50 transition-all shadow-sm hover:shadow-md text-[#0369a1] font-medium"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                Voltar
+              </button>
+              <h1 className="text-3xl font-bold text-[#0369a1]">Todos os Lançamentos</h1>
+              <p className="text-[#64748b]">Controle de receitas e despesas</p>
             </div>
             <div className="flex items-center gap-4">
               <p className="text-sm text-slate-600">
@@ -333,11 +417,14 @@ export default function ContasPagarPage() {
 
         <div className="flex justify-end">
           <Button 
-            variant="outline" 
-            size="lg"
-            onClick={() => setShowModal(true)}
+            variant="primary" 
+            onClick={() => {
+              setEditandoId(null);
+              setNovo({ conta_id: '', categoria_id: '', meio_pagamento_id: '', valor: '', vencimento: '', descricao: '', natureza: 'despesa' });
+              setShowModal(true);
+            }}
           >
-            ➕ Novo Lançamento
+            Novo Lançamento
           </Button>
         </div>
 
@@ -350,8 +437,8 @@ export default function ContasPagarPage() {
 
       <Modal
         isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        title="Adicionar Lançamento"
+        onClose={cancelarEdicao}
+        title={editandoId ? "Editar Lançamento" : "Novo Lançamento"}
         size="lg"
       >
         <div className="space-y-4">
@@ -419,17 +506,17 @@ export default function ContasPagarPage() {
           <div className="flex justify-end gap-3 pt-4 border-t">
             <Button 
               variant="secondary" 
-              onClick={() => setShowModal(false)}
+              onClick={cancelarEdicao}
             >
               Cancelar
             </Button>
             <Button 
               variant="primary" 
-              onClick={add} 
+              onClick={salvar} 
               loading={pending}
               disabled={!novo.conta_id || !novo.categoria_id || !novo.valor || !novo.vencimento}
             >
-              Adicionar Lançamento
+              {editandoId ? 'Salvar' : 'Adicionar'}
             </Button>
           </div>
         </div>

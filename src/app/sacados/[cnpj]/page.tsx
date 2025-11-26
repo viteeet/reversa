@@ -93,7 +93,13 @@ export default function SacadoDetailPage() {
         <div className="container max-w-6xl">
           <div className="text-center py-8">
             <p className="text-slate-600">Sacado não encontrado</p>
-            <Button variant="primary" onClick={() => router.back()} className="mt-4">
+            <Button variant="primary" onClick={() => {
+  if (typeof window !== 'undefined' && window.history.length > 1) {
+    router.back();
+  } else {
+    router.push('/sacados');
+  }
+}} className="mt-4">
               Voltar
             </Button>
           </div>
@@ -113,7 +119,13 @@ export default function SacadoDetailPage() {
             <p className="text-slate-600">{sacado.nome_fantasia}</p>
             <p className="text-sm text-slate-500 font-mono">{sacado.cnpj}</p>
           </div>
-          <Button variant="secondary" onClick={() => router.back()}>
+          <Button variant="secondary" onClick={() => {
+  if (typeof window !== 'undefined' && window.history.length > 1) {
+    router.back();
+  } else {
+    router.push('/sacados');
+  }
+}}>
             Voltar
           </Button>
         </header>

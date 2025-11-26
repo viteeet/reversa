@@ -99,7 +99,13 @@ function NewSacadoContent() {
       <div className="container max-w-xl space-y-4">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold text-[#0369a1]">Novo Sacado (Devedor)</h1>
-          <button type="button" onClick={() => router.back()} className="text-[#64748b] hover:text-[#0369a1]">
+          <button type="button" onClick={() => {
+  if (typeof window !== 'undefined' && window.history.length > 1) {
+    router.back();
+  } else {
+    router.push('/sacados');
+  }
+}} className="text-[#64748b] hover:text-[#0369a1]">
             Voltar
           </button>
         </div>
@@ -219,7 +225,13 @@ function NewSacadoContent() {
             >
               {pending ? 'Salvando...' : 'Salvar Sacado'}
             </button>
-            <button type="button" onClick={() => router.back()} className="px-4 py-2 border border-[#cbd5e1] rounded-lg hover:bg-[#f8fafc]">
+            <button type="button" onClick={() => {
+  if (typeof window !== 'undefined' && window.history.length > 1) {
+    router.back();
+  } else {
+    router.push('/sacados');
+  }
+}} className="px-4 py-2 border border-[#cbd5e1] rounded-lg hover:bg-[#f8fafc]">
               Cancelar
             </button>
           </div>

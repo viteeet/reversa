@@ -236,10 +236,11 @@ export default function CompactDataManager({
     try {
       await onFetchFromAPI();
       await onRefresh();
-      showToast('Dados atualizados da API com sucesso!', 'success');
+      // Mensagem de sucesso é exibida pela função onFetchFromAPI
     } catch (error: any) {
       console.error('Erro API:', error);
-      showToast(error.message || 'Erro ao buscar dados da API', 'error');
+      // Mensagem de erro já é exibida pela função onFetchFromAPI
+      // showToast já foi chamado na função fetchFromAPI
     } finally {
       setFetchingAPI(false);
     }

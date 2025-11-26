@@ -21,7 +21,13 @@ export default function MenuConfiguracoesPage() {
       <div className="container max-w-6xl space-y-6">
         <header className="flex items-center gap-4">
           <button 
-            onClick={() => router.back()}
+            onClick={() => {
+              if (typeof window !== 'undefined' && window.history.length > 1) {
+                router.back();
+              } else {
+                router.push('/');
+              }
+            }}
             className="p-2 rounded-lg border border-[#cbd5e1] hover:bg-[#f0f7ff] transition-colors"
           >
             ←

@@ -140,7 +140,13 @@ export default function VincularSacadosPage() {
           <Card>
             <div className="text-center py-8">
               <p className="text-lg text-green-600 mb-2">✅ Todos os sacados estão vinculados!</p>
-              <Button variant="secondary" onClick={() => router.back()}>
+              <Button variant="secondary" onClick={() => {
+  if (typeof window !== 'undefined' && window.history.length > 1) {
+    router.back();
+  } else {
+    router.push('/menu/operacional');
+  }
+}}>
                 Voltar
               </Button>
             </div>
@@ -239,7 +245,13 @@ export default function VincularSacadosPage() {
         )}
 
         <div className="flex justify-end">
-          <Button variant="secondary" onClick={() => router.back()}>
+          <Button variant="secondary" onClick={() => {
+  if (typeof window !== 'undefined' && window.history.length > 1) {
+    router.back();
+  } else {
+    router.push('/menu/operacional');
+  }
+}}>
             Voltar
           </Button>
         </div>

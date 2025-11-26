@@ -198,7 +198,13 @@ export default function CedentePage() {
         <div className="container max-w-6xl">
           <div className="text-center py-8">
             <p className="text-[#64748b]">Cedente não encontrado</p>
-            <Button variant="primary" onClick={() => router.back()} className="mt-4">
+            <Button variant="primary" onClick={() => {
+  if (typeof window !== 'undefined' && window.history.length > 1) {
+    router.back();
+  } else {
+    router.push('/cedentes');
+  }
+}} className="mt-4">
               Voltar
             </Button>
           </div>
@@ -220,7 +226,13 @@ export default function CedentePage() {
           <div className="flex gap-1">
             <button
               className="px-3 py-2 rounded border border-[#cbd5e1] text-sm text-[#0369a1] hover:bg-[#f1f5f9]"
-              onClick={() => router.back()}
+              onClick={() => {
+  if (typeof window !== 'undefined' && window.history.length > 1) {
+    router.back();
+  } else {
+    router.push('/cedentes');
+  }
+}}
               aria-label="Voltar"
               title="Voltar"
             >←</button>

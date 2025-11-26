@@ -21,7 +21,13 @@ export default function MenuFinanceiroPage() {
         {/* Header com botão de voltar */}
         <header className="mb-10">
           <button 
-            onClick={() => router.back()}
+            onClick={() => {
+              if (typeof window !== 'undefined' && window.history.length > 1) {
+                router.back();
+              } else {
+                router.push('/');
+              }
+            }}
             className="inline-flex items-center gap-2 px-4 py-2 mb-6 rounded-lg bg-white border border-gray-200 hover:border-[#0369a1] hover:bg-blue-50 transition-all shadow-sm hover:shadow-md text-[#0369a1] font-medium"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -85,6 +91,60 @@ export default function MenuFinanceiroPage() {
                   <div>
                     <h2 className="text-xl font-bold text-[#0369a1]">Fluxo de Caixa</h2>
                     <p className="text-sm text-[#64748b]">Análise de entradas e saídas</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Link>
+
+          <Link href="/financeiro/calendario" className="group">
+            <div className="relative bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-200 transform hover:-translate-y-1 border border-gray-100">
+              <div className="p-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                    <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-[#0369a1]">Calendário</h2>
+                    <p className="text-sm text-[#64748b]">Visualização mensal</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Link>
+
+          <Link href="/financeiro/top-receitas-despesas" className="group">
+            <div className="relative bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-200 transform hover:-translate-y-1 border border-gray-100">
+              <div className="p-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                    <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-[#0369a1]">Top Receitas/Despesas</h2>
+                    <p className="text-sm text-[#64748b]">Ranking dos maiores valores</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Link>
+
+          <Link href="/contas-pagar" className="group">
+            <div className="relative bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-200 transform hover:-translate-y-1 border border-gray-100">
+              <div className="p-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
+                    <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-[#0369a1]">Todos os Lançamentos</h2>
+                    <p className="text-sm text-[#64748b]">Receitas e despesas</p>
                   </div>
                 </div>
               </div>

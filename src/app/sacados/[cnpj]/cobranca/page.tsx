@@ -100,7 +100,13 @@ export default function CobrancaReportPage() {
         <div className="container max-w-6xl">
           <div className="text-center py-8">
             <p className="text-slate-600">Sacado não encontrado</p>
-            <Button variant="primary" onClick={() => router.back()} className="mt-4">
+            <Button variant="primary" onClick={() => {
+  if (typeof window !== 'undefined' && window.history.length > 1) {
+    router.back();
+  } else {
+    router.push(`/sacados/${encodeURIComponent(cnpj)}`);
+  }
+}} className="mt-4">
               Voltar
             </Button>
           </div>
@@ -118,7 +124,13 @@ export default function CobrancaReportPage() {
             <Button variant="outline" onClick={() => router.push(`/sacados/${encodeURIComponent(cnpj)}/editar`)}>
               Editar Dados
             </Button>
-            <Button variant="secondary" onClick={() => router.back()}>
+            <Button variant="secondary" onClick={() => {
+  if (typeof window !== 'undefined' && window.history.length > 1) {
+    router.back();
+  } else {
+    router.push(`/sacados/${encodeURIComponent(cnpj)}`);
+  }
+}}>
               Voltar
             </Button>
             <Button variant="primary" onClick={printReport}>

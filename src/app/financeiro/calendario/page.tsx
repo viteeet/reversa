@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useRouter } from 'next/navigation';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import StatCard from '@/components/ui/StatCard';
@@ -17,6 +18,7 @@ type LancamentoCalendario = {
 };
 
 export default function CalendarioLancamentosPage() {
+  const router = useRouter();
   const [lancamentos, setLancamentos] = useState<LancamentoCalendario[]>([]);
   const [loading, setLoading] = useState(true);
   const [dataSelecionada, setDataSelecionada] = useState(new Date());
@@ -26,14 +28,36 @@ export default function CalendarioLancamentosPage() {
     status: 'todas'
   });
 
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      const user = data.user;
+      if (!user) { router.replace('/login'); return; }
+      loadData();
+    });
+  }, [router]);
+
+  useEffect(() => {
+    loadData();
+  }, [mesAtual, filtros]);
+
   const loadData = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('lancamentos')
         .select('*')
         .gte('data_competencia', new Date(mesAtual.getFullYear(), mesAtual.getMonth(), 1).toISOString())
         .lt('data_competencia', new Date(mesAtual.getFullYear(), mesAtual.getMonth() + 1, 1).toISOString());
+
+      if (filtros.natureza !== 'todas') {
+        query = query.eq('natureza', filtros.natureza);
+      }
+
+      if (filtros.status !== 'todas') {
+        query = query.eq('status', filtros.status);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setLancamentos(data || []);
@@ -43,10 +67,6 @@ export default function CalendarioLancamentosPage() {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    loadData();
-  }, [mesAtual]);
 
   const diasDoMes = () => {
     const primeiroDia = new Date(mesAtual.getFullYear(), mesAtual.getMonth(), 1);
@@ -93,13 +113,23 @@ export default function CalendarioLancamentosPage() {
         <header className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Calendário de Lançamentos</h1>
-              <p className="text-slate-600">Visualização mensal dos lançamentos</p>
-            </div>
-            <div className="flex items-center gap-4">
-              <p className="text-sm text-slate-600">
-                Última atualização: {new Date().toLocaleString('pt-BR')}
-              </p>
+              <button 
+                onClick={() => {
+                  if (typeof window !== 'undefined' && window.history.length > 1) {
+                    router.back();
+                  } else {
+                    router.push('/menu/financeiro');
+                  }
+                }}
+                className="inline-flex items-center gap-2 px-4 py-2 mb-4 rounded-lg bg-white border border-gray-200 hover:border-[#0369a1] hover:bg-blue-50 transition-all shadow-sm hover:shadow-md text-[#0369a1] font-medium"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                Voltar
+              </button>
+              <h1 className="text-3xl font-bold text-[#0369a1]">Calendário de Lançamentos</h1>
+              <p className="text-[#64748b]">Visualização mensal dos lançamentos</p>
             </div>
           </div>
         </header>
@@ -158,9 +188,9 @@ export default function CalendarioLancamentosPage() {
                 </Button>
                 <Button 
                   variant="primary" 
-                  onClick={() => window.location.href = '/contas-pagar'}
+                  onClick={() => router.push('/contas-pagar')}
                 >
-                  VER TODOS LANÇAMENTOS
+                  Ver Todos os Lançamentos
                 </Button>
               </div>
             </div>

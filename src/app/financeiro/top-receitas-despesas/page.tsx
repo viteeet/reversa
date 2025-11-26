@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useRouter } from 'next/navigation';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import StatCard from '@/components/ui/StatCard';
@@ -18,6 +19,7 @@ type LancamentoRanking = {
 };
 
 export default function TopReceitasDespesasPage() {
+  const router = useRouter();
   const [receitas, setReceitas] = useState<LancamentoRanking[]>([]);
   const [despesas, setDespesas] = useState<LancamentoRanking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,12 +30,48 @@ export default function TopReceitasDespesasPage() {
     limite: '15'
   });
 
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      const user = data.user;
+      if (!user) { router.replace('/login'); return; }
+      loadData();
+    });
+  }, [router]);
+
+  useEffect(() => {
+    loadData();
+  }, [filtros]);
+
   const loadData = async () => {
     setLoading(true);
     try {
+      let dataInicio: Date;
+      let dataFim: Date;
+      
+      const ano = parseInt(filtros.ano);
+      const hoje = new Date();
+      
+      if (filtros.periodo === 'mes') {
+        // Mês atual do ano selecionado
+        const mesAtual = hoje.getMonth();
+        dataInicio = new Date(ano, mesAtual, 1);
+        dataFim = new Date(ano, mesAtual + 1, 0);
+      } else if (filtros.periodo === 'trimestre') {
+        // Trimestre atual do ano selecionado
+        const trimestreAtual = Math.floor(hoje.getMonth() / 3);
+        dataInicio = new Date(ano, trimestreAtual * 3, 1);
+        dataFim = new Date(ano, (trimestreAtual + 1) * 3, 0);
+      } else { // ano
+        // Todo o ano selecionado
+        dataInicio = new Date(ano, 0, 1);
+        dataFim = new Date(ano, 11, 31);
+      }
+
       const { data: lancamentos, error } = await supabase
         .from('lancamentos')
         .select('*')
+        .gte('data_competencia', dataInicio.toISOString().split('T')[0])
+        .lte('data_competencia', dataFim.toISOString().split('T')[0])
         .order('valor', { ascending: false });
 
       if (error) throw error;
@@ -70,13 +108,23 @@ export default function TopReceitasDespesasPage() {
         <header className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Top Receitas/Despesas</h1>
-              <p className="text-slate-600">Ranking dos maiores lançamentos</p>
-            </div>
-            <div className="flex items-center gap-4">
-              <p className="text-sm text-slate-600">
-                Última atualização: {new Date().toLocaleString('pt-BR')}
-              </p>
+              <button 
+                onClick={() => {
+                  if (typeof window !== 'undefined' && window.history.length > 1) {
+                    router.back();
+                  } else {
+                    router.push('/menu/financeiro');
+                  }
+                }}
+                className="inline-flex items-center gap-2 px-4 py-2 mb-4 rounded-lg bg-white border border-gray-200 hover:border-[#0369a1] hover:bg-blue-50 transition-all shadow-sm hover:shadow-md text-[#0369a1] font-medium"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                Voltar
+              </button>
+              <h1 className="text-3xl font-bold text-[#0369a1]">Top Receitas/Despesas</h1>
+              <p className="text-[#64748b]">Ranking dos maiores lançamentos</p>
             </div>
           </div>
         </header>

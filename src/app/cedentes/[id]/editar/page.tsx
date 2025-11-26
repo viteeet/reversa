@@ -8,6 +8,8 @@ import { formatCpfCnpj } from '@/lib/format';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
+import Input from '@/components/ui/Input';
+import Select from '@/components/ui/Select';
 import CompactDataManager from '@/components/shared/CompactDataManager';
 import { categoriasCedentes } from '@/config/cedentesCategorias';
 import { useToast } from '@/components/ui/ToastContainer';
@@ -17,6 +19,18 @@ type Cedente = {
   nome: string;
   razao_social: string | null;
   cnpj: string | null;
+  telefone: string | null;
+  email: string | null;
+  endereco: string | null;
+  situacao: string | null;
+  porte: string | null;
+  natureza_juridica: string | null;
+  data_abertura: string | null;
+  capital_social: number | null;
+  atividade_principal_codigo: string | null;
+  atividade_principal_descricao: string | null;
+  atividades_secundarias: string | null;
+  simples_nacional: boolean | null;
 };
 
 type Sacado = {
@@ -34,6 +48,28 @@ export default function EditarCedentePage() {
   const [cedente, setCedente] = useState<Cedente | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingCategorias, setLoadingCategorias] = useState<Record<string, boolean>>({});
+  
+  // Estados para informações básicas editáveis
+  const [infoBasicas, setInfoBasicas] = useState({
+    nome: '',
+    razao_social: '',
+    cnpj: '',
+    telefone: '',
+    email: '',
+    endereco: '',
+    situacao: '',
+    ativo: true,
+    porte: '',
+    natureza_juridica: '',
+    data_abertura: '',
+    capital_social: '',
+    atividade_principal_codigo: '',
+    atividade_principal_descricao: '',
+    atividades_secundarias: '',
+    simples_nacional: false,
+  });
+  const [savingInfoBasicas, setSavingInfoBasicas] = useState(false);
+  const [infoBasicasCollapsed, setInfoBasicasCollapsed] = useState(true);
   
   // Estado dinâmico para categorias (usando configuração)
   const [categoriasData, setCategoriasData] = useState<Record<string, any[]>>({});
@@ -126,15 +162,16 @@ export default function EditarCedentePage() {
 
   // Lista de seções para navegação
   const secoes = [
-    { id: 'observacoes', label: 'Observações Gerais', icon: '💬' },
-    { id: 'enderecos', label: 'Endereços', icon: '📍' },
-    { id: 'telefones', label: 'Telefones', icon: '📞' },
-    { id: 'emails', label: 'E-mails', icon: '📧' },
-    { id: 'pessoas_ligadas', label: 'Pessoas Ligadas', icon: '👥' },
-    { id: 'empresas_ligadas', label: 'Empresas Ligadas', icon: '🏢' },
-    { id: 'processos', label: 'Processos', icon: '⚖️' },
-    { id: 'qsa', label: 'QSA', icon: '👔' },
-    { id: 'sacados', label: 'Sacados', icon: '📋' },
+    { id: 'informacoes_basicas', label: 'Informações Básicas', icon: '' },
+    { id: 'observacoes', label: 'Observações Gerais', icon: '' },
+    { id: 'enderecos', label: 'Endereços', icon: '' },
+    { id: 'telefones', label: 'Telefones', icon: '' },
+    { id: 'emails', label: 'E-mails', icon: '' },
+    { id: 'pessoas_ligadas', label: 'Pessoas Ligadas', icon: '' },
+    { id: 'empresas_ligadas', label: 'Empresas Ligadas', icon: '' },
+    { id: 'processos', label: 'Processos', icon: '' },
+    { id: 'qsa', label: 'QSA', icon: '' },
+    { id: 'sacados', label: 'Sacados', icon: '' },
   ];
 
   async function loadAllData() {
@@ -143,11 +180,33 @@ export default function EditarCedentePage() {
     // Carrega dados do cedente
     const { data: cedenteData } = await supabase
       .from('cedentes')
-      .select('id, nome, razao_social, cnpj')
+      .select('id, nome, razao_social, cnpj, telefone, email, endereco, situacao, porte, natureza_juridica, data_abertura, capital_social, atividade_principal_codigo, atividade_principal_descricao, atividades_secundarias, simples_nacional')
       .eq('id', id)
       .single();
     
     setCedente(cedenteData);
+    
+    // Preenche o formulário de informações básicas
+    if (cedenteData) {
+      setInfoBasicas({
+        nome: cedenteData.nome || '',
+        razao_social: cedenteData.razao_social || '',
+        cnpj: cedenteData.cnpj ? formatCpfCnpj(cedenteData.cnpj) : '',
+        telefone: cedenteData.telefone || '',
+        email: cedenteData.email || '',
+        endereco: cedenteData.endereco || '',
+        situacao: cedenteData.situacao || '',
+        ativo: cedenteData.situacao === 'ATIVA',
+        porte: cedenteData.porte || '',
+        natureza_juridica: cedenteData.natureza_juridica || '',
+        data_abertura: cedenteData.data_abertura ? cedenteData.data_abertura.split('T')[0] : '',
+        capital_social: cedenteData.capital_social ? cedenteData.capital_social.toString() : '',
+        atividade_principal_codigo: cedenteData.atividade_principal_codigo || '',
+        atividade_principal_descricao: cedenteData.atividade_principal_descricao || '',
+        atividades_secundarias: cedenteData.atividades_secundarias || '',
+        simples_nacional: cedenteData.simples_nacional ?? false,
+      });
+    }
 
     // Carrega todos os dados complementares (dinamicamente baseado na configuração)
     await Promise.all([
@@ -471,6 +530,77 @@ export default function EditarCedentePage() {
     }
   }
 
+  async function saveInfoBasicas() {
+    if (!infoBasicas.nome.trim()) {
+      showToast('O nome é obrigatório', 'error');
+      return false;
+    }
+
+    setSavingInfoBasicas(true);
+    try {
+      const { error } = await supabase
+        .from('cedentes')
+        .update({
+          nome: infoBasicas.nome.trim(),
+          razao_social: infoBasicas.razao_social.trim() || null,
+          cnpj: infoBasicas.cnpj ? infoBasicas.cnpj.replace(/\D+/g, '') : null,
+          telefone: infoBasicas.telefone.trim() || null,
+          email: infoBasicas.email.trim() || null,
+          endereco: infoBasicas.endereco.trim() || null,
+          situacao: infoBasicas.ativo ? 'ATIVA' : (infoBasicas.situacao || null),
+          porte: infoBasicas.porte.trim() || null,
+          natureza_juridica: infoBasicas.natureza_juridica.trim() || null,
+          data_abertura: infoBasicas.data_abertura || null,
+          capital_social: infoBasicas.capital_social ? (() => {
+            const cleaned = infoBasicas.capital_social.replace(/[^\d,.-]/g, '').replace(',', '.');
+            const num = parseFloat(cleaned);
+            return isNaN(num) ? null : num;
+          })() : null,
+          atividade_principal_codigo: infoBasicas.atividade_principal_codigo.trim() || null,
+          atividade_principal_descricao: infoBasicas.atividade_principal_descricao.trim() || null,
+          atividades_secundarias: infoBasicas.atividades_secundarias.trim() || null,
+          simples_nacional: infoBasicas.simples_nacional,
+          ultima_atualizacao: new Date().toISOString(),
+        })
+        .eq('id', id);
+      
+      if (error) throw error;
+      
+      // Atualiza o estado do cedente
+      setCedente(prev => prev ? {
+        ...prev,
+        nome: infoBasicas.nome.trim(),
+        razao_social: infoBasicas.razao_social.trim() || null,
+        cnpj: infoBasicas.cnpj ? infoBasicas.cnpj.replace(/\D+/g, '') : null,
+        telefone: infoBasicas.telefone.trim() || null,
+        email: infoBasicas.email.trim() || null,
+        endereco: infoBasicas.endereco.trim() || null,
+        situacao: infoBasicas.situacao || null,
+        porte: infoBasicas.porte.trim() || null,
+        natureza_juridica: infoBasicas.natureza_juridica.trim() || null,
+        data_abertura: infoBasicas.data_abertura || null,
+        capital_social: infoBasicas.capital_social ? (() => {
+          const cleaned = infoBasicas.capital_social.replace(/[^\d,.-]/g, '').replace(',', '.');
+          const num = parseFloat(cleaned);
+          return isNaN(num) ? null : num;
+        })() : null,
+        atividade_principal_codigo: infoBasicas.atividade_principal_codigo.trim() || null,
+        atividade_principal_descricao: infoBasicas.atividade_principal_descricao.trim() || null,
+        atividades_secundarias: infoBasicas.atividades_secundarias.trim() || null,
+        simples_nacional: infoBasicas.simples_nacional,
+      } : null);
+      
+      showToast('Informações básicas salvas com sucesso!', 'success');
+      return true;
+    } catch (error) {
+      console.error('Erro ao salvar informações básicas:', error);
+      showToast('Erro ao salvar informações básicas', 'error');
+      return false;
+    } finally {
+      setSavingInfoBasicas(false);
+    }
+  }
+
   async function saveQsaDetalhes() {
     if (!selectedQsa) return;
     
@@ -517,57 +647,158 @@ export default function EditarCedentePage() {
     setShowQsaDetails(true);
   }
 
-  async function fetchFromAPI(tipo: string) {
-    if (!cedente?.cnpj) {
-      showToast('Cedente sem CNPJ cadastrado', 'warning');
+  async function fetchFromAPI(tipo: string, cpf?: string) {
+    // Processos precisam de CPF, outros dados precisam de CNPJ
+    if (tipo === 'processos') {
+      if (!cpf) {
+        showToast('CPF necessário para buscar processos', 'warning');
+        return;
+      }
+    } else {
+      if (!cedente?.cnpj) {
+        showToast('Cedente sem CNPJ cadastrado', 'warning');
+        return;
+      }
+    }
+
+    try {
+      let url: string;
+      if (tipo === 'processos') {
+        url = `/api/bigdata?cpf=${encodeURIComponent(cpf!)}&tipo=processos`;
+      } else {
+        url = `/api/bigdata?cnpj=${encodeURIComponent(cedente.cnpj)}&tipo=${tipo}`;
+      }
+      
+      const res = await fetch(url);
+      const response = await res.json();
+      
+      if (!res.ok) {
+        const errorMsg = response.error || 'Erro ao buscar dados da API BigData';
+        showToast(errorMsg, 'error');
+        throw new Error(errorMsg);
+      }
+
+      const dados = Array.isArray(response) ? response : (response.data || []);
+      
+      // Para processos, adiciona ao texto existente
+      if (tipo === 'processos') {
+        if (Array.isArray(dados) && dados.length > 0) {
+          const processoTexto = dados.map((p: any) => {
+            let texto = `\n\n=== PROCESSOS ENCONTRADOS ===\n`;
+            if (cpf) {
+              texto += `CPF: ${cpf}\n`;
+            }
+            if (p.observacoes) {
+              texto += p.observacoes;
+            }
+            return texto;
+          }).join('\n\n');
+          
+          const novoTexto = processosTexto 
+            ? `${processosTexto}\n${processoTexto}` 
+            : processoTexto;
+          
+          setProcessosTexto(novoTexto);
+          await saveProcessosTexto(novoTexto);
+          showToast('Processos adicionados com sucesso!', 'success');
+        } else {
+          showToast('Nenhum processo encontrado para este CPF', 'warning');
+        }
+        return;
+      }
+      
+      // Para outros dados, salva normalmente
+      // Verifica se há dados para salvar
+      if (!Array.isArray(dados) || dados.length === 0) {
+        showToast('Nenhum dado encontrado na API para este CNPJ', 'warning');
+        return;
+      }
+      
+      // Salva os dados no banco
+      const tableName = getTableNameByType(tipo);
+      
+      // Remove dados antigos da API para evitar duplicatas
+      const { error: deleteError } = await supabase
+        .from(tableName)
+        .delete()
+        .eq('cedente_id', id)
+        .eq('origem', 'api');
+
+      if (deleteError) {
+        console.error('Erro ao limpar dados antigos da API:', deleteError);
+      }
+
+      // Insere os novos dados da API
+      const dataToInsert = dados.map(item => ({
+        ...item,
+        cedente_id: id,
+        origem: 'api',
+        ativo: true
+      }));
+
+      const { error } = await supabase
+        .from(tableName)
+        .insert(dataToInsert);
+
+      if (error) {
+        console.error('Erro ao salvar dados da API:', error);
+        showToast('Erro ao salvar dados da API', 'error');
+        throw error;
+      }
+
+      showToast(`${dados.length} registro(s) importado(s) com sucesso!`, 'success');
+      await loadCategoria(tipo, tableName);
+    } catch (error) {
+      console.error('Erro ao buscar da API:', error);
+      // Erro já foi tratado acima, apenas propaga para o componente
+      throw error;
+    }
+  }
+
+  async function buscarProcessosPorCPF(cpf: string, nome: string) {
+    const cpfLimpo = cpf.replace(/\D/g, '');
+    if (!cpfLimpo || cpfLimpo.length !== 11) {
+      showToast('CPF inválido', 'error');
       return;
     }
 
     try {
-      const res = await fetch(`/api/bigdata?cnpj=${encodeURIComponent(cedente.cnpj)}&tipo=${tipo}`);
+      const res = await fetch(`/api/bigdata?cpf=${encodeURIComponent(cpfLimpo)}&tipo=processos`);
       const response = await res.json();
       
       if (!res.ok) {
-        throw new Error(response.error || 'Erro ao buscar dados');
+        const errorMsg = response.error || 'Erro ao buscar processos da API BigData';
+        showToast(errorMsg, 'error');
+        return;
       }
 
-      const dados = response.mock ? response.data : response;
+      const dados = Array.isArray(response) ? response : (response.data || []);
       
-      // Salva os dados no banco
-      if (Array.isArray(dados) && dados.length > 0) {
-        const tableName = getTableNameByType(tipo);
-        
-        // Remove dados antigos da API para evitar duplicatas
-        const { error: deleteError } = await supabase
-          .from(tableName)
-          .delete()
-          .eq('cedente_id', id)
-          .eq('origem', 'api');
-
-        if (deleteError) {
-          console.error('Erro ao limpar dados antigos da API:', deleteError);
-        }
-
-        // Insere os novos dados da API
-        const dataToInsert = dados.map(item => ({
-          ...item,
-          cedente_id: id,
-          origem: 'api',
-          ativo: true
-        }));
-
-        const { error } = await supabase
-          .from(tableName)
-          .insert(dataToInsert);
-
-        if (error) {
-          console.error('Erro ao salvar dados da API:', error);
-          showToast('Alguns dados não puderam ser salvos', 'warning');
-        }
+      if (!Array.isArray(dados) || dados.length === 0) {
+        showToast('Nenhum processo encontrado para este CPF', 'warning');
+        return;
       }
+
+      // Formata os processos em texto
+      let processosTexto = '';
+      dados.forEach((p: any) => {
+        processosTexto += `\n\n=== PROCESSOS JUDICIAIS (CPF: ${cpfLimpo}) ===\n`;
+        if (p.observacoes) {
+          processosTexto += p.observacoes;
+        }
+      });
+
+      // Adiciona ao campo de detalhes do QSA
+      const detalhesAtuais = qsaDetalhes || '';
+      const novosDetalhes = detalhesAtuais 
+        ? `${detalhesAtuais}\n${processosTexto}` 
+        : processosTexto.trim();
+
+      setQsaDetalhes(novosDetalhes);
+      showToast('Processos adicionados aos detalhes!', 'success');
     } catch (error) {
-      console.error('Erro ao buscar da API:', error);
-      throw error;
+      console.error('Erro ao buscar processos:', error);
+      showToast('Erro ao buscar processos', 'error');
     }
   }
 
@@ -596,7 +827,13 @@ export default function EditarCedentePage() {
         <div className="container max-w-6xl">
           <div className="text-center py-8">
             <p className="text-[#64748b]">Cedente não encontrado</p>
-            <Button variant="primary" onClick={() => router.back()} className="mt-4">
+            <Button variant="primary" onClick={() => {
+  if (typeof window !== 'undefined' && window.history.length > 1) {
+    router.back();
+  } else {
+    router.push(`/cedentes/${id}`);
+  }
+}} className="mt-4">
               Voltar
             </Button>
           </div>
@@ -632,6 +869,7 @@ export default function EditarCedentePage() {
               const isActive = activeSection === secao.id;
               const categoria = categoriasCedentes.find(c => c.id === secao.id);
               const itemCount = categoria ? (categoriasData[secao.id] || []).length : 
+                                secao.id === 'informacoes_basicas' ? 1 :
                                 secao.id === 'observacoes' ? (observacoesGerais ? 1 : 0) : 
                                 secao.id === 'processos' ? (processosTexto ? 1 : 0) :
                                 secao.id === 'sacados' ? sacados.length : 0;
@@ -646,10 +884,7 @@ export default function EditarCedentePage() {
                       : 'text-gray-700 hover:bg-gray-50'
                   }`}
                 >
-                  <span className="flex items-center gap-2">
-                    <span>{secao.icon}</span>
-                    <span className="truncate">{secao.label}</span>
-                  </span>
+                  <span className="truncate">{secao.label}</span>
                   {itemCount > 0 && (
                     <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${
                       isActive ? 'bg-blue-200 text-blue-800' : 'bg-gray-200 text-gray-600'
@@ -689,17 +924,227 @@ export default function EditarCedentePage() {
               {cedente.razao_social && <p className="text-[#64748b]">{cedente.razao_social}</p>}
               {cedente.cnpj && <p className="text-sm text-[#64748b] font-mono">{cedente.cnpj}</p>}
             </div>
-            <Button variant="secondary" onClick={() => router.back()}>
+            <Button variant="secondary" onClick={() => {
+  if (typeof window !== 'undefined' && window.history.length > 1) {
+    router.back();
+  } else {
+    router.push(`/cedentes/${id}`);
+  }
+}}>
               Voltar
             </Button>
           </header>
+
+          {/* Informações Básicas - Formulário de Edição */}
+          <div id="informacoes_basicas" ref={(el) => { sectionRefs.current['informacoes_basicas'] = el; }}>
+            <Card>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between pb-2 border-b border-gray-200">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setInfoBasicasCollapsed(!infoBasicasCollapsed)}
+                      className="p-1 hover:bg-gray-100 rounded transition-colors"
+                      aria-label={infoBasicasCollapsed ? "Expandir" : "Recolher"}
+                    >
+                      <svg 
+                        className={`w-5 h-5 text-gray-600 transition-transform ${infoBasicasCollapsed ? '' : 'rotate-90'}`}
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                    <h2 className="text-xl font-semibold text-[#0369a1]">Informações Básicas</h2>
+                  </div>
+                  {!infoBasicasCollapsed && (
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={saveInfoBasicas}
+                      loading={savingInfoBasicas}
+                      disabled={!infoBasicas.nome.trim()}
+                    >
+                      Salvar Informações
+                    </Button>
+                  )}
+                </div>
+                
+                {!infoBasicasCollapsed && (
+                <div className="space-y-4">
+                {/* Informações Básicas */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-700 border-b pb-2">Informações Básicas</h3>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <Input
+                      label="Nome *"
+                      value={infoBasicas.nome}
+                      onChange={(e) => setInfoBasicas({ ...infoBasicas, nome: e.target.value })}
+                      placeholder="Nome do cedente"
+                      required
+                    />
+                    <Input
+                      label="Razão Social"
+                      value={infoBasicas.razao_social}
+                      onChange={(e) => setInfoBasicas({ ...infoBasicas, razao_social: e.target.value })}
+                      placeholder="Razão social"
+                    />
+                    <div>
+                      <label className="block text-sm font-medium text-[#1e293b] mb-1">CNPJ</label>
+                      <input
+                        type="text"
+                        value={infoBasicas.cnpj}
+                        onChange={(e) => setInfoBasicas({ ...infoBasicas, cnpj: formatCpfCnpj(e.target.value) })}
+                        placeholder="00.000.000/0000-00"
+                        className="block w-full px-3 py-2 border border-[#cbd5e1] rounded-md shadow-sm transition-colors bg-white text-[#1e293b] focus:outline-none focus:ring-2 focus:ring-[#0369a1] focus:border-[#0369a1] hover:border-[#0369a1]"
+                        maxLength={18}
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={infoBasicas.ativo}
+                          onChange={(e) => {
+                            const ativo = e.target.checked;
+                            setInfoBasicas({ 
+                              ...infoBasicas, 
+                              ativo,
+                              situacao: ativo ? 'ATIVA' : infoBasicas.situacao || 'INATIVA'
+                            });
+                          }}
+                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        <span className="text-sm font-medium text-gray-700">Ativo</span>
+                      </label>
+                    </div>
+                    <Select
+                      label="Situação"
+                      value={infoBasicas.situacao}
+                      onChange={(e) => setInfoBasicas({ ...infoBasicas, situacao: e.target.value, ativo: e.target.value === 'ATIVA' })}
+                      placeholder="Selecione a situação"
+                      options={[
+                        { value: 'ATIVA', label: 'ATIVA' },
+                        { value: 'INATIVA', label: 'INATIVA' },
+                        { value: 'SUSPENSA', label: 'SUSPENSA' },
+                        { value: 'BAIXADA', label: 'BAIXADA' },
+                        { value: 'INAPTA', label: 'INAPTA' },
+                      ]}
+                    />
+                  </div>
+                </div>
+
+                {/* Contato */}
+                <div className="space-y-4 pt-4 border-t">
+                  <h3 className="text-lg font-semibold text-gray-700 border-b pb-2">Contato</h3>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <Input
+                      label="Telefone"
+                      type="tel"
+                      value={infoBasicas.telefone}
+                      onChange={(e) => setInfoBasicas({ ...infoBasicas, telefone: e.target.value })}
+                      placeholder="(00) 00000-0000"
+                    />
+                    <Input
+                      label="E-mail"
+                      type="email"
+                      value={infoBasicas.email}
+                      onChange={(e) => setInfoBasicas({ ...infoBasicas, email: e.target.value })}
+                      placeholder="email@exemplo.com"
+                    />
+                    <Input
+                      label="Endereço"
+                      value={infoBasicas.endereco}
+                      onChange={(e) => setInfoBasicas({ ...infoBasicas, endereco: e.target.value })}
+                      placeholder="Rua, número, bairro, cidade, estado"
+                      className="md:col-span-2"
+                    />
+                  </div>
+                </div>
+
+                {/* Informações Empresariais */}
+                <div className="space-y-4 pt-4 border-t">
+                  <h3 className="text-lg font-semibold text-gray-700 border-b pb-2">Informações Empresariais</h3>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <Input
+                      label="Porte"
+                      value={infoBasicas.porte}
+                      onChange={(e) => setInfoBasicas({ ...infoBasicas, porte: e.target.value })}
+                      placeholder="Ex: Empresa de Pequeno Porte"
+                    />
+                    <Input
+                      label="Natureza Jurídica"
+                      value={infoBasicas.natureza_juridica}
+                      onChange={(e) => setInfoBasicas({ ...infoBasicas, natureza_juridica: e.target.value })}
+                      placeholder="Ex: Sociedade Empresária Limitada"
+                    />
+                    <Input
+                      label="Data de Abertura"
+                      type="date"
+                      value={infoBasicas.data_abertura}
+                      onChange={(e) => setInfoBasicas({ ...infoBasicas, data_abertura: e.target.value })}
+                    />
+                    <Input
+                      label="Capital Social"
+                      type="text"
+                      value={infoBasicas.capital_social}
+                      onChange={(e) => setInfoBasicas({ ...infoBasicas, capital_social: e.target.value })}
+                      placeholder="Ex: 100000 ou 100.000,00"
+                    />
+                    <div className="md:col-span-2">
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={infoBasicas.simples_nacional}
+                          onChange={(e) => setInfoBasicas({ ...infoBasicas, simples_nacional: e.target.checked })}
+                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        <span className="text-sm font-medium text-gray-700">Simples Nacional</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Atividades */}
+                <div className="space-y-4 pt-4 border-t">
+                  <h3 className="text-lg font-semibold text-gray-700 border-b pb-2">Atividades</h3>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <Input
+                      label="Código da Atividade Principal"
+                      value={infoBasicas.atividade_principal_codigo}
+                      onChange={(e) => setInfoBasicas({ ...infoBasicas, atividade_principal_codigo: e.target.value })}
+                      placeholder="Ex: 2733-3/00"
+                    />
+                    <Input
+                      label="Atividade Principal"
+                      value={infoBasicas.atividade_principal_descricao}
+                      onChange={(e) => setInfoBasicas({ ...infoBasicas, atividade_principal_descricao: e.target.value })}
+                      placeholder="Descrição da atividade principal"
+                    />
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-[#1e293b] mb-1">Atividades Secundárias</label>
+                      <textarea
+                        value={infoBasicas.atividades_secundarias}
+                        onChange={(e) => setInfoBasicas({ ...infoBasicas, atividades_secundarias: e.target.value })}
+                        placeholder="Liste as atividades secundárias separadas por ponto e vírgula"
+                        rows={3}
+                        className="block w-full px-3 py-2 border border-[#cbd5e1] rounded-md shadow-sm transition-colors bg-white text-[#1e293b] focus:outline-none focus:ring-2 focus:ring-[#0369a1] focus:border-[#0369a1] hover:border-[#0369a1] resize-y"
+                      />
+                    </div>
+                  </div>
+                </div>
+                </div>
+                )}
+              </div>
+            </Card>
+          </div>
 
           {/* Observações Gerais da Empresa - TOPO */}
           <div id="observacoes" ref={(el) => { sectionRefs.current['observacoes'] = el; }}>
             <Card>
               <div className="space-y-2">
                 <label className="block text-sm font-semibold text-gray-800">
-                  💬 Observações Gerais - {cedente.nome}
+                  Observações Gerais - {cedente.nome}
                 </label>
                 <textarea
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[100px] resize-y"
@@ -729,9 +1174,9 @@ export default function EditarCedentePage() {
 
             // Labels dos grupos
             const grupoLabels: Record<string, string> = {
-              'contatos': '📞 Informações de Contato',
-              'relacionamentos': '👥 Relacionamentos',
-              'outros': '📋 Outros'
+              'contatos': 'Informações de Contato',
+              'relacionamentos': 'Relacionamentos',
+              'outros': 'Outros'
             };
 
             return Object.entries(categoriasPorGrupo).map(([grupo, categorias]) => (
@@ -774,7 +1219,7 @@ export default function EditarCedentePage() {
             <Card>
               <div className="space-y-2">
                 <label className="block text-sm font-semibold text-gray-800">
-                  ⚖️ Processos Judiciais e Informações Relevantes
+                  Processos Judiciais e Informações Relevantes
                 </label>
                 <textarea
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[300px] resize-y font-mono"
@@ -837,7 +1282,7 @@ export default function EditarCedentePage() {
           <div className="space-y-4">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 pb-2 border-b border-gray-200">
               <div>
-                <h3 className="text-base font-semibold text-gray-800">👥 Sacados Relacionados</h3>
+                <h3 className="text-base font-semibold text-gray-800">Sacados Relacionados</h3>
                 <p className="text-xs text-gray-500 mt-1">Gerencie os sacados (devedores) deste cedente</p>
               </div>
               <div className="flex items-center gap-2">
@@ -904,10 +1349,10 @@ export default function EditarCedentePage() {
                         <td className="px-4 py-2">
                           <div className="flex gap-1">
                             <Link href={`/sacados/${encodeURIComponent(sacado.cnpj)}`} title="Ver">
-                              <button className="px-2 py-1 text-xs text-gray-600 bg-white border border-gray-300 rounded hover:bg-gray-50" aria-label="Ver">👁️</button>
+                              <button className="px-2 py-1 text-xs text-gray-600 bg-white border border-gray-300 rounded hover:bg-gray-50" aria-label="Ver">Ver</button>
                             </Link>
                             <Link href={`/sacados/${encodeURIComponent(sacado.cnpj)}/editar`} title="Editar">
-                              <button className="px-2 py-1 text-xs text-gray-600 bg-white border border-gray-300 rounded hover:bg-gray-50" aria-label="Editar">✏️</button>
+                              <button className="px-2 py-1 text-xs text-gray-600 bg-white border border-gray-300 rounded hover:bg-gray-50" aria-label="Editar">Editar</button>
                             </Link>
                             <button 
                               onClick={() => removerSacado(sacado.cnpj)}
@@ -915,7 +1360,7 @@ export default function EditarCedentePage() {
                               title="Remover"
                               aria-label="Remover"
                             >
-                              🗑️
+                              Remover
                             </button>
                           </div>
                         </td>
@@ -931,21 +1376,28 @@ export default function EditarCedentePage() {
 
           {/* Botões de Ação */}
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-            <Button variant="secondary" onClick={() => router.back()}>
+            <Button variant="secondary" onClick={() => {
+  if (typeof window !== 'undefined' && window.history.length > 1) {
+    router.back();
+  } else {
+    router.push(`/cedentes/${id}`);
+  }
+}}>
               Voltar
             </Button>
             <Button 
               variant="primary" 
               onClick={async () => {
-                // Salva observações e processos
+                // Salva informações básicas, observações e processos
                 await Promise.all([
+                  saveInfoBasicas(),
                   saveObservacaoGeral(observacoesGerais),
                   saveProcessosTexto(processosTexto)
                 ]);
                 showToast('Dados salvos com sucesso!', 'success');
               }}
             >
-              Salvar
+              Salvar Tudo
             </Button>
           </div>
         </div>
@@ -1043,6 +1495,82 @@ export default function EditarCedentePage() {
                   {savingSacado ? 'Salvando...' : 'Adicionar'}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Detalhes QSA */}
+      {showQsaDetails && selectedQsa && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl border border-gray-200 max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between px-5 py-3 border-b">
+              <h2 className="text-lg font-semibold text-gray-900">
+                Detalhes: {selectedQsa.nome}
+              </h2>
+              <button
+                onClick={() => {
+                  setShowQsaDetails(false);
+                  setSelectedQsa(null);
+                  setQsaDetalhes('');
+                }}
+                className="px-2 py-1 text-gray-500 hover:text-gray-900 text-xl"
+                aria-label="Fechar"
+              >×</button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-5 space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div><span className="font-medium">CPF:</span> {selectedQsa.cpf || '—'}</div>
+                  <div><span className="font-medium">Qualificação:</span> {selectedQsa.qualificacao || '—'}</div>
+                </div>
+              </div>
+
+              {/* Botão para buscar processos */}
+              {selectedQsa.cpf && (
+                <div className="flex gap-2">
+                  <button
+                    onClick={async () => {
+                      await buscarProcessosPorCPF(selectedQsa.cpf, selectedQsa.nome);
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded hover:bg-purple-700 transition-colors"
+                  >
+                    ⚖️ Buscar Processos deste CPF
+                  </button>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Informações Completas (Detalhes, endereços, telefones, processos, etc.)
+                </label>
+                <textarea
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[400px] resize-y font-mono text-sm"
+                  value={qsaDetalhes}
+                  onChange={(e) => setQsaDetalhes(e.target.value)}
+                  placeholder="Cole aqui todas as informações encontradas sobre esta pessoa: endereços, telefones, e-mails, processos judiciais, familiares, empresas relacionadas, etc."
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 px-5 py-3 border-t bg-gray-50">
+              <button
+                onClick={() => {
+                  setShowQsaDetails(false);
+                  setSelectedQsa(null);
+                  setQsaDetalhes('');
+                }}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={saveQsaDetalhes}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700"
+              >
+                Salvar Detalhes
+              </button>
             </div>
           </div>
         </div>
