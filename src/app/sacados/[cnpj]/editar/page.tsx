@@ -29,6 +29,7 @@ type Sacado = {
   atividade_principal_descricao: string | null;
   atividades_secundarias: string | null;
   simples_nacional: boolean | null;
+  grupo_empresa_id: string | null;
 };
 
 // Mapeia tabelas de cedentes para sacados
@@ -84,6 +85,13 @@ export default function EditarSacadoPage() {
   const [observacoesGerais, setObservacoesGerais] = useState('');
   const [lastSavedObservacoes, setLastSavedObservacoes] = useState('');
   const [savingObservacoes, setSavingObservacoes] = useState(false);
+  
+  // Estados para gerenciamento de grupos
+  const [grupoInfo, setGrupoInfo] = useState<{ id: string; nome_grupo: string; cnpjs_count: number } | null>(null);
+  const [gruposDisponiveis, setGruposDisponiveis] = useState<{ id: string; nome_grupo: string; tipo_entidade: string }[]>([]);
+  const [showGrupoModal, setShowGrupoModal] = useState(false);
+  const [grupoForm, setGrupoForm] = useState({ grupo_id: '', criar_novo: false, nome_novo_grupo: '' });
+  const [loadingGrupos, setLoadingGrupos] = useState(false);
   
   // Modal de detalhes de pessoa do QSA
   const [showQsaDetails, setShowQsaDetails] = useState(false);
@@ -169,7 +177,7 @@ export default function EditarSacadoPage() {
     // Carrega dados do sacado
     const { data: sacadoData } = await supabase
       .from('sacados')
-      .select('cnpj, razao_social, nome_fantasia, endereco_receita, telefone_receita, email_receita, situacao, porte, natureza_juridica, data_abertura, capital_social, atividade_principal_codigo, atividade_principal_descricao, atividades_secundarias, simples_nacional')
+      .select('cnpj, razao_social, nome_fantasia, endereco_receita, telefone_receita, email_receita, situacao, porte, natureza_juridica, data_abertura, capital_social, atividade_principal_codigo, atividade_principal_descricao, atividades_secundarias, simples_nacional, grupo_empresa_id')
       .eq('cnpj', cnpj)
       .single();
     
@@ -197,14 +205,223 @@ export default function EditarSacadoPage() {
       });
     }
 
+    // Carrega informações do grupo, se houver
+    if (sacadoData?.grupo_empresa_id) {
+      const { data: grupoData } = await supabase
+        .from('empresas_grupo')
+        .select('id, nome_grupo')
+        .eq('id', sacadoData.grupo_empresa_id)
+        .single();
+      
+      if (grupoData) {
+        const { count } = await supabase
+          .from('empresas_grupo_cnpjs')
+          .select('*', { count: 'exact', head: true })
+          .eq('grupo_id', grupoData.id)
+          .eq('ativo', true);
+        
+        setGrupoInfo({
+          id: grupoData.id,
+          nome_grupo: grupoData.nome_grupo,
+          cnpjs_count: count || 0
+        });
+      }
+    } else {
+      setGrupoInfo(null);
+    }
+
     // Carrega todos os dados complementares
     await Promise.all([
       ...categoriasCedentes.map(cat => loadCategoria(cat.id, sacadoTableMapping[cat.tableName] || cat.tableName.replace('cedentes_', 'sacados_'))),
       loadProcessos(),
-      loadObservacoes()
+      loadObservacoes(),
+      loadGruposDisponiveis()
     ]);
     
     setLoading(false);
+  }
+
+  async function loadGruposDisponiveis() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data } = await supabase
+      .from('empresas_grupo')
+      .select('id, nome_grupo, cnpj_matriz')
+      .eq('user_id', user.id)
+      .order('nome_grupo', { ascending: true });
+
+    if (data) {
+      // Para cada grupo, verifica o tipo de entidade pelo CNPJ matriz
+      const gruposComTipo = await Promise.all(
+        data.map(async (grupo) => {
+          // Verifica se o CNPJ matriz está em sacados ou cedentes
+          const { data: sacadoData } = await supabase
+            .from('sacados')
+            .select('cnpj')
+            .eq('cnpj', grupo.cnpj_matriz)
+            .single();
+          
+          return {
+            id: grupo.id,
+            nome_grupo: grupo.nome_grupo,
+            tipo_entidade: sacadoData ? 'sacado' : 'cedente'
+          };
+        })
+      );
+
+      // Filtra apenas grupos de sacados
+      setGruposDisponiveis(gruposComTipo.filter(g => g.tipo_entidade === 'sacado'));
+    }
+  }
+
+  async function adicionarAoGrupo() {
+    if (grupoForm.criar_novo) {
+      // Criar novo grupo
+      if (!grupoForm.nome_novo_grupo.trim()) {
+        showToast('Nome do grupo é obrigatório', 'error');
+        return;
+      }
+
+      setLoadingGrupos(true);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Não autenticado');
+
+        const cnpjLimpo = cnpj.replace(/\D+/g, '');
+
+        // Cria o grupo
+        const { data: novoGrupo, error: grupoError } = await supabase
+          .from('empresas_grupo')
+          .insert({
+            nome_grupo: grupoForm.nome_novo_grupo.trim(),
+            cnpj_matriz: cnpjLimpo,
+            user_id: user.id
+          })
+          .select()
+          .single();
+
+        if (grupoError) throw grupoError;
+
+        // Vincula o CNPJ matriz ao grupo
+        const { error: cnpjError } = await supabase
+          .from('empresas_grupo_cnpjs')
+          .insert({
+            grupo_id: novoGrupo.id,
+            cnpj: cnpjLimpo,
+            tipo_entidade: 'sacado',
+            tipo_unidade: 'matriz',
+            ordem: 0,
+            ativo: true
+          });
+
+        if (cnpjError) throw cnpjError;
+
+        // Atualiza o campo grupo_empresa_id
+        await supabase
+          .from('sacados')
+          .update({ grupo_empresa_id: novoGrupo.id })
+          .eq('cnpj', cnpjLimpo);
+
+        showToast('Grupo criado e sacado vinculado com sucesso!', 'success');
+        setShowGrupoModal(false);
+        setGrupoForm({ grupo_id: '', criar_novo: false, nome_novo_grupo: '' });
+        await loadAllData();
+      } catch (error: any) {
+        console.error('Erro ao criar grupo:', error);
+        showToast('Erro ao criar grupo', 'error');
+      } finally {
+        setLoadingGrupos(false);
+      }
+    } else {
+      // Adicionar a grupo existente
+      if (!grupoForm.grupo_id) {
+        showToast('Selecione um grupo', 'error');
+        return;
+      }
+
+      setLoadingGrupos(true);
+      try {
+        const cnpjLimpo = cnpj.replace(/\D+/g, '');
+
+        // Verifica se já está vinculado
+        const { data: jaVinculado } = await supabase
+          .from('empresas_grupo_cnpjs')
+          .select('id')
+          .eq('grupo_id', grupoForm.grupo_id)
+          .eq('cnpj', cnpjLimpo)
+          .eq('ativo', true)
+          .single();
+
+        if (jaVinculado) {
+          showToast('Este sacado já está neste grupo', 'warning');
+          setLoadingGrupos(false);
+          return;
+        }
+
+        // Adiciona ao grupo
+        const { error: cnpjError } = await supabase
+          .from('empresas_grupo_cnpjs')
+          .insert({
+            grupo_id: grupoForm.grupo_id,
+            cnpj: cnpjLimpo,
+            tipo_entidade: 'sacado',
+            tipo_unidade: 'filial',
+            ordem: 0,
+            ativo: true
+          });
+
+        if (cnpjError) throw cnpjError;
+
+        // Atualiza o campo grupo_empresa_id
+        await supabase
+          .from('sacados')
+          .update({ grupo_empresa_id: grupoForm.grupo_id })
+          .eq('cnpj', cnpjLimpo);
+
+        showToast('Sacado adicionado ao grupo com sucesso!', 'success');
+        setShowGrupoModal(false);
+        setGrupoForm({ grupo_id: '', criar_novo: false, nome_novo_grupo: '' });
+        await loadAllData();
+      } catch (error: any) {
+        console.error('Erro ao adicionar ao grupo:', error);
+        showToast('Erro ao adicionar ao grupo', 'error');
+      } finally {
+        setLoadingGrupos(false);
+      }
+    }
+  }
+
+  async function removerDoGrupo() {
+    if (!grupoInfo) return;
+
+    setLoadingGrupos(true);
+    try {
+      const cnpjLimpo = cnpj.replace(/\D+/g, '');
+
+      // Remove o vínculo do grupo
+      const { error: cnpjError } = await supabase
+        .from('empresas_grupo_cnpjs')
+        .update({ ativo: false })
+        .eq('grupo_id', grupoInfo.id)
+        .eq('cnpj', cnpjLimpo);
+
+      if (cnpjError) throw cnpjError;
+
+      // Remove o campo grupo_empresa_id
+      await supabase
+        .from('sacados')
+        .update({ grupo_empresa_id: null })
+        .eq('cnpj', cnpjLimpo);
+
+      showToast('Sacado removido do grupo com sucesso!', 'success');
+      await loadAllData();
+    } catch (error: any) {
+      console.error('Erro ao remover do grupo:', error);
+      showToast('Erro ao remover do grupo', 'error');
+    } finally {
+      setLoadingGrupos(false);
+    }
   }
 
   // Função genérica para carregar qualquer categoria
@@ -745,6 +962,151 @@ export default function EditarSacadoPage() {
               Voltar
             </Button>
           </header>
+
+          {/* Gerenciamento de Grupo */}
+          <Card>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between pb-2 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-800">Grupo de Empresas</h3>
+              </div>
+              
+              {grupoInfo ? (
+                <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="flex items-center gap-3">
+                    <Badge variant="info" size="md">Grupo</Badge>
+                    <div>
+                      <p className="font-semibold text-gray-800">{grupoInfo.nome_grupo}</p>
+                      <p className="text-sm text-gray-600">{grupoInfo.cnpjs_count} CNPJ(s) no grupo</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => router.push(`/empresas-grupo/${grupoInfo.id}/editar`)}
+                    >
+                      Ver Grupo
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => {
+                        if (confirm('Tem certeza que deseja remover este sacado do grupo?')) {
+                          removerDoGrupo();
+                        }
+                      }}
+                    >
+                      Remover do Grupo
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <p className="text-sm text-gray-600 mb-3">Este sacado não está em nenhum grupo.</p>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => {
+                      setShowGrupoModal(true);
+                      loadGruposDisponiveis();
+                    }}
+                  >
+                    + Adicionar a um Grupo
+                  </Button>
+                </div>
+              )}
+            </div>
+          </Card>
+
+          {/* Modal para Adicionar ao Grupo */}
+          {showGrupoModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <Card className="w-full max-w-md mx-4">
+                <div className="p-6 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xl font-semibold text-gray-800">Gerenciar Grupo</h3>
+                    <button
+                      onClick={() => {
+                        setShowGrupoModal(false);
+                        setGrupoForm({ grupo_id: '', criar_novo: false, nome_novo_grupo: '' });
+                      }}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="flex items-center gap-2 mb-3">
+                        <input
+                          type="radio"
+                          checked={!grupoForm.criar_novo}
+                          onChange={() => setGrupoForm({ ...grupoForm, criar_novo: false, grupo_id: '', nome_novo_grupo: '' })}
+                          className="w-4 h-4"
+                        />
+                        <span className="text-sm font-medium text-gray-700">Adicionar a grupo existente</span>
+                      </label>
+                      {!grupoForm.criar_novo && (
+                        <select
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          value={grupoForm.grupo_id}
+                          onChange={(e) => setGrupoForm({ ...grupoForm, grupo_id: e.target.value })}
+                        >
+                          <option value="">Selecione um grupo...</option>
+                          {gruposDisponiveis.map(grupo => (
+                            <option key={grupo.id} value={grupo.id}>
+                              {grupo.nome_grupo}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="flex items-center gap-2 mb-3">
+                        <input
+                          type="radio"
+                          checked={grupoForm.criar_novo}
+                          onChange={() => setGrupoForm({ ...grupoForm, criar_novo: true, grupo_id: '', nome_novo_grupo: '' })}
+                          className="w-4 h-4"
+                        />
+                        <span className="text-sm font-medium text-gray-700">Criar novo grupo (este sacado será a matriz)</span>
+                      </label>
+                      {grupoForm.criar_novo && (
+                        <Input
+                          placeholder="Nome do grupo (ex: Paradox Jeans)"
+                          value={grupoForm.nome_novo_grupo}
+                          onChange={(e) => setGrupoForm({ ...grupoForm, nome_novo_grupo: e.target.value })}
+                        />
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 pt-4">
+                    <Button
+                      variant="primary"
+                      onClick={adicionarAoGrupo}
+                      disabled={loadingGrupos || (!grupoForm.criar_novo && !grupoForm.grupo_id) || (grupoForm.criar_novo && !grupoForm.nome_novo_grupo.trim())}
+                      loading={loadingGrupos}
+                      className="flex-1"
+                    >
+                      {grupoForm.criar_novo ? 'Criar Grupo' : 'Adicionar ao Grupo'}
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={() => {
+                        setShowGrupoModal(false);
+                        setGrupoForm({ grupo_id: '', criar_novo: false, nome_novo_grupo: '' });
+                      }}
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          )}
 
           {/* Informações Básicas - Formulário de Edição */}
           <div id="informacoes_basicas" ref={(el) => { sectionRefs.current['informacoes_basicas'] = el; }}>
