@@ -156,10 +156,11 @@ export default function EditarSacadoPage() {
     { id: 'enderecos', label: 'Endereços', icon: '' },
     { id: 'telefones', label: 'Telefones', icon: '' },
     { id: 'emails', label: 'E-mails', icon: '' },
-    { id: 'pessoas_ligadas', label: 'Pessoas Ligadas', icon: '' },
-    { id: 'empresas_ligadas', label: 'Empresas Ligadas', icon: '' },
+    { id: 'relacionamentos', label: 'Relacionamentos', icon: '' },
+    { id: 'pessoas_ligadas', label: '  → Pessoas Ligadas / Familiares', icon: '' },
+    { id: 'empresas_ligadas', label: '  → Empresas Ligadas', icon: '' },
+    { id: 'qsa', label: '  → QSA', icon: '' },
     { id: 'processos', label: 'Processos', icon: '' },
-    { id: 'qsa', label: 'QSA', icon: '' },
   ];
 
   async function loadAllData() {
@@ -670,22 +671,29 @@ export default function EditarSacadoPage() {
           {/* Lista de Seções */}
           <nav className="space-y-1">
             {secoes.map((secao) => {
-              const isActive = activeSection === secao.id;
+              // Se for "Relacionamentos", usa a primeira categoria do grupo para scroll
+              const targetSection = secao.id === 'relacionamentos' ? 'pessoas_ligadas' : secao.id;
+              const isActive = activeSection === targetSection || 
+                               (secao.id === 'relacionamentos' && ['pessoas_ligadas', 'empresas_ligadas', 'qsa'].includes(activeSection));
               const categoria = categoriasCedentes.find(c => c.id === secao.id);
               const itemCount = categoria ? (categoriasData[secao.id] || []).length : 
                                 secao.id === 'informacoes_basicas' ? 1 :
                                 secao.id === 'observacoes' ? (observacoesGerais ? 1 : 0) : 
-                                secao.id === 'processos' ? (processosTexto ? 1 : 0) : 0;
+                                secao.id === 'processos' ? (processosTexto ? 1 : 0) :
+                                secao.id === 'relacionamentos' ? 
+                                  ((categoriasData['pessoas_ligadas'] || []).length + 
+                                   (categoriasData['empresas_ligadas'] || []).length + 
+                                   (categoriasData['qsa'] || []).length) : 0;
 
               return (
                 <button
                   key={secao.id}
-                  onClick={() => scrollToSection(secao.id)}
+                  onClick={() => scrollToSection(targetSection)}
                   className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-between ${
                     isActive
                       ? 'bg-blue-50 text-blue-700 font-medium border-l-4 border-blue-600'
                       : 'text-gray-700 hover:bg-gray-50'
-                  }`}
+                  } ${secao.label.startsWith('  →') ? 'pl-6 text-xs' : ''}`}
                 >
                   <span className="truncate">{secao.label}</span>
                   {itemCount > 0 && (
@@ -987,38 +995,48 @@ export default function EditarSacadoPage() {
               'outros': 'Outros'
             };
 
-            return Object.entries(categoriasPorGrupo).map(([grupo, categorias]) => (
-              <div key={grupo} className="space-y-4">
-                {grupo !== 'outros' && (
-                  <h2 className="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2">
-                    {grupoLabels[grupo] || grupo}
-                  </h2>
-                )}
-                <div className="space-y-4">
-                  {categorias.map(categoria => (
+            return Object.entries(categoriasPorGrupo).map(([grupo, categorias]) => {
+              // Adiciona ID de seção para o grupo "relacionamentos" para navegação
+              const grupoId = grupo === 'relacionamentos' ? 'relacionamentos' : null;
+              
+              return (
+                <div key={grupo} className="space-y-4">
+                  {grupo !== 'outros' && (
                     <div 
-                      key={categoria.id} 
-                      id={categoria.id}
-                      ref={(el) => { sectionRefs.current[categoria.id] = el; }}
+                      id={grupoId || undefined}
+                      ref={grupoId ? (el) => { sectionRefs.current[grupoId] = el; } : undefined}
                     >
-                      <Card>
-                        <CompactDataManager
-                          title={categoria.title}
-                          entityId={cnpj}
-                          tableName={sacadoTableMapping[categoria.tableName] || categoria.tableName.replace('cedentes_', 'sacados_')}
-                          items={categoriasData[categoria.id] || []}
-                          onRefresh={() => loadCategoria(categoria.id, sacadoTableMapping[categoria.tableName] || categoria.tableName.replace('cedentes_', 'sacados_'))}
-                          onFetchFromAPI={sacado?.cnpj && categoria.apiType ? () => fetchFromAPI(categoria.apiType!) : undefined}
-                          fields={categoria.fields}
-                          displayFields={categoria.displayFields}
-                          isLoading={loadingCategorias[categoria.id]}
-                        />
-                      </Card>
+                      <h2 className="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2">
+                        {grupoLabels[grupo] || grupo}
+                      </h2>
                     </div>
-                  ))}
+                  )}
+                  <div className="space-y-4">
+                    {categorias.map(categoria => (
+                      <div 
+                        key={categoria.id} 
+                        id={categoria.id}
+                        ref={(el) => { sectionRefs.current[categoria.id] = el; }}
+                      >
+                        <Card>
+                          <CompactDataManager
+                            title={categoria.title}
+                            entityId={cnpj}
+                            tableName={sacadoTableMapping[categoria.tableName] || categoria.tableName.replace('cedentes_', 'sacados_')}
+                            items={categoriasData[categoria.id] || []}
+                            onRefresh={() => loadCategoria(categoria.id, sacadoTableMapping[categoria.tableName] || categoria.tableName.replace('cedentes_', 'sacados_'))}
+                            onFetchFromAPI={sacado?.cnpj && categoria.apiType ? () => fetchFromAPI(categoria.apiType!) : undefined}
+                            fields={categoria.fields}
+                            displayFields={categoria.displayFields}
+                            isLoading={loadingCategorias[categoria.id]}
+                          />
+                        </Card>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ));
+              );
+            });
           })()}
 
           {/* Processos Judiciais - SIMPLIFICADO */}

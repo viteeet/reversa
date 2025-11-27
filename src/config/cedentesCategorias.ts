@@ -72,9 +72,9 @@ export const categoriasCedentes: CategoriaConfig[] = [
     fields: [
       { key: 'cpf', label: 'CPF', type: 'text', placeholder: '000.000.000-00', tooltip: 'CPF no formato 000.000.000-00' },
       { key: 'nome', label: 'Nome', type: 'text', required: true, placeholder: 'Nome completo', width: 'half', tooltip: 'Nome completo da pessoa' },
-      { key: 'tipo_relacionamento', label: 'Relacionamento', type: 'select', 
-        options: ['pai', 'mae', 'conjuge', 'filho', 'filha', 'irmao', 'irma', 'avô', 'avó', 'neto', 'neta', 'socio', 'administrador', 'outro'],
-        tooltip: 'Tipo de relacionamento com o cedente' },
+      { key: 'tipo_relacionamento', label: 'Categoria', type: 'select', 
+        options: ['funcionario', 'pai', 'mae', 'conjuge', 'filho', 'filha', 'irmao', 'irma', 'avô', 'avó', 'neto', 'neta', 'socio', 'administrador', 'parente', 'outro'],
+        tooltip: 'Categoria da pessoa (funcionário, parente, cônjuge, etc.)' },
       { key: 'telefone', label: 'Telefone', type: 'tel', placeholder: '(00) 00000-0000', tooltip: 'Telefone de contato desta pessoa' },
       { key: 'email', label: 'E-mail', type: 'email', placeholder: 'email@exemplo.com', tooltip: 'E-mail de contato desta pessoa' },
       { key: 'endereco', label: 'Endereço', type: 'text', placeholder: 'Rua, número, bairro', width: 'half', tooltip: 'Endereço completo desta pessoa' },

@@ -254,3 +254,4 @@ O sistema **SUPORTA a maioria das informações** do dossiê, mas **NÃO permite
 
 **Recomendação:** O sistema pode ser usado para cadastrar o dossiê, mas as pessoas físicas importantes (Elias, Joe, Mikhael, Rawia) terão informações limitadas, sendo cadastradas apenas como "Pessoas Ligadas" nas empresas relacionadas.
 
+

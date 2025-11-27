@@ -529,3 +529,4 @@ src/app/
 - Compatibilidade com dados existentes
 - Extensibilidade para futuras melhorias
 
+
