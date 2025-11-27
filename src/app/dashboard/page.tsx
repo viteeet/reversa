@@ -315,6 +315,26 @@ export default function Dashboard() {
                   </div>
                 </Link>
 
+                <Link href="/pessoas-fisicas" className="group flex items-center gap-3 p-4 rounded-xl hover:bg-purple-50 transition-all border border-transparent hover:border-purple-200">
+                  <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <span className="text-xl">👤</span>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-[#0369a1]">Pessoas Físicas</p>
+                    <p className="text-xs text-[#64748b]">Gerenciar pessoas</p>
+                  </div>
+                </Link>
+
+                <Link href="/empresas-grupo" className="group flex items-center gap-3 p-4 rounded-xl hover:bg-green-50 transition-all border border-transparent hover:border-green-200">
+                  <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <span className="text-xl">🏭</span>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-[#0369a1]">Grupos de Empresas</p>
+                    <p className="text-xs text-[#64748b]">Múltiplos CNPJs</p>
+                  </div>
+                </Link>
+
                 <Link href="/atividades-agendadas" className="group flex items-center gap-3 p-4 rounded-xl hover:bg-purple-50 transition-all border border-transparent hover:border-purple-200">
                   <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
                     <span className="text-xl">📅</span>

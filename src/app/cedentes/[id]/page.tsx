@@ -28,6 +28,7 @@ type Cedente = {
   atividades_secundarias: string | null;
   simples_nacional: boolean | null;
   ultima_atualizacao: string | null;
+  grupo_empresa_id: string | null;
 };
 
 type Sacado = {
@@ -53,6 +54,7 @@ export default function CedentePage() {
   const [sacadoForm, setSacadoForm] = useState({ cnpj: '', razao_social: '', nome_fantasia: '' });
   const [loadingSacadoCnpj, setLoadingSacadoCnpj] = useState(false);
   const [savingSacado, setSavingSacado] = useState(false);
+  const [grupoInfo, setGrupoInfo] = useState<{ nome_grupo: string; id: string; cnpjs_count: number } | null>(null);
 
   useEffect(() => {
     loadData();
@@ -72,6 +74,30 @@ export default function CedentePage() {
       console.error('Erro ao carregar cedente:', cedenteError);
     } else {
       setCedente(cedenteData);
+      
+      // Carrega informações do grupo, se houver
+      if (cedenteData?.grupo_empresa_id) {
+        const { data: grupoData } = await supabase
+          .from('empresas_grupo')
+          .select('id, nome_grupo, cnpj_matriz')
+          .eq('id', cedenteData.grupo_empresa_id)
+          .single();
+        
+        if (grupoData) {
+          // Conta quantos CNPJs estão no grupo
+          const { count } = await supabase
+            .from('empresas_grupo_cnpjs')
+            .select('*', { count: 'exact', head: true })
+            .eq('grupo_id', grupoData.id)
+            .eq('ativo', true);
+          
+          setGrupoInfo({
+            nome_grupo: grupoData.nome_grupo,
+            id: grupoData.id,
+            cnpjs_count: count || 0
+          });
+        }
+      }
     }
 
     // Carrega sacados deste cedente
@@ -219,7 +245,16 @@ export default function CedentePage() {
         {/* Header compacto */}
         <header className="flex items-start justify-between gap-4">
           <div className="space-y-1">
-            <h1 className="text-3xl font-bold text-[#0369a1]">{cedente.nome}</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-bold text-[#0369a1]">{cedente.nome}</h1>
+              {grupoInfo && (
+                <Link href={`/empresas-grupo/${grupoInfo.id}`}>
+                  <Badge variant="info" className="cursor-pointer hover:opacity-80">
+                    🏭 {grupoInfo.nome_grupo} ({grupoInfo.cnpjs_count} CNPJs)
+                  </Badge>
+                </Link>
+              )}
+            </div>
             {cedente.razao_social && <p className="text-[#64748b]">{cedente.razao_social}</p>}
             {cedente.cnpj && <p className="text-sm text-[#64748b] font-mono">{formatCpfCnpj(cedente.cnpj)}</p>}
           </div>

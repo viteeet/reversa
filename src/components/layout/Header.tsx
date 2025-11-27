@@ -492,6 +492,24 @@ export default function Header() {
                     </div>
                   </div>
                 </Link>
+                <Link href="/pessoas-fisicas" onClick={() => setIsMenuOpen(false)}>
+                  <div className="flex items-center gap-2 px-2 py-2 rounded hover:bg-gray-50 transition-colors cursor-pointer">
+                    <div className="text-lg">👤</div>
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-gray-700">Pessoas Físicas</div>
+                      <div className="text-xs text-gray-500">Gerenciar pessoas</div>
+                    </div>
+                  </div>
+                </Link>
+                <Link href="/empresas-grupo" onClick={() => setIsMenuOpen(false)}>
+                  <div className="flex items-center gap-2 px-2 py-2 rounded hover:bg-gray-50 transition-colors cursor-pointer">
+                    <div className="text-lg">🏭</div>
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-gray-700">Grupos de Empresas</div>
+                      <div className="text-xs text-gray-500">Múltiplos CNPJs</div>
+                    </div>
+                  </div>
+                </Link>
                 <Link href="/atividades-agendadas" onClick={() => setIsMenuOpen(false)}>
                   <div className="flex items-center gap-2 px-2 py-2 rounded hover:bg-gray-50 transition-colors cursor-pointer">
                     <div className="text-lg">📅</div>

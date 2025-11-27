@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -23,6 +24,12 @@ type Sacado = {
   endereco_receita: string | null;
   telefone_receita: string | null;
   email_receita: string | null;
+  grupo_empresa_id: string | null;
+  grupo_empresa?: {
+    id: string;
+    nome_grupo: string;
+    cnpj_matriz: string;
+  };
 };
 
 type FoundDataItem = {
@@ -44,6 +51,7 @@ export default function SacadoDetailPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'info' | 'atividades'>('info');
   const [foundData, setFoundData] = useState<FoundDataItem[]>([]);
+  const [grupoInfo, setGrupoInfo] = useState<{ nome_grupo: string; id: string; cnpjs_count: number } | null>(null);
 
   useEffect(() => {
     loadData();
@@ -59,6 +67,31 @@ export default function SacadoDetailPage() {
       .single();
     
     setSacado(sacadoData);
+    
+    // Carrega informações do grupo, se houver
+    if (sacadoData?.grupo_empresa_id) {
+      const { data: grupoData } = await supabase
+        .from('empresas_grupo')
+        .select('id, nome_grupo, cnpj_matriz')
+        .eq('id', sacadoData.grupo_empresa_id)
+        .single();
+      
+      if (grupoData) {
+        // Conta quantos CNPJs estão no grupo
+        const { count } = await supabase
+          .from('empresas_grupo_cnpjs')
+          .select('*', { count: 'exact', head: true })
+          .eq('grupo_id', grupoData.id)
+          .eq('ativo', true);
+        
+        setGrupoInfo({
+          nome_grupo: grupoData.nome_grupo,
+          id: grupoData.id,
+          cnpjs_count: count || 0
+        });
+      }
+    }
+    
     await loadFoundData();
     setLoading(false);
   }
@@ -113,9 +146,18 @@ export default function SacadoDetailPage() {
       <div className="container max-w-6xl space-y-6">
         <header className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-slate-800 bg-clip-text text-transparent">
-              {sacado.razao_social}
-            </h1>
+            <div className="flex items-center gap-3 mb-2">
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-slate-800 bg-clip-text text-transparent">
+                {sacado.razao_social}
+              </h1>
+              {grupoInfo && (
+                <Link href={`/empresas-grupo/${grupoInfo.id}`}>
+                  <Badge variant="info" className="cursor-pointer hover:opacity-80">
+                    🏭 {grupoInfo.nome_grupo} ({grupoInfo.cnpjs_count} CNPJs)
+                  </Badge>
+                </Link>
+              )}
+            </div>
             <p className="text-slate-600">{sacado.nome_fantasia}</p>
             <p className="text-sm text-slate-500 font-mono">{sacado.cnpj}</p>
           </div>
