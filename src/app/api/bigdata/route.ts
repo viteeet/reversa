@@ -59,6 +59,23 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(converted);
     }
     
+    // Se for para buscar dados básicos (formato CNPJWS), retorna dados básicos
+    if (tipo === 'basico' || tipo === 'completo_basico') {
+      const registrationData = await fetchBigDataRegistration(cnpjLimpo, accessToken, tokenId);
+      
+      if (!registrationData) {
+        throw new Error('Dados não encontrados');
+      }
+
+      const basicData = extractBasicDataFromBigData(registrationData);
+      
+      if (!basicData) {
+        throw new Error('Dados básicos não encontrados');
+      }
+
+      return NextResponse.json(basicData);
+    }
+    
     // Para outros dados, busca registration_data
     const registrationData = await fetchBigDataRegistration(cnpjLimpo, accessToken, tokenId);
     
@@ -191,6 +208,105 @@ function convertBigDataToOurFormat(bigDataResult: any, tipo: string) {
   }
 
   return extracted;
+}
+
+/**
+ * Extrai dados básicos da BigData no mesmo formato que o CNPJWS retorna
+ * Compatível com normalizeCnpjWsResponse()
+ */
+function extractBasicDataFromBigData(bigDataResult: any) {
+  const registrationData = bigDataResult.RegistrationData;
+  const basicData = registrationData?.BasicData;
+  
+  if (!basicData) {
+    return null;
+  }
+
+  // Atividade principal (onde IsMain = true)
+  const atividadePrincipal = basicData.Activities?.find((a: any) => a.IsMain === true);
+  
+  // Atividades secundárias (onde IsMain = false)
+  const atividadesSecundarias = basicData.Activities?.filter((a: any) => a.IsMain === false) || [];
+
+  // Endereço primário
+  const enderecoPrimario = registrationData?.Addresses?.Primary;
+  
+  // Telefone primário
+  const telefonePrimario = registrationData?.Phones?.Primary;
+  
+  // Email primário
+  const emailPrimario = registrationData?.Emails?.Primary;
+
+  // Monta endereço completo
+  const enderecoCompleto = enderecoPrimario ? [
+    enderecoPrimario.Typology,
+    enderecoPrimario.AddressMain,
+    enderecoPrimario.Number,
+    enderecoPrimario.Complement,
+    enderecoPrimario.Neighborhood,
+    enderecoPrimario.City,
+    enderecoPrimario.State,
+    enderecoPrimario.ZipCode ? enderecoPrimario.ZipCode.replace(/(\d{5})(\d{3})/, '$1-$2') : ''
+  ].filter(Boolean).join(', ') : '';
+
+  // Formata telefone
+  const telefoneFormatado = telefonePrimario 
+    ? `(${telefonePrimario.AreaCode}) ${telefonePrimario.Number}`
+    : '';
+
+  // Capital social (mantém como string, como no CNPJWS)
+  const capitalSocial = basicData.AdditionalOutputData?.CapitalRS || '';
+
+  // Porte - não está disponível diretamente, mas pode ser inferido do capital
+  // Vou deixar vazio por enquanto, mas poderia inferir:
+  // - Micro: até 360.000
+  // - Pequena: até 4.800.000
+  // - Média: até 300.000.000
+  // - Grande: acima
+  let porte = '';
+  if (basicData.AdditionalOutputData?.CapitalRS) {
+    const capital = parseFloat(basicData.AdditionalOutputData.CapitalRS);
+    if (capital <= 360000) porte = 'MICRO EMPRESA';
+    else if (capital <= 4800000) porte = 'PEQUENO PORTE';
+    else if (capital <= 300000000) porte = 'MEDIO PORTE';
+    else porte = 'GRANDE PORTE';
+  }
+
+  // Formata data de abertura
+  const dataAbertura = basicData.FoundedDate 
+    ? new Date(basicData.FoundedDate).toISOString().split('T')[0]
+    : '';
+
+  return {
+    razao_social: basicData.OfficialName || '',
+    nome_fantasia: basicData.TradeName || '',
+    situacao: basicData.TaxIdStatus || '',
+    telefone: telefoneFormatado,
+    email: emailPrimario?.EmailAddress || '',
+    endereco: enderecoCompleto,
+    // Campos individuais do endereço
+    tipo_logradouro: enderecoPrimario?.Typology || '',
+    logradouro: enderecoPrimario?.AddressMain || '',
+    numero: enderecoPrimario?.Number || '',
+    complemento: enderecoPrimario?.Complement || '',
+    bairro: enderecoPrimario?.Neighborhood || '',
+    cep: enderecoPrimario?.ZipCode ? enderecoPrimario.ZipCode.replace(/(\d{5})(\d{3})/, '$1-$2') : '',
+    cidade: enderecoPrimario?.City || '',
+    uf: enderecoPrimario?.State || '',
+    // Outros dados
+    porte: porte,
+    natureza_juridica: basicData.LegalNature?.Activity || '',
+    data_abertura: dataAbertura,
+    capital_social: capitalSocial,
+    // Atividades
+    atividade_principal_codigo: atividadePrincipal?.Code || '',
+    atividade_principal_descricao: atividadePrincipal?.Activity || '',
+    atividades_secundarias: atividadesSecundarias
+      .map((a: any) => `${a.Code} - ${a.Activity}`)
+      .join('; ') || '',
+    // Simples Nacional
+    simples_nacional: basicData.TaxRegimes?.Simples || false,
+  };
 }
 
 function extractQSA(basicData: any) {

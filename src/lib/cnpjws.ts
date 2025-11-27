@@ -121,7 +121,8 @@ export function normalizeCnpjWsResponse(data: CnpjWsResponse) {
 }
 
 /**
- * Busca dados de um CNPJ via API
+ * Busca dados de um CNPJ via API BigData (mais confiável que CNPJWS)
+ * Mantém a mesma interface para compatibilidade
  */
 export async function consultarCnpj(cnpj: string, timeoutMs = 30000) {
   const raw = cnpj.replace(/\D+/g, '');
@@ -133,7 +134,8 @@ export async function consultarCnpj(cnpj: string, timeoutMs = 30000) {
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const res = await fetch(`/api/cnpjws?cnpj=${raw}`, {
+    // Usa BigData ao invés de CNPJWS (mais confiável)
+    const res = await fetch(`/api/bigdata?cnpj=${raw}&tipo=basico`, {
       signal: controller.signal,
     });
     
@@ -145,7 +147,9 @@ export async function consultarCnpj(cnpj: string, timeoutMs = 30000) {
       throw new Error(data?.error || `Erro HTTP ${res.status}`);
     }
     
-    return normalizeCnpjWsResponse(data);
+    // BigData já retorna no formato normalizado, então retorna direto
+    // Mas mantém compatibilidade com o formato antigo
+    return data;
   } catch (error) {
     clearTimeout(timeoutId);
     

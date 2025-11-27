@@ -267,7 +267,8 @@ export default function EditarCedentePage() {
 
     setLoadingSacadoCnpj(true);
     try {
-      const res = await fetch(`/api/cnpjws?cnpj=${raw}`);
+      // Usa BigData (mais confiável que CNPJWS)
+      const res = await fetch(`/api/bigdata?cnpj=${raw}&tipo=basico`);
       const data = await res.json();
       
       if (!res.ok) {
@@ -275,9 +276,9 @@ export default function EditarCedentePage() {
         return;
       }
 
-      const estabelecimento = data?.estabelecimento || {};
+      // BigData retorna no formato normalizado (mesmo formato do CNPJWS)
       const razao = data?.razao_social || '';
-      const fantasia = estabelecimento?.nome_fantasia || '';
+      const fantasia = data?.nome_fantasia || '';
 
       setSacadoForm(f => ({
         ...f,
