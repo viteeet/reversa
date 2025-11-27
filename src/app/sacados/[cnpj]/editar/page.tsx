@@ -963,61 +963,6 @@ export default function EditarSacadoPage() {
             </Button>
           </header>
 
-          {/* Gerenciamento de Grupo */}
-          <Card>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between pb-2 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-800">Grupo de Empresas</h3>
-              </div>
-              
-              {grupoInfo ? (
-                <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <div className="flex items-center gap-3">
-                    <Badge variant="info" size="md">Grupo</Badge>
-                    <div>
-                      <p className="font-semibold text-gray-800">{grupoInfo.nome_grupo}</p>
-                      <p className="text-sm text-gray-600">{grupoInfo.cnpjs_count} CNPJ(s) no grupo</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => router.push(`/empresas-grupo/${grupoInfo.id}/editar`)}
-                    >
-                      Ver Grupo
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => {
-                        if (confirm('Tem certeza que deseja remover este sacado do grupo?')) {
-                          removerDoGrupo();
-                        }
-                      }}
-                    >
-                      Remover do Grupo
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                  <p className="text-sm text-gray-600 mb-3">Este sacado não está em nenhum grupo.</p>
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={() => {
-                      setShowGrupoModal(true);
-                      loadGruposDisponiveis();
-                    }}
-                  >
-                    + Adicionar a um Grupo
-                  </Button>
-                </div>
-              )}
-            </div>
-          </Card>
-
           {/* Modal para Adicionar ao Grupo */}
           {showGrupoModal && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -1316,6 +1261,61 @@ export default function EditarSacadoPage() {
               </div>
             </Card>
           </div>
+
+          {/* Gerenciamento de Grupo */}
+          <Card>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between pb-2 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-800">Grupo de Empresas</h3>
+              </div>
+              
+              {grupoInfo ? (
+                <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="flex items-center gap-3">
+                    <Badge variant="info" size="md">Grupo</Badge>
+                    <div>
+                      <p className="font-semibold text-gray-800">{grupoInfo.nome_grupo}</p>
+                      <p className="text-sm text-gray-600">{grupoInfo.cnpjs_count} CNPJ(s) no grupo</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => router.push(`/empresas-grupo/${grupoInfo.id}/editar`)}
+                    >
+                      Ver Grupo
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => {
+                        if (confirm('Tem certeza que deseja remover este sacado do grupo?')) {
+                          removerDoGrupo();
+                        }
+                      }}
+                    >
+                      Remover do Grupo
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <p className="text-sm text-gray-600 mb-3">Este sacado não está em nenhum grupo.</p>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => {
+                      setShowGrupoModal(true);
+                      loadGruposDisponiveis();
+                    }}
+                  >
+                    + Adicionar a um Grupo
+                  </Button>
+                </div>
+              )}
+            </div>
+          </Card>
 
           {/* Observações Gerais da Empresa - TOPO */}
           <div id="observacoes" ref={(el) => { sectionRefs.current['observacoes'] = el; }}>
