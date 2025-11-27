@@ -417,7 +417,7 @@ export default function EditarEmpresaGrupoPage() {
                           </p>
                         </div>
                         <Button
-                          variant="danger"
+                          variant="error"
                           size="sm"
                           onClick={() => removerCNPJ(cnpjItem.id, cnpjItem.cnpj, cnpjItem.tipo_entidade)}
                         >

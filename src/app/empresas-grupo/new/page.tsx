@@ -48,7 +48,7 @@ export default function NewEmpresaGrupoPage() {
       } else {
         setEmpresas((data || []).map(e => ({
           cnpj: e.cnpj,
-          razao_social: e.razao_social || e.nome || 'Sem razão social',
+          razao_social: e.razao_social || 'Sem razão social',
           tipo: form.tipo_entidade
         })));
       }

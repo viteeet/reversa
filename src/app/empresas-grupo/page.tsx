@@ -171,7 +171,7 @@ export default function EmpresasGrupoPage() {
                           <Button variant="secondary" size="sm">Editar</Button>
                         </Link>
                         <Button
-                          variant="danger"
+                          variant="error"
                           size="sm"
                           onClick={() => remove(grupo.id)}
                         >

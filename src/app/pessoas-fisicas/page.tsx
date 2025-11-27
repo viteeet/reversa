@@ -207,7 +207,7 @@ export default function PessoasFisicasPage() {
                               <Button variant="secondary" size="sm">Editar</Button>
                             </Link>
                             <Button
-                              variant="danger"
+                              variant="error"
                               size="sm"
                               onClick={() => remove(pessoa.id)}
                             >
