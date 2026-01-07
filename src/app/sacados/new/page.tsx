@@ -298,19 +298,49 @@ function NewSacadoContent() {
           ))}
 
           {err && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded p-2">{err}</p>}
-          <div className="pt-4 space-y-3 border-t border-gray-300">
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="consultar-apis-sacado"
-                checked={consultarAPIs}
-                onChange={(e) => setConsultarAPIs(e.target.checked)}
-                className="w-4 h-4 border border-gray-300"
-              />
-              <label htmlFor="consultar-apis-sacado" className="text-sm text-gray-700">
-                Consultar APIs após salvar (endereços, telefones, emails, QSA)
-              </label>
+          
+          {/* Marcador de Consulta de APIs */}
+          <div className="pt-4 border-t border-gray-300">
+            <div 
+              className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
+                consultarAPIs 
+                  ? 'border-[#0369a1] bg-blue-50' 
+                  : 'border-gray-300 bg-white hover:border-gray-400'
+              }`}
+              onClick={() => setConsultarAPIs(!consultarAPIs)}
+            >
+              <div className="flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  id="consultar-apis-sacado"
+                  checked={consultarAPIs}
+                  onChange={(e) => setConsultarAPIs(e.target.checked)}
+                  className="mt-1 w-5 h-5 border-2 border-gray-300 text-[#0369a1] focus:ring-[#0369a1] cursor-pointer"
+                />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <svg className="w-5 h-5 text-[#0369a1]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    <label htmlFor="consultar-apis-sacado" className="text-sm font-semibold text-[#0369a1] cursor-pointer">
+                      Consultar APIs Automaticamente
+                    </label>
+                  </div>
+                  <p className="text-xs text-gray-600 ml-7">
+                    Ao salvar, o sistema buscará automaticamente dados complementares nas APIs:
+                    <span className="inline-flex items-center gap-1 ml-1">
+                      <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">Endereços</span>
+                      <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">Telefones</span>
+                      <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">E-mails</span>
+                      <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">QSA</span>
+                    </span>
+                  </p>
+                </div>
+              </div>
             </div>
+          </div>
+          
+          <div className="pt-4 space-y-3">
             <div className="flex gap-2">
               <button 
                 type="submit"

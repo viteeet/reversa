@@ -171,6 +171,34 @@ export default function EditarSacadoPage() {
     { id: 'processos', label: 'Processos', icon: '' },
   ];
 
+  async function excluirSacado() {
+    if (!sacado) return;
+    
+    const confirmacao = confirm(
+      `Tem certeza que deseja excluir o sacado "${sacado.razao_social}"?\n\n` +
+      `Esta ação não pode ser desfeita e excluirá todos os dados relacionados (endereços, telefones, emails, QSA, processos, etc.).`
+    );
+    
+    if (!confirmacao) return;
+
+    try {
+      const { error } = await supabase
+        .from('sacados')
+        .delete()
+        .eq('cnpj', cnpj);
+
+      if (error) {
+        showToast('Erro ao excluir sacado: ' + error.message, 'error');
+      } else {
+        showToast('Sacado excluído com sucesso', 'success');
+        router.push('/sacados');
+      }
+    } catch (err) {
+      showToast('Erro ao excluir sacado', 'error');
+      console.error(err);
+    }
+  }
+
   async function loadAllData() {
     setLoading(true);
     
@@ -952,15 +980,24 @@ export default function EditarSacadoPage() {
               {sacado.nome_fantasia && <p className="text-[#64748b]">{sacado.nome_fantasia}</p>}
               {sacado.cnpj && <p className="text-sm text-[#64748b] font-mono">{formatCpfCnpj(sacado.cnpj)}</p>}
             </div>
-            <Button variant="secondary" onClick={() => {
-              if (typeof window !== 'undefined' && window.history.length > 1) {
-                router.back();
-              } else {
-                router.push(`/sacados/${encodeURIComponent(cnpj)}`);
-              }
-            }}>
-              Voltar
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                variant="error" 
+                onClick={excluirSacado}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                Excluir
+              </Button>
+              <Button variant="secondary" onClick={() => {
+                if (typeof window !== 'undefined' && window.history.length > 1) {
+                  router.back();
+                } else {
+                  router.push(`/sacados/${encodeURIComponent(cnpj)}`);
+                }
+              }}>
+                Voltar
+              </Button>
+            </div>
           </header>
 
           {/* Modal para Adicionar ao Grupo */}

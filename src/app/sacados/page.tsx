@@ -146,6 +146,28 @@ export default function SacadosPage() {
     return sortedItems;
   }, [filtered, sortBy, sortDir]);
 
+  async function excluirSacado(cnpj: string, razaoSocial: string) {
+    if (!confirm(`Tem certeza que deseja excluir o sacado "${razaoSocial}"?\n\nEsta ação não pode ser desfeita.`)) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('sacados')
+        .delete()
+        .eq('cnpj', cnpj);
+
+      if (error) {
+        alert(`Erro ao excluir: ${error.message}`);
+      } else {
+        await load();
+      }
+    } catch (err) {
+      alert('Erro ao excluir sacado');
+      console.error(err);
+    }
+  }
+
   function onSort(col: 'nome_fantasia' | 'razao_social' | 'cnpj' | 'situacao' | 'porte') {
     if (sortBy === col) {
       setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
@@ -367,6 +389,13 @@ export default function SacadosPage() {
                           <Link href={`/sacados/${encodeURIComponent(s.cnpj)}/cobranca`}>
                             <button className="px-2 py-1 border border-gray-300 bg-white hover:bg-gray-50 text-[#0369a1] text-xs font-medium">Ficha</button>
                           </Link>
+                          <button 
+                            onClick={() => excluirSacado(s.cnpj, s.razao_social)}
+                            className="px-2 py-1 border border-red-300 bg-white hover:bg-red-50 text-red-600 text-xs font-medium"
+                            title="Excluir sacado"
+                          >
+                            Excluir
+                          </button>
                         </div>
                       </td>
                     </tr>
