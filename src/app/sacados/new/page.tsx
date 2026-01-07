@@ -31,6 +31,13 @@ function NewSacadoContent() {
   const [err, setErr] = useState<string | null>(null);
   const [loadingCnpj, setLoadingCnpj] = useState(false);
   const [consultarAPIs, setConsultarAPIs] = useState(false);
+  const [loadingAPIs, setLoadingAPIs] = useState(false);
+  const [dadosAPIs, setDadosAPIs] = useState<{
+    enderecos: any[];
+    telefones: any[];
+    emails: any[];
+    qsa: any[];
+  } | null>(null);
 
   useEffect(() => {
     loadCedentes();
@@ -49,11 +56,17 @@ function NewSacadoContent() {
     }
   }
 
-  async function consultarAPIsSacado(cnpj: string) {
-    if (!cnpj || cnpj.length !== 14) return;
+  async function consultarAPIsSacado(cnpj: string, salvarNoBanco: boolean = false) {
+    if (!cnpj || cnpj.length !== 14) return null;
     
     try {
       const tipos = ['enderecos', 'telefones', 'emails', 'qsa'];
+      const resultados: any = {
+        enderecos: [],
+        telefones: [],
+        emails: [],
+        qsa: []
+      };
       
       for (const tipo of tipos) {
         try {
@@ -61,36 +74,91 @@ function NewSacadoContent() {
           const response = await res.json();
           
           if (res.ok && response && Array.isArray(response) && response.length > 0) {
-            const tableName = tipo === 'enderecos' ? 'sacados_enderecos' :
-                            tipo === 'telefones' ? 'sacados_telefones' :
-                            tipo === 'emails' ? 'sacados_emails' :
-                            tipo === 'qsa' ? 'sacados_qsa' : null;
+            resultados[tipo as keyof typeof resultados] = response;
             
-            if (tableName) {
-              // Remove dados antigos da API
-              await supabase
-                .from(tableName)
-                .delete()
-                .eq('sacado_cnpj', cnpj)
-                .eq('origem', 'api');
+            if (salvarNoBanco) {
+              const tableName = tipo === 'enderecos' ? 'sacados_enderecos' :
+                              tipo === 'telefones' ? 'sacados_telefones' :
+                              tipo === 'emails' ? 'sacados_emails' :
+                              tipo === 'qsa' ? 'sacados_qsa' : null;
               
-              // Insere novos dados
-              const dataToInsert = response.map((item: any) => ({
-                ...item,
-                sacado_cnpj: cnpj,
-                origem: 'api',
-                ativo: true
-              }));
-              
-              await supabase.from(tableName).insert(dataToInsert);
+              if (tableName) {
+                // Remove dados antigos da API
+                await supabase
+                  .from(tableName)
+                  .delete()
+                  .eq('sacado_cnpj', cnpj)
+                  .eq('origem', 'api');
+                
+                // Insere novos dados
+                const dataToInsert = response.map((item: any) => ({
+                  ...item,
+                  sacado_cnpj: cnpj,
+                  origem: 'api',
+                  ativo: true
+                }));
+                
+                await supabase.from(tableName).insert(dataToInsert);
+              }
             }
           }
         } catch (err) {
           console.error(`Erro ao consultar ${tipo}:`, err);
         }
       }
+      
+      return resultados;
     } catch (err) {
       console.error('Erro ao consultar APIs:', err);
+      return null;
+    }
+  }
+
+  async function consultarAPIsAgora() {
+    const cnpjLimpo = form.cnpj.replace(/\D+/g, '');
+    if (!cnpjLimpo || cnpjLimpo.length !== 14) {
+      setErr('Informe um CNPJ válido com 14 dígitos para consultar as APIs');
+      return;
+    }
+
+    setLoadingAPIs(true);
+    setErr(null);
+
+    try {
+      const dados = await consultarAPIsSacado(cnpjLimpo, false);
+      
+      if (dados) {
+        setDadosAPIs(dados);
+        
+        // Preenche campos do formulário com os primeiros dados encontrados
+        if (dados.enderecos && dados.enderecos.length > 0) {
+          const primeiroEndereco = dados.enderecos[0];
+          const enderecoCompleto = [
+            primeiroEndereco.endereco,
+            primeiroEndereco.numero,
+            primeiroEndereco.bairro,
+            primeiroEndereco.cidade,
+            primeiroEndereco.estado
+          ].filter(Boolean).join(', ');
+          setForm(f => ({ ...f, endereco_receita: enderecoCompleto || f.endereco_receita }));
+        }
+        
+        if (dados.telefones && dados.telefones.length > 0) {
+          const primeiroTelefone = dados.telefones[0];
+          setForm(f => ({ ...f, telefone_receita: primeiroTelefone.telefone || f.telefone_receita }));
+        }
+        
+        if (dados.emails && dados.emails.length > 0) {
+          const primeiroEmail = dados.emails[0];
+          setForm(f => ({ ...f, email_receita: primeiroEmail.email || f.email_receita }));
+        }
+      } else {
+        setErr('Nenhum dado encontrado nas APIs para este CNPJ');
+      }
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Erro ao consultar APIs');
+    } finally {
+      setLoadingAPIs(false);
     }
   }
 
@@ -160,9 +228,12 @@ function NewSacadoContent() {
       return;
     }
     
-    // Se marcou para consultar APIs, consulta
+    // Se marcou para consultar APIs ou já consultou, salva os dados
     if (consultarAPIs && cnpjLimpo && cnpjLimpo.length === 14) {
-      await consultarAPIsSacado(cnpjLimpo);
+      await consultarAPIsSacado(cnpjLimpo, true);
+    } else if (dadosAPIs && cnpjLimpo && cnpjLimpo.length === 14) {
+      // Se já consultou as APIs antes, salva os dados encontrados
+      await consultarAPIsSacado(cnpjLimpo, true);
     }
 
     // Redireciona para a página do cedente se veio de lá, senão para a lista de sacados
@@ -235,48 +306,58 @@ function NewSacadoContent() {
                 required
               />
             </div>
-            <button type="button" 
-              className="px-4 py-2 bg-[#64748b] text-white rounded-lg hover:bg-[#475569] disabled:opacity-50"
-              disabled={loadingCnpj}
-              onClick={async () => {
-                try {
-                  setLoadingCnpj(true); 
-                  setErr(null);
-                  
-                  const raw = (form.cnpj || '').replace(/\D+/g, '');
-                  if (!raw) { 
-                    setErr('Informe um CNPJ válido'); 
-                    return; 
+            <div className="flex gap-2">
+              <button type="button" 
+                className="px-4 py-2 bg-[#64748b] text-white rounded-lg hover:bg-[#475569] disabled:opacity-50 text-sm whitespace-nowrap"
+                disabled={loadingCnpj}
+                onClick={async () => {
+                  try {
+                    setLoadingCnpj(true); 
+                    setErr(null);
+                    
+                    const raw = (form.cnpj || '').replace(/\D+/g, '');
+                    if (!raw) { 
+                      setErr('Informe um CNPJ válido'); 
+                      return; 
+                    }
+                    
+                    // Usa o helper que normaliza a resposta
+                    const dadosCnpj = await consultarCnpj(raw);
+                    
+                    setForm(f => ({
+                      ...f,
+                      razao_social: dadosCnpj.razao_social,
+                      nome_fantasia: dadosCnpj.nome_fantasia,
+                      telefone_receita: dadosCnpj.telefone,
+                      email_receita: dadosCnpj.email,
+                      endereco_receita: dadosCnpj.endereco,
+                      porte: dadosCnpj.porte,
+                      natureza_juridica: dadosCnpj.natureza_juridica,
+                      situacao: dadosCnpj.situacao,
+                      data_abertura: dadosCnpj.data_abertura,
+                      capital_social: dadosCnpj.capital_social,
+                      atividade_principal_codigo: dadosCnpj.atividade_principal_codigo,
+                      atividade_principal_descricao: dadosCnpj.atividade_principal_descricao,
+                      atividades_secundarias: dadosCnpj.atividades_secundarias,
+                      simples_nacional: dadosCnpj.simples_nacional
+                    }));
+                  } catch (e) {
+                    setErr(e instanceof Error ? e.message : 'Erro inesperado');
+                  } finally {
+                    setLoadingCnpj(false);
                   }
-                  
-                  // Usa o helper que normaliza a resposta
-                  const dadosCnpj = await consultarCnpj(raw);
-                  
-                  setForm(f => ({
-                    ...f,
-                    razao_social: dadosCnpj.razao_social,
-                    nome_fantasia: dadosCnpj.nome_fantasia,
-                    telefone_receita: dadosCnpj.telefone,
-                    email_receita: dadosCnpj.email,
-                    endereco_receita: dadosCnpj.endereco,
-                    porte: dadosCnpj.porte,
-                    natureza_juridica: dadosCnpj.natureza_juridica,
-                    situacao: dadosCnpj.situacao,
-                    data_abertura: dadosCnpj.data_abertura,
-                    capital_social: dadosCnpj.capital_social,
-                    atividade_principal_codigo: dadosCnpj.atividade_principal_codigo,
-                    atividade_principal_descricao: dadosCnpj.atividade_principal_descricao,
-                    atividades_secundarias: dadosCnpj.atividades_secundarias,
-                    simples_nacional: dadosCnpj.simples_nacional
-                  }));
-                } catch (e) {
-                  setErr(e instanceof Error ? e.message : 'Erro inesperado');
-                } finally {
-                  setLoadingCnpj(false);
-                }
-              }}>
-              {loadingCnpj ? 'Buscando...' : 'Consultar Receita'}
-            </button>
+                }}>
+                {loadingCnpj ? 'Buscando...' : 'Receita'}
+              </button>
+              <button type="button" 
+                className="px-4 py-2 bg-[#0369a1] text-white rounded-lg hover:bg-[#075985] disabled:opacity-50 text-sm whitespace-nowrap"
+                disabled={loadingAPIs || !form.cnpj}
+                onClick={consultarAPIsAgora}
+                title="Consultar APIs BigData (endereços, telefones, emails, QSA)"
+              >
+                {loadingAPIs ? 'Consultando...' : 'APIs'}
+              </button>
+            </div>
           </div>
           {[
             ['razao_social','Razão social*'],
@@ -298,6 +379,45 @@ function NewSacadoContent() {
           ))}
 
           {err && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded p-2">{err}</p>}
+          
+          {/* Resultados da Consulta de APIs */}
+          {dadosAPIs && (
+            <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4">
+              <div className="flex items-start gap-2 mb-2">
+                <svg className="w-5 h-5 text-green-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div className="flex-1">
+                  <h3 className="text-sm font-semibold text-green-800 mb-2">Dados encontrados nas APIs:</h3>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="flex items-center gap-1">
+                      <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded">
+                        {dadosAPIs.enderecos.length} Endereço{dadosAPIs.enderecos.length !== 1 ? 's' : ''}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded">
+                        {dadosAPIs.telefones.length} Telefone{dadosAPIs.telefones.length !== 1 ? 's' : ''}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded">
+                        {dadosAPIs.emails.length} E-mail{dadosAPIs.emails.length !== 1 ? 's' : ''}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded">
+                        {dadosAPIs.qsa.length} Sócio{dadosAPIs.qsa.length !== 1 ? 's' : ''} (QSA)
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-green-700 mt-2">
+                    Os dados serão salvos automaticamente ao salvar o sacado.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
           
           {/* Marcador de Consulta de APIs */}
           <div className="pt-4 border-t border-gray-300">
@@ -327,13 +447,18 @@ function NewSacadoContent() {
                     </label>
                   </div>
                   <p className="text-xs text-gray-600 ml-7">
-                    Ao salvar, o sistema buscará automaticamente dados complementares nas APIs:
-                    <span className="inline-flex items-center gap-1 ml-1">
-                      <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">Endereços</span>
-                      <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">Telefones</span>
-                      <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">E-mails</span>
-                      <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">QSA</span>
-                    </span>
+                    {dadosAPIs 
+                      ? 'Dados já consultados. Serão salvos automaticamente ao salvar o sacado.'
+                      : 'Ao salvar, o sistema buscará automaticamente dados complementares nas APIs:'
+                    }
+                    {!dadosAPIs && (
+                      <span className="inline-flex items-center gap-1 ml-1">
+                        <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">Endereços</span>
+                        <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">Telefones</span>
+                        <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">E-mails</span>
+                        <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">QSA</span>
+                      </span>
+                    )}
                   </p>
                 </div>
               </div>
