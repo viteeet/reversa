@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import Button from '@/components/ui/Button';
 
 export default function SettingsPage() {
@@ -41,15 +42,31 @@ export default function SettingsPage() {
             <div className="p-4 space-y-3">
               <p className="text-xs text-gray-600 mb-3">Configurações relacionadas ao fluxo de caixa</p>
               <div className="space-y-2">
-                <Button variant="outline" className="w-full justify-start text-sm">
-                  Contas
-                </Button>
-                <Button variant="outline" className="w-full justify-start text-sm">
-                  Categorias
-                </Button>
-                <Button variant="outline" className="w-full justify-start text-sm">
-                  Meios de Pagamento
-                </Button>
+                <Link href="/settings/finance/contas" className="block">
+                  <Button variant="outline" className="w-full justify-start text-sm">
+                    Contas
+                  </Button>
+                </Link>
+                <Link href="/settings/finance/categorias" className="block">
+                  <Button variant="outline" className="w-full justify-start text-sm">
+                    Categorias
+                  </Button>
+                </Link>
+                <Link href="/settings/finance/meios" className="block">
+                  <Button variant="outline" className="w-full justify-start text-sm">
+                    Meios de Pagamento
+                  </Button>
+                </Link>
+                <Link href="/settings/finance/elementos" className="block">
+                  <Button variant="outline" className="w-full justify-start text-sm">
+                    Elementos
+                  </Button>
+                </Link>
+                <Link href="/settings/finance/recorrencias" className="block">
+                  <Button variant="outline" className="w-full justify-start text-sm">
+                    Recorrências
+                  </Button>
+                </Link>
               </div>
             </div>
           </div>
@@ -62,13 +79,38 @@ export default function SettingsPage() {
             <div className="p-4 space-y-3">
               <p className="text-xs text-gray-600 mb-3">Configurações gerais do sistema</p>
               <div className="space-y-2">
-                <Button variant="outline" className="w-full justify-start text-sm">
+                <Link href="/settings/status" className="block">
+                  <Button variant="outline" className="w-full justify-start text-sm">
+                    Status
+                  </Button>
+                </Link>
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start text-sm"
+                  onClick={() => {
+                    // TODO: Implementar perfil do usuário
+                    alert('Funcionalidade em desenvolvimento');
+                  }}
+                >
                   Perfil do Usuário
                 </Button>
-                <Button variant="outline" className="w-full justify-start text-sm">
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start text-sm"
+                  onClick={() => {
+                    // TODO: Implementar backup de dados
+                    alert('Funcionalidade em desenvolvimento');
+                  }}
+                >
                   Backup de Dados
                 </Button>
-                <Button variant="outline" className="w-full justify-start text-sm">
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start text-sm"
+                  onClick={() => {
+                    alert('Sistema Reversa\nVersão 0.1.0\n\nSistema de gestão financeira e operacional.');
+                  }}
+                >
                   Sobre o Sistema
                 </Button>
               </div>
