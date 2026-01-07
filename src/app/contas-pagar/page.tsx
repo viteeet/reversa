@@ -477,7 +477,7 @@ export default function ContasPagarPage() {
                     <tr key={item.id} className="hover:bg-gray-50 border-b border-gray-300">
                       {columns.map((col) => (
                         <td key={String(col.key)} className="px-4 py-2 text-sm text-gray-900 border-r border-gray-300">
-                          {col.render ? col.render(item[col.key] as any, item) : String(item[col.key] ?? '—')}
+                          {col.render ? (col.render as (value: any, item: Lanc) => React.ReactNode)(item[col.key], item) : String(item[col.key] ?? '—')}
                         </td>
                       ))}
                     </tr>
