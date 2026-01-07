@@ -200,7 +200,13 @@ export default function APagarPage() {
     return items.filter(l => !filtros.texto || (l.descricao ?? '').toLowerCase().includes(filtros.texto.toLowerCase()));
   }, [items, filtros.texto]);
 
-  const columns = [
+  type Column = {
+    key: keyof Lanc;
+    label: string;
+    render?: (value: any, item: Lanc) => React.ReactNode;
+  };
+
+  const columns: Column[] = [
     {
       key: 'data_competencia' as keyof Lanc,
       label: 'Vencimento',

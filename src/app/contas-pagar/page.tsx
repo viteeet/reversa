@@ -214,7 +214,13 @@ export default function ContasPagarPage() {
     setFiltros({ conta: '', categoria: '', status: '', meio: '', elemento: '', texto: '', natureza: '' });
   };
 
-  const columns = [
+  type Column = {
+    key: keyof Lanc;
+    label: string;
+    render?: (value: any, item: Lanc) => React.ReactNode;
+  };
+
+  const columns: Column[] = [
     {
       key: 'natureza' as keyof Lanc,
       label: 'Tipo',
