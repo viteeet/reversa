@@ -95,6 +95,14 @@ export default function EditarCedentePage() {
   const [sacadoForm, setSacadoForm] = useState({ cnpj: '', razao_social: '', nome_fantasia: '' });
   const [loadingSacadoCnpj, setLoadingSacadoCnpj] = useState(false);
   const [savingSacado, setSavingSacado] = useState(false);
+  const [consultarAPIsSacado, setConsultarAPIsSacado] = useState(false);
+  const [loadingAPIsSacado, setLoadingAPIsSacado] = useState(false);
+  const [dadosAPIsSacado, setDadosAPIsSacado] = useState<{
+    enderecos: any[];
+    telefones: any[];
+    emails: any[];
+    qsa: any[];
+  } | null>(null);
 
   // Estados para navegação lateral e botão voltar ao topo
   const [activeSection, setActiveSection] = useState<string>('');
@@ -291,6 +299,88 @@ export default function EditarCedentePage() {
     }
   }
 
+  async function consultarAPIsSacadoFunc(cnpj: string, salvarNoBanco: boolean = false) {
+    if (!cnpj || cnpj.length !== 14) return null;
+    
+    try {
+      const tipos = ['enderecos', 'telefones', 'emails', 'qsa'];
+      const resultados: any = {
+        enderecos: [],
+        telefones: [],
+        emails: [],
+        qsa: []
+      };
+      
+      for (const tipo of tipos) {
+        try {
+          const res = await fetch(`/api/bigdata?cnpj=${encodeURIComponent(cnpj)}&tipo=${tipo}`);
+          const response = await res.json();
+          
+          if (res.ok && response && Array.isArray(response) && response.length > 0) {
+            resultados[tipo as keyof typeof resultados] = response;
+            
+            if (salvarNoBanco) {
+              const tableName = tipo === 'enderecos' ? 'sacados_enderecos' :
+                              tipo === 'telefones' ? 'sacados_telefones' :
+                              tipo === 'emails' ? 'sacados_emails' :
+                              tipo === 'qsa' ? 'sacados_qsa' : null;
+              
+              if (tableName) {
+                // Remove dados antigos da API
+                await supabase
+                  .from(tableName)
+                  .delete()
+                  .eq('sacado_cnpj', cnpj)
+                  .eq('origem', 'api');
+                
+                // Insere novos dados
+                const dataToInsert = response.map((item: any) => ({
+                  ...item,
+                  sacado_cnpj: cnpj,
+                  origem: 'api',
+                  ativo: true
+                }));
+                
+                await supabase.from(tableName).insert(dataToInsert);
+              }
+            }
+          }
+        } catch (err) {
+          console.error(`Erro ao consultar ${tipo}:`, err);
+        }
+      }
+      
+      return resultados;
+    } catch (err) {
+      console.error('Erro ao consultar APIs:', err);
+      return null;
+    }
+  }
+
+  async function consultarAPIsAgoraSacado() {
+    const cnpjLimpo = sacadoForm.cnpj.replace(/\D+/g, '');
+    if (!cnpjLimpo || cnpjLimpo.length !== 14) {
+      showToast('Informe um CNPJ válido com 14 dígitos para consultar as APIs', 'warning');
+      return;
+    }
+
+    setLoadingAPIsSacado(true);
+    try {
+      const dados = await consultarAPIsSacadoFunc(cnpjLimpo, false);
+      
+      if (dados) {
+        setDadosAPIsSacado(dados);
+        showToast(`Encontrados: ${dados.enderecos.length} endereços, ${dados.telefones.length} telefones, ${dados.emails.length} emails, ${dados.qsa.length} sócios`, 'success');
+      } else {
+        showToast('Nenhum dado encontrado nas APIs para este CNPJ', 'warning');
+      }
+    } catch (e) {
+      showToast('Erro ao consultar APIs', 'error');
+    } finally {
+      setLoadingAPIsSacado(false);
+    }
+  }
+
   async function adicionarSacado() {
     const raw = sacadoForm.cnpj.replace(/\D+/g, '');
     if (!raw || !sacadoForm.razao_social.trim()) {
@@ -361,9 +451,19 @@ export default function EditarCedentePage() {
           showToast('Erro ao adicionar sacado', 'error');
         }
       } else {
-      setSacadoForm({ cnpj: '', razao_social: '', nome_fantasia: '' });
-      setShowAddSacado(false);
-      showToast('Sacado adicionado com sucesso!', 'success');
+        // Se marcou para consultar APIs ou já consultou, salva os dados
+        if (consultarAPIsSacado && raw && raw.length === 14) {
+          await consultarAPIsSacadoFunc(raw, true);
+        } else if (dadosAPIsSacado && raw && raw.length === 14) {
+          // Se já consultou as APIs antes, salva os dados encontrados
+          await consultarAPIsSacadoFunc(raw, true);
+        }
+        
+        setSacadoForm({ cnpj: '', razao_social: '', nome_fantasia: '' });
+        setShowAddSacado(false);
+        setConsultarAPIsSacado(false);
+        setDadosAPIsSacado(null);
+        showToast('Sacado adicionado com sucesso!', 'success');
         await loadSacados();
       }
     } catch (err) {
@@ -1451,6 +1551,8 @@ export default function EditarCedentePage() {
                 onClick={() => {
                   setShowAddSacado(false);
                   setSacadoForm({ cnpj: '', razao_social: '', nome_fantasia: '' });
+                  setConsultarAPIsSacado(false);
+                  setDadosAPIsSacado(null);
                 }}
                 className="px-2 py-1 text-gray-500 hover:text-gray-900 text-xl"
                 aria-label="Fechar"
@@ -1472,9 +1574,18 @@ export default function EditarCedentePage() {
                   <button
                     onClick={consultarCnpjSacado}
                     disabled={loadingSacadoCnpj}
-                    className="px-3 py-2 border border-blue-600 text-blue-600 rounded text-sm hover:bg-blue-50 disabled:opacity-50"
+                    className="px-3 py-2 border border-blue-600 text-blue-600 rounded text-sm hover:bg-blue-50 disabled:opacity-50 whitespace-nowrap"
+                    title="Consultar dados básicos na Receita"
                   >
-                    {loadingSacadoCnpj ? 'Consultando...' : '🔍 Consultar'}
+                    {loadingSacadoCnpj ? 'Consultando...' : 'Receita'}
+                  </button>
+                  <button
+                    onClick={consultarAPIsAgoraSacado}
+                    disabled={loadingAPIsSacado || !sacadoForm.cnpj}
+                    className="px-3 py-2 bg-[#0369a1] text-white rounded text-sm hover:bg-[#075985] disabled:opacity-50 whitespace-nowrap"
+                    title="Consultar APIs BigData (endereços, telefones, emails, QSA)"
+                  >
+                    {loadingAPIsSacado ? 'Consultando...' : 'APIs'}
                   </button>
                 </div>
               </div>
@@ -1501,11 +1612,77 @@ export default function EditarCedentePage() {
                 />
               </div>
 
+              {/* Resultados da Consulta de APIs */}
+              {dadosAPIsSacado && (
+                <div className="bg-green-50 border-2 border-green-200 rounded-lg p-3">
+                  <div className="flex items-start gap-2">
+                    <svg className="w-5 h-5 text-green-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div className="flex-1">
+                      <h3 className="text-xs font-semibold text-green-800 mb-1">Dados encontrados nas APIs:</h3>
+                      <div className="flex flex-wrap gap-1 text-xs">
+                        <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded">
+                          {dadosAPIsSacado.enderecos.length} Endereço{dadosAPIsSacado.enderecos.length !== 1 ? 's' : ''}
+                        </span>
+                        <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded">
+                          {dadosAPIsSacado.telefones.length} Telefone{dadosAPIsSacado.telefones.length !== 1 ? 's' : ''}
+                        </span>
+                        <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded">
+                          {dadosAPIsSacado.emails.length} E-mail{dadosAPIsSacado.emails.length !== 1 ? 's' : ''}
+                        </span>
+                        <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded">
+                          {dadosAPIsSacado.qsa.length} Sócio{dadosAPIsSacado.qsa.length !== 1 ? 's' : ''} (QSA)
+                        </span>
+                      </div>
+                      <p className="text-xs text-green-700 mt-2">
+                        Os dados serão salvos automaticamente ao adicionar o sacado.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Marcador de Consulta de APIs */}
+              <div className="pt-2 border-t border-gray-200">
+                <div 
+                  className={`border-2 rounded-lg p-3 cursor-pointer transition-all ${
+                    consultarAPIsSacado 
+                      ? 'border-[#0369a1] bg-blue-50' 
+                      : 'border-gray-300 bg-white hover:border-gray-400'
+                  }`}
+                  onClick={() => setConsultarAPIsSacado(!consultarAPIsSacado)}
+                >
+                  <div className="flex items-start gap-2">
+                    <input
+                      type="checkbox"
+                      id="consultar-apis-sacado-modal"
+                      checked={consultarAPIsSacado}
+                      onChange={(e) => setConsultarAPIsSacado(e.target.checked)}
+                      className="mt-0.5 w-4 h-4 border-2 border-gray-300 text-[#0369a1] focus:ring-[#0369a1] cursor-pointer"
+                    />
+                    <div className="flex-1">
+                      <label htmlFor="consultar-apis-sacado-modal" className="text-xs font-semibold text-[#0369a1] cursor-pointer block">
+                        Consultar APIs após salvar (endereços, telefones, emails, QSA)
+                      </label>
+                      <p className="text-xs text-gray-600 mt-1">
+                        {dadosAPIsSacado 
+                          ? 'Dados já consultados. Serão salvos automaticamente ao adicionar o sacado.'
+                          : 'Marque esta opção para que o sistema busque automaticamente dados complementares nas APIs BigData ao adicionar o sacado.'
+                        }
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="flex gap-2 justify-end pt-2">
                 <button
                   onClick={() => {
                     setShowAddSacado(false);
                     setSacadoForm({ cnpj: '', razao_social: '', nome_fantasia: '' });
+                    setConsultarAPIsSacado(false);
+                    setDadosAPIsSacado(null);
                   }}
                   className="px-4 py-2 border border-gray-300 rounded text-sm text-gray-700 hover:bg-gray-50"
                 >
