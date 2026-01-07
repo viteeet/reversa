@@ -359,6 +359,12 @@ export default function CedentesPage() {
                               porte: dadosCnpj.porte,
                               natureza_juridica: dadosCnpj.natureza_juridica,
                               situacao: dadosCnpj.situacao,
+                              data_abertura: dadosCnpj.data_abertura || '',
+                              capital_social: dadosCnpj.capital_social || '',
+                              atividade_principal_codigo: dadosCnpj.atividade_principal_codigo || '',
+                              atividade_principal_descricao: dadosCnpj.atividade_principal_descricao || '',
+                              atividades_secundarias: dadosCnpj.atividades_secundarias || '',
+                              simples_nacional: dadosCnpj.simples_nacional || false,
                             }));
                             
                           } catch (error) {
