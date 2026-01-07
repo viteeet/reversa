@@ -55,74 +55,160 @@ export default function StatusSettingsPage() {
   }, [items, q]);
 
   return (
-    <main className="min-h-screen p-6">
-      <div className="container max-w-4xl space-y-6">
-        <header>
-          <h1 className="text-2xl font-semibold">Configurações · Status de Sacado</h1>
-          <p className="text-sm muted">Cadastre os status que aparecerão como badge na Ficha do Sacado.</p>
+    <main className="min-h-screen bg-gray-50">
+      <div className="container max-w-4xl mx-auto px-4 py-6 space-y-4">
+        {/* Header */}
+        <header className="mb-4">
+          <button 
+            onClick={() => {
+              if (typeof window !== 'undefined' && window.history.length > 1) {
+                window.history.back();
+              } else {
+                window.location.href = '/menu/configuracoes';
+              }
+            }}
+            className="inline-flex items-center gap-2 px-3 py-1.5 mb-4 bg-white border border-gray-300 hover:bg-gray-50 text-[#0369a1] text-sm font-medium"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Voltar
+          </button>
+          <div className="border-b-2 border-[#0369a1] pb-3">
+            <h1 className="text-3xl font-bold text-[#0369a1] mb-1">Configurações · Status de Sacado</h1>
+            <p className="text-sm text-gray-600">Cadastre os status que aparecerão como badge na Ficha do Sacado.</p>
+          </div>
         </header>
 
-        <div className="card p-4 space-y-3">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <label className="block text-sm muted">Nome*</label>
-              <input className="input" value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} />
-            </div>
-            <div>
-              <label className="block text-sm muted">Cor</label>
-              <input className="input" type="color" value={form.cor} onChange={(e) => setForm({ ...form, cor: e.target.value })} />
-            </div>
-            <div>
-              <label className="block text-sm muted">Ordem</label>
-              <input className="input" value={form.ordem} onChange={(e) => setForm({ ...form, ordem: e.target.value })} />
-            </div>
-            <div className="sm:col-span-2">
-              <label className="block text-sm muted">Descrição</label>
-              <input className="input" value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} />
-            </div>
+        {/* Formulário */}
+        <div className="bg-white border border-gray-300">
+          <div className="border-b border-gray-300 bg-gray-100 px-4 py-2">
+            <h2 className="text-sm font-semibold text-gray-700 uppercase">Novo Status</h2>
           </div>
-          <div className="flex gap-2">
-            <button className="btn" type="button" onClick={() => setForm({ nome: '', cor: '#4180ab', descricao: '', ordem: '' })}>Limpar</button>
-            <button className="btn btn-primary" onClick={add} disabled={pending}>{pending ? 'Salvando...' : 'Adicionar'}</button>
+          <div className="p-4 space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Nome*</label>
+                <input 
+                  className="w-full px-3 py-2 border border-gray-300 text-sm" 
+                  value={form.nome} 
+                  onChange={(e) => setForm({ ...form, nome: e.target.value })} 
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Cor</label>
+                <input 
+                  className="w-full px-3 py-2 border border-gray-300 text-sm" 
+                  type="color" 
+                  value={form.cor} 
+                  onChange={(e) => setForm({ ...form, cor: e.target.value })} 
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Ordem</label>
+                <input 
+                  className="w-full px-3 py-2 border border-gray-300 text-sm" 
+                  value={form.ordem} 
+                  onChange={(e) => setForm({ ...form, ordem: e.target.value })} 
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-medium text-gray-700 mb-1">Descrição</label>
+                <input 
+                  className="w-full px-3 py-2 border border-gray-300 text-sm" 
+                  value={form.descricao} 
+                  onChange={(e) => setForm({ ...form, descricao: e.target.value })} 
+                />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button 
+                className="px-3 py-1.5 border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 text-sm font-medium" 
+                type="button" 
+                onClick={() => setForm({ nome: '', cor: '#4180ab', descricao: '', ordem: '' })}
+              >
+                Limpar
+              </button>
+              <button 
+                className="px-3 py-1.5 bg-[#0369a1] hover:bg-[#075985] text-white text-sm font-medium disabled:opacity-50" 
+                onClick={add} 
+                disabled={pending}
+              >
+                {pending ? 'Salvando...' : 'Adicionar'}
+              </button>
+            </div>
+            {err && <p className="text-xs text-red-600">{err}</p>}
           </div>
-          {err && <p className="text-sm text-red-600">{err}</p>}
         </div>
 
-        <div className="flex items-center gap-2">
-          <input className="input" placeholder="Buscar status..." value={q} onChange={(e) => setQ(e.target.value)} />
-          <button className="btn" onClick={() => setQ('')}>Limpar</button>
+        {/* Busca */}
+        <div className="bg-white border border-gray-300">
+          <div className="border-b border-gray-300 bg-gray-100 px-4 py-2">
+            <h2 className="text-sm font-semibold text-gray-700 uppercase">Buscar</h2>
+          </div>
+          <div className="p-4 flex items-center gap-2">
+            <input 
+              className="flex-1 px-3 py-2 border border-gray-300 text-sm" 
+              placeholder="Buscar status..." 
+              value={q} 
+              onChange={(e) => setQ(e.target.value)} 
+            />
+            <button 
+              className="px-3 py-2 border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 text-sm font-medium" 
+              onClick={() => setQ('')}
+            >
+              Limpar
+            </button>
+          </div>
         </div>
 
-        <div className="card p-0 overflow-x-auto">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Nome</th>
-                <th>Cor</th>
-                <th>Ordem</th>
-                <th>Descrição</th>
-                <th className="w-24">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.length === 0 ? (
-                <tr><td colSpan={5} className="p-3 muted">Nenhum status.</td></tr>
-              ) : filtered.map(s => (
-                <tr key={s.id}>
-                  <td>{s.nome}</td>
-                  <td>
-                    <span className="inline-flex items-center gap-2">
-                      <span className="inline-block w-3 h-3 rounded-full" style={{ background: s.cor ?? '#cdb89a' }} />
-                      {s.cor ?? '—'}
-                    </span>
-                  </td>
-                  <td>{s.ordem ?? '—'}</td>
-                  <td>{s.descricao ?? '—'}</td>
-                  <td><button className="btn h-8 px-2" onClick={() => remove(s.id)}>Excluir</button></td>
+        {/* Tabela */}
+        <div className="bg-white border border-gray-300">
+          <div className="border-b border-gray-300 bg-gray-100 px-4 py-2">
+            <h2 className="text-sm font-semibold text-gray-700 uppercase">Status Cadastrados</h2>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead className="bg-gray-100 border-b-2 border-gray-300">
+                <tr>
+                  <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Nome</th>
+                  <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Cor</th>
+                  <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Ordem</th>
+                  <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Descrição</th>
+                  <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase">Ações</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-3 text-sm text-gray-500 text-center border-b border-gray-300">
+                      Nenhum status.
+                    </td>
+                  </tr>
+                ) : filtered.map(s => (
+                  <tr key={s.id} className="hover:bg-gray-50 border-b border-gray-300">
+                    <td className="px-4 py-2 text-sm text-gray-900 border-r border-gray-300">{s.nome}</td>
+                    <td className="px-4 py-2 text-sm text-gray-900 border-r border-gray-300">
+                      <span className="inline-flex items-center gap-2">
+                        <span className="inline-block w-3 h-3 rounded-full border border-gray-300" style={{ background: s.cor ?? '#cdb89a' }} />
+                        {s.cor ?? '—'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2 text-sm text-gray-900 border-r border-gray-300">{s.ordem ?? '—'}</td>
+                    <td className="px-4 py-2 text-sm text-gray-900 border-r border-gray-300">{s.descricao ?? '—'}</td>
+                    <td className="px-4 py-2">
+                      <button 
+                        className="px-2 py-1 border border-gray-300 bg-white hover:bg-gray-50 text-red-600 text-xs font-medium" 
+                        onClick={() => remove(s.id)}
+                      >
+                        Excluir
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </main>

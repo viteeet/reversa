@@ -169,26 +169,28 @@ export default function SacadosPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      <div className="container max-w-7xl mx-auto px-4 py-8 space-y-6">
+    <main className="min-h-screen bg-gray-50">
+      <div className="container max-w-7xl mx-auto px-4 py-6 space-y-4">
         <header className="flex flex-col gap-4">
           <div>
             <button 
               onClick={() => router.push('/menu/operacional')}
-              className="inline-flex items-center gap-2 px-4 py-2 mb-4 rounded-lg bg-white border border-gray-200 hover:border-[#0369a1] hover:bg-blue-50 transition-all shadow-sm hover:shadow-md text-[#0369a1] font-medium"
+              className="inline-flex items-center gap-2 px-3 py-1.5 mb-4 bg-white border border-gray-300 hover:bg-gray-50 text-[#0369a1] text-sm font-medium"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
               Voltar
             </button>
-            <h1 className="text-4xl font-bold text-[#0369a1] mb-2">Sacados</h1>
-            <p className="text-[#64748b] text-lg">Visualização de todos os sacados cadastrados</p>
+            <div className="border-b-2 border-[#0369a1] pb-3">
+              <h1 className="text-3xl font-bold text-[#0369a1] mb-1">Sacados</h1>
+              <p className="text-sm text-gray-600">Visualização de todos os sacados cadastrados</p>
+            </div>
           </div>
         </header>
 
         {/* Toolbar */}
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
+        <div className="bg-white border border-gray-300 p-4">
           <div className="flex flex-col lg:flex-row gap-4 lg:items-center lg:justify-between">
             {/* Busca */}
             <div className="flex flex-col sm:flex-row gap-3 flex-1">
@@ -206,7 +208,7 @@ export default function SacadosPage() {
             <div className="flex items-center gap-3">
               <div className="relative">
                 <button
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-[#cbd5e1] hover:border-[#0369a1] hover:bg-blue-50 transition-all shadow-sm hover:shadow-md text-[#0369a1] font-medium"
+                  className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-[#0369a1] text-sm font-medium"
                   onClick={() => setShowHelp(!showHelp)}
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -250,7 +252,7 @@ export default function SacadosPage() {
           </div>
 
           {/* Contador de resultados */}
-          <div className="mt-4 pt-4 border-t border-gray-200 flex items-center justify-between text-sm">
+          <div className="mt-4 pt-4 border-t border-gray-300 flex items-center justify-between text-sm">
             <span className="text-[#64748b]">
               Exibindo <strong className="text-[#0369a1]">{sorted.length}</strong> de <strong className="text-[#0369a1]">{items.length}</strong> sacados
               {q && <span> (filtrado)</span>}
@@ -267,62 +269,62 @@ export default function SacadosPage() {
           <div className="space-y-4">
 
             <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gradient-to-r from-[#e0efff] to-[#f0f7ff]">
+              <table className="w-full border-collapse">
+                <thead className="bg-gray-100 border-b-2 border-gray-300">
                   <tr>
                     <th 
-                      className="px-4 py-3 text-center text-sm font-semibold text-[#0369a1] cursor-pointer select-none hover:bg-blue-100 transition-colors"
+                      className="px-4 py-2 text-center text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 cursor-pointer select-none hover:bg-gray-200"
                       onClick={() => onSort('nome_fantasia')}
                     >
                       Nome Fantasia
                       {sortBy === 'nome_fantasia' && (
-                        <span className="ml-1 text-[#64748b]">{sortDir === 'asc' ? '▲' : '▼'}</span>
+                        <span className="ml-1 text-gray-500">{sortDir === 'asc' ? '▲' : '▼'}</span>
                       )}
                     </th>
                     <th 
-                      className="px-4 py-3 text-center text-sm font-semibold text-[#0369a1] cursor-pointer select-none hover:bg-blue-100 transition-colors"
+                      className="px-4 py-2 text-center text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 cursor-pointer select-none hover:bg-gray-200"
                       onClick={() => onSort('razao_social')}
                     >
                       Razão Social
                       {sortBy === 'razao_social' && (
-                        <span className="ml-1 text-[#64748b]">{sortDir === 'asc' ? '▲' : '▼'}</span>
+                        <span className="ml-1 text-gray-500">{sortDir === 'asc' ? '▲' : '▼'}</span>
                       )}
                     </th>
                     <th 
-                      className="px-4 py-3 text-center text-sm font-semibold text-[#0369a1] cursor-pointer select-none hover:bg-blue-100 transition-colors"
+                      className="px-4 py-2 text-center text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 cursor-pointer select-none hover:bg-gray-200"
                       onClick={() => onSort('cnpj')}
                     >
                       CNPJ
                       {sortBy === 'cnpj' && (
-                        <span className="ml-1 text-[#64748b]">{sortDir === 'asc' ? '▲' : '▼'}</span>
+                        <span className="ml-1 text-gray-500">{sortDir === 'asc' ? '▲' : '▼'}</span>
                       )}
                     </th>
-                    <th className="px-4 py-3 text-center text-sm font-semibold text-[#0369a1]">Cedente</th>
+                    <th className="px-4 py-2 text-center text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Cedente</th>
                     <th 
-                      className="px-4 py-3 text-center text-sm font-semibold text-[#0369a1] cursor-pointer select-none hover:bg-blue-100 transition-colors"
+                      className="px-4 py-2 text-center text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 cursor-pointer select-none hover:bg-gray-200"
                       onClick={() => onSort('situacao')}
                     >
                       Situação
                       {sortBy === 'situacao' && (
-                        <span className="ml-1 text-[#64748b]">{sortDir === 'asc' ? '▲' : '▼'}</span>
+                        <span className="ml-1 text-gray-500">{sortDir === 'asc' ? '▲' : '▼'}</span>
                       )}
                     </th>
                     <th 
-                      className="px-4 py-3 text-center text-sm font-semibold text-[#0369a1] cursor-pointer select-none hover:bg-blue-100 transition-colors"
+                      className="px-4 py-2 text-center text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 cursor-pointer select-none hover:bg-gray-200"
                       onClick={() => onSort('porte')}
                     >
                       Porte
                       {sortBy === 'porte' && (
-                        <span className="ml-1 text-[#64748b]">{sortDir === 'asc' ? '▲' : '▼'}</span>
+                        <span className="ml-1 text-gray-500">{sortDir === 'asc' ? '▲' : '▼'}</span>
                       )}
                     </th>
-                    <th className="px-4 py-3 text-center text-sm font-semibold text-[#0369a1]">Ações</th>
+                    <th className="px-4 py-2 text-center text-xs font-semibold text-gray-700 uppercase">Ações</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#cbd5e1]">
+                <tbody>
                   {sorted.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="p-8 text-center text-[#64748b]">
+                      <td colSpan={7} className="p-8 text-center text-gray-600 border-b border-gray-300">
                         <div className="flex flex-col items-center gap-3">
                           <span className="text-4xl">📭</span>
                           <p>Nenhum sacado encontrado.</p>
@@ -330,11 +332,11 @@ export default function SacadosPage() {
                       </td>
                     </tr>
                   ) : sorted.map(s => (
-                    <tr key={s.cnpj} className="hover:bg-[#f8fbff] transition-colors group">
-                      <td className="px-4 py-3 text-sm text-[#1e293b] font-medium text-center">{s.nome_fantasia ?? '—'}</td>
-                      <td className="px-4 py-3 text-sm text-[#64748b] text-center">{s.razao_social}</td>
-                      <td className="px-4 py-3 text-sm text-[#64748b] font-mono text-center">{s.cnpj ? formatCpfCnpj(s.cnpj) : '—'}</td>
-                      <td className="px-4 py-3 text-center">
+                    <tr key={s.cnpj} className="hover:bg-gray-50 border-b border-gray-300 group">
+                      <td className="px-4 py-2 text-sm text-gray-900 font-medium text-center border-r border-gray-300">{s.nome_fantasia ?? '—'}</td>
+                      <td className="px-4 py-2 text-sm text-gray-600 text-center border-r border-gray-300">{s.razao_social}</td>
+                      <td className="px-4 py-2 text-sm text-gray-600 font-mono text-center border-r border-gray-300">{s.cnpj ? formatCpfCnpj(s.cnpj) : '—'}</td>
+                      <td className="px-4 py-2 text-center border-r border-gray-300">
                         {s.cedente ? (
                           <Link 
                             href={`/cedentes/${s.cedente.id}`}
@@ -343,33 +345,27 @@ export default function SacadosPage() {
                             {s.cedente.nome || s.cedente.razao_social || '—'}
                           </Link>
                         ) : (
-                          <span className="text-sm text-[#94a3b8]">—</span>
+                          <span className="text-sm text-gray-500">—</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-center">
+                      <td className="px-4 py-2 text-center border-r border-gray-300">
                         {s.situacao && (
                           <Badge variant={s.situacao === 'ATIVA' ? 'success' : s.situacao === 'INATIVA' ? 'error' : 'neutral'} size="sm">
                             {s.situacao}
                           </Badge>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-sm text-[#64748b] text-center">{s.porte ?? '—'}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex gap-1 justify-center opacity-70 group-hover:opacity-100 transition-opacity">
+                      <td className="px-4 py-2 text-sm text-gray-600 text-center border-r border-gray-300">{s.porte ?? '—'}</td>
+                      <td className="px-4 py-2">
+                        <div className="flex gap-2 justify-center">
                           <Link href={`/sacados/${encodeURIComponent(s.cnpj)}`}>
-                            <button className="p-2 rounded-lg hover:bg-blue-50 transition-colors" title="Ver detalhes" aria-label="Ver">
-                              👁️
-                            </button>
+                            <button className="px-2 py-1 border border-gray-300 bg-white hover:bg-gray-50 text-[#0369a1] text-xs font-medium">Ver</button>
                           </Link>
                           <Link href={`/sacados/${encodeURIComponent(s.cnpj)}/editar`}>
-                            <button className="p-2 rounded-lg hover:bg-blue-50 transition-colors" title="Editar" aria-label="Editar">
-                              ✏️
-                            </button>
+                            <button className="px-2 py-1 border border-gray-300 bg-white hover:bg-gray-50 text-[#0369a1] text-xs font-medium">Editar</button>
                           </Link>
                           <Link href={`/sacados/${encodeURIComponent(s.cnpj)}/cobranca`}>
-                            <button className="p-2 rounded-lg hover:bg-blue-50 transition-colors" title="Ficha de cobrança" aria-label="Ficha">
-                              📄
-                            </button>
+                            <button className="px-2 py-1 border border-gray-300 bg-white hover:bg-gray-50 text-[#0369a1] text-xs font-medium">Ficha</button>
                           </Link>
                         </div>
                       </td>

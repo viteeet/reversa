@@ -1,12 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import StatCard from '@/components/ui/StatCard';
-import FilterBar from '@/components/ui/FilterBar';
 
 type LancamentoCalendario = {
   id: string;
@@ -28,19 +25,7 @@ export default function CalendarioLancamentosPage() {
     status: 'todas'
   });
 
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      const user = data.user;
-      if (!user) { router.replace('/login'); return; }
-      loadData();
-    });
-  }, [router]);
-
-  useEffect(() => {
-    loadData();
-  }, [mesAtual, filtros]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
       let query = supabase
@@ -66,7 +51,19 @@ export default function CalendarioLancamentosPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [mesAtual, filtros]);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      const user = data.user;
+      if (!user) { router.replace('/login'); return; }
+      loadData();
+    });
+  }, [router, loadData]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const diasDoMes = () => {
     const primeiroDia = new Date(mesAtual.getFullYear(), mesAtual.getMonth(), 1);
@@ -86,15 +83,19 @@ export default function CalendarioLancamentosPage() {
     return dias;
   };
 
-  const lancamentosDoDia = (dia: number) => {
-    const data = new Date(mesAtual.getFullYear(), mesAtual.getMonth(), dia);
+  const lancamentosDoDia = (dia: number, mes?: Date) => {
+    const dataRef = mes || mesAtual;
+    const data = new Date(dataRef.getFullYear(), dataRef.getMonth(), dia);
     return lancamentos.filter(l => {
       const lancamentoData = new Date(l.data_competencia);
       return lancamentoData.toDateString() === data.toDateString();
     });
   };
 
-  const lancamentosDoDiaSelecionado = lancamentosDoDia(dataSelecionada.getDate());
+  const lancamentosDoDiaSelecionado = lancamentos.filter(l => {
+    const lancamentoData = new Date(l.data_competencia);
+    return lancamentoData.toDateString() === dataSelecionada.toDateString();
+  });
 
   const totalReceitas = lancamentos.filter(l => l.natureza === 'receita').reduce((acc, l) => acc + l.valor, 0);
   const totalDespesas = lancamentos.filter(l => l.natureza === 'despesa').reduce((acc, l) => acc + l.valor, 0);
@@ -108,84 +109,92 @@ export default function CalendarioLancamentosPage() {
   const nomesDias = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
 
   return (
-    <main className="min-h-screen p-6">
-      <div className="container max-w-7xl space-y-6">
-        <header className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <button 
-                onClick={() => {
-                  if (typeof window !== 'undefined' && window.history.length > 1) {
-                    router.back();
-                  } else {
-                    router.push('/menu/financeiro');
-                  }
-                }}
-                className="inline-flex items-center gap-2 px-4 py-2 mb-4 rounded-lg bg-white border border-gray-200 hover:border-[#0369a1] hover:bg-blue-50 transition-all shadow-sm hover:shadow-md text-[#0369a1] font-medium"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-                Voltar
-              </button>
-              <h1 className="text-3xl font-bold text-[#0369a1]">Calendário de Lançamentos</h1>
-              <p className="text-[#64748b]">Visualização mensal dos lançamentos</p>
-            </div>
+    <main className="min-h-screen bg-gray-50">
+      <div className="container max-w-7xl mx-auto px-4 py-6 space-y-4">
+        {/* Header */}
+        <header className="mb-4">
+          <button 
+            onClick={() => {
+              if (typeof window !== 'undefined' && window.history.length > 1) {
+                router.back();
+              } else {
+                router.push('/menu/financeiro');
+              }
+            }}
+            className="inline-flex items-center gap-2 px-3 py-1.5 mb-4 bg-white border border-gray-300 hover:bg-gray-50 text-[#0369a1] text-sm font-medium"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Voltar
+          </button>
+          <div className="border-b-2 border-[#0369a1] pb-3">
+            <h1 className="text-3xl font-bold text-[#0369a1] mb-1">Calendário de Lançamentos</h1>
+            <p className="text-sm text-gray-600">Visualização mensal dos lançamentos</p>
           </div>
         </header>
 
         {/* Cards de Resumo */}
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard 
-            title="Total Receitas" 
-            value={totalReceitas} 
-            variant="success"
-          />
-          <StatCard 
-            title="Total Despesas" 
-            value={totalDespesas} 
-            variant="error"
-          />
-          <StatCard 
-            title="Pendente" 
-            value={totalPendente} 
-            variant="warning"
-          />
-          <StatCard 
-            title="Saldo" 
-            value={totalReceitas - totalDespesas} 
-            variant={totalReceitas - totalDespesas > 0 ? "success" : "error"}
-          />
+        <div className="bg-white border border-gray-300">
+          <div className="border-b border-gray-300 bg-gray-100 px-4 py-2">
+            <h2 className="text-sm font-semibold text-gray-700 uppercase">Resumo</h2>
+          </div>
+          <div className="grid grid-cols-4 divide-x divide-gray-300 p-4">
+            <div className="px-4 py-3">
+              <p className="text-xs text-gray-500 uppercase mb-1">Total Receitas</p>
+              <p className="text-lg font-semibold text-green-700">
+                {totalReceitas.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              </p>
+            </div>
+            <div className="px-4 py-3">
+              <p className="text-xs text-gray-500 uppercase mb-1">Total Despesas</p>
+              <p className="text-lg font-semibold text-red-700">
+                {totalDespesas.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              </p>
+            </div>
+            <div className="px-4 py-3">
+              <p className="text-xs text-gray-500 uppercase mb-1">Pendente</p>
+              <p className="text-lg font-semibold text-orange-700">
+                {totalPendente.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              </p>
+            </div>
+            <div className="px-4 py-3">
+              <p className="text-xs text-gray-500 uppercase mb-1">Saldo</p>
+              <p className={`text-lg font-semibold ${totalReceitas - totalDespesas > 0 ? 'text-green-700' : 'text-red-700'}`}>
+                {(totalReceitas - totalDespesas).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Controles do Calendário */}
-        <Card>
-          <div className="px-6 py-4">
+        <div className="bg-white border border-gray-300">
+          <div className="border-b border-gray-300 bg-gray-100 px-4 py-2">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <Button 
-                  variant="outline" 
+              <div className="flex items-center gap-2">
+                <button 
+                  className="px-3 py-1.5 border border-gray-300 bg-white hover:bg-gray-50 text-[#0369a1] text-sm font-medium"
                   onClick={() => setMesAtual(new Date(mesAtual.getFullYear(), mesAtual.getMonth() - 1))}
                 >
                   ←
-                </Button>
-                <h2 className="text-xl font-semibold text-gray-900">
+                </button>
+                <h2 className="text-base font-semibold text-gray-900 px-4">
                   {nomesMeses[mesAtual.getMonth()]} {mesAtual.getFullYear()}
                 </h2>
-                <Button 
-                  variant="outline" 
+                <button 
+                  className="px-3 py-1.5 border border-gray-300 bg-white hover:bg-gray-50 text-[#0369a1] text-sm font-medium"
                   onClick={() => setMesAtual(new Date(mesAtual.getFullYear(), mesAtual.getMonth() + 1))}
                 >
                   →
-                </Button>
+                </button>
               </div>
               <div className="flex items-center gap-2">
-                <Button 
-                  variant="outline" 
+                <button 
+                  className="px-3 py-1.5 border border-gray-300 bg-white hover:bg-gray-50 text-[#0369a1] text-sm font-medium"
                   onClick={() => setMesAtual(new Date())}
                 >
                   Hoje
-                </Button>
+                </button>
                 <Button 
                   variant="primary" 
                   onClick={() => router.push('/contas-pagar')}
@@ -195,50 +204,56 @@ export default function CalendarioLancamentosPage() {
               </div>
             </div>
           </div>
-        </Card>
+        </div>
 
         {/* Filtros */}
-        <FilterBar
-          filters={filtros}
-          onFilterChange={(key, value) => setFiltros({ ...filtros, [key]: value })}
-          onClear={() => setFiltros({ natureza: 'todas', status: 'todas' })}
-        >
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Natureza</label>
-              <select 
-                value={filtros.natureza}
-                onChange={(e) => setFiltros({ ...filtros, natureza: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="todas">Todas</option>
-                <option value="receita">Receitas</option>
-                <option value="despesa">Despesas</option>
-              </select>
+        <div className="bg-white border border-gray-300">
+          <div className="border-b border-gray-300 bg-gray-100 px-4 py-2">
+            <h2 className="text-sm font-semibold text-gray-700 uppercase">Filtros</h2>
+          </div>
+          <div className="p-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1">Natureza</label>
+                <select 
+                  value={filtros.natureza}
+                  onChange={(e) => setFiltros({ ...filtros, natureza: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 text-sm"
+                >
+                  <option value="todas">Todas</option>
+                  <option value="receita">Receitas</option>
+                  <option value="despesa">Despesas</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1">Status</label>
+                <select 
+                  value={filtros.status}
+                  onChange={(e) => setFiltros({ ...filtros, status: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 text-sm"
+                >
+                  <option value="todas">Todos</option>
+                  <option value="pendente">Pendente</option>
+                  <option value="pago">Pago</option>
+                </select>
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-              <select 
-                value={filtros.status}
-                onChange={(e) => setFiltros({ ...filtros, status: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="todas">Todos</option>
-                <option value="pendente">Pendente</option>
-                <option value="pago">Pago</option>
-              </select>
+            <div className="mt-4 flex justify-end">
+              <Button variant="secondary" onClick={() => setFiltros({ natureza: 'todas', status: 'todas' })}>
+                Limpar Filtros
+              </Button>
             </div>
           </div>
-        </FilterBar>
+        </div>
 
         {/* Calendário */}
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid gap-4 lg:grid-cols-3">
           <div className="lg:col-span-2">
-            <Card>
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900">Calendário</h3>
+            <div className="bg-white border border-gray-300">
+              <div className="border-b border-gray-300 bg-gray-100 px-4 py-2">
+                <h3 className="text-sm font-semibold text-gray-700 uppercase">Calendário</h3>
               </div>
-              <div className="p-6">
+              <div className="p-4">
                 <div className="grid grid-cols-7 gap-1 mb-4">
                   {nomesDias.map((dia, index) => (
                     <div key={index} className="text-center text-sm font-medium text-gray-500 py-2">
@@ -249,16 +264,18 @@ export default function CalendarioLancamentosPage() {
                 <div className="grid grid-cols-7 gap-1">
                   {diasDoMes().map((dia, index) => {
                     if (!dia) {
-                      return <div key={index} className="h-12"></div>;
+                      return <div key={`empty-${index}`} className="h-12"></div>;
                     }
                     
                     const lancamentosDia = lancamentosDoDia(dia);
-                    const isHoje = new Date().toDateString() === new Date(mesAtual.getFullYear(), mesAtual.getMonth(), dia).toDateString();
-                    const isSelecionado = dataSelecionada.getDate() === dia;
+                    const dataDoDia = new Date(mesAtual.getFullYear(), mesAtual.getMonth(), dia);
+                    const isHoje = new Date().toDateString() === dataDoDia.toDateString();
+                    const isSelecionado = dataSelecionada.toDateString() === dataDoDia.toDateString();
+                    const uniqueKey = `${mesAtual.getFullYear()}-${mesAtual.getMonth()}-${dia}-${index}`;
                     
                     return (
                       <div
-                        key={dia}
+                        key={uniqueKey}
                         onClick={() => setDataSelecionada(new Date(mesAtual.getFullYear(), mesAtual.getMonth(), dia))}
                         className={`h-12 border border-gray-200 rounded cursor-pointer flex flex-col items-center justify-center text-sm hover:bg-gray-50 ${
                           isSelecionado ? 'bg-blue-100 border-blue-300' : ''
@@ -271,14 +288,14 @@ export default function CalendarioLancamentosPage() {
                           <div className="flex gap-1 mt-1">
                             {lancamentosDia.slice(0, 2).map((l, i) => (
                               <div
-                                key={i}
+                                key={`${l.id}-${i}`}
                                 className={`w-1 h-1 rounded-full ${
                                   l.natureza === 'receita' ? 'bg-green-500' : 'bg-red-500'
                                 }`}
                               />
                             ))}
                             {lancamentosDia.length > 2 && (
-                              <div className="w-1 h-1 rounded-full bg-gray-400" />
+                              <div key={`more-${uniqueKey}`} className="w-1 h-1 rounded-full bg-gray-400" />
                             )}
                           </div>
                         )}
@@ -303,21 +320,21 @@ export default function CalendarioLancamentosPage() {
                   </div>
                 </div>
               </div>
-            </Card>
+            </div>
           </div>
 
           {/* Lançamentos do Dia Selecionado */}
           <div>
-            <Card>
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900">
+            <div className="bg-white border border-gray-300">
+              <div className="border-b border-gray-300 bg-gray-100 px-4 py-2">
+                <h3 className="text-sm font-semibold text-gray-700 uppercase">
                   Lançamentos no dia selecionado
                 </h3>
-                <p className="text-sm text-gray-600 mt-1">
+                <p className="text-xs text-gray-600 mt-1">
                   {dataSelecionada.toLocaleDateString('pt-BR')}
                 </p>
               </div>
-              <div className="p-6">
+              <div className="p-4">
                 {lancamentosDoDiaSelecionado.length === 0 ? (
                   <p className="text-gray-500 text-center py-8">Nenhum lançamento neste dia</p>
                 ) : (
@@ -346,7 +363,7 @@ export default function CalendarioLancamentosPage() {
                   </div>
                 )}
               </div>
-            </Card>
+            </div>
           </div>
         </div>
       </div>

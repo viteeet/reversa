@@ -3,10 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import StatCard from '@/components/ui/StatCard';
-import FilterBar from '@/components/ui/FilterBar';
 
 type LancamentoRanking = {
   id: string;
@@ -103,77 +100,88 @@ export default function TopReceitasDespesasPage() {
   const dadosAtuais = tipo === 'receitas' ? receitas : despesas;
 
   return (
-    <main className="min-h-screen p-6">
-      <div className="container max-w-7xl space-y-6">
-        <header className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <button 
-                onClick={() => {
-                  if (typeof window !== 'undefined' && window.history.length > 1) {
-                    router.back();
-                  } else {
-                    router.push('/menu/financeiro');
-                  }
-                }}
-                className="inline-flex items-center gap-2 px-4 py-2 mb-4 rounded-lg bg-white border border-gray-200 hover:border-[#0369a1] hover:bg-blue-50 transition-all shadow-sm hover:shadow-md text-[#0369a1] font-medium"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-                Voltar
-              </button>
-              <h1 className="text-3xl font-bold text-[#0369a1]">Top Receitas/Despesas</h1>
-              <p className="text-[#64748b]">Ranking dos maiores lançamentos</p>
-            </div>
+    <main className="min-h-screen bg-gray-50">
+      <div className="container max-w-7xl mx-auto px-4 py-6 space-y-4">
+        {/* Header */}
+        <header className="mb-4">
+          <button 
+            onClick={() => {
+              if (typeof window !== 'undefined' && window.history.length > 1) {
+                router.back();
+              } else {
+                router.push('/menu/financeiro');
+              }
+            }}
+            className="inline-flex items-center gap-2 px-3 py-1.5 mb-4 bg-white border border-gray-300 hover:bg-gray-50 text-[#0369a1] text-sm font-medium"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Voltar
+          </button>
+          <div className="border-b-2 border-[#0369a1] pb-3">
+            <h1 className="text-3xl font-bold text-[#0369a1] mb-1">Top Receitas/Despesas</h1>
+            <p className="text-sm text-gray-600">Ranking dos maiores lançamentos</p>
           </div>
         </header>
 
         {/* Cards de Resumo */}
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard 
-            title="Total Receitas" 
-            value={totalReceitas} 
-            variant="success"
-          />
-          <StatCard 
-            title="Total Despesas" 
-            value={totalDespesas} 
-            variant="error"
-          />
-          <StatCard 
-            title="Maior Receita" 
-            value={receitas[0]?.valor || 0} 
-            variant="success"
-          />
-          <StatCard 
-            title="Maior Despesa" 
-            value={despesas[0]?.valor || 0} 
-            variant="error"
-          />
+        <div className="bg-white border border-gray-300">
+          <div className="border-b border-gray-300 bg-gray-100 px-4 py-2">
+            <h2 className="text-sm font-semibold text-gray-700 uppercase">Resumo</h2>
+          </div>
+          <div className="grid grid-cols-4 divide-x divide-gray-300 p-4">
+            <div className="px-4 py-3">
+              <p className="text-xs text-gray-500 uppercase mb-1">Total Receitas</p>
+              <p className="text-lg font-semibold text-green-700">
+                {totalReceitas.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              </p>
+            </div>
+            <div className="px-4 py-3">
+              <p className="text-xs text-gray-500 uppercase mb-1">Total Despesas</p>
+              <p className="text-lg font-semibold text-red-700">
+                {totalDespesas.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              </p>
+            </div>
+            <div className="px-4 py-3">
+              <p className="text-xs text-gray-500 uppercase mb-1">Maior Receita</p>
+              <p className="text-lg font-semibold text-green-700">
+                {(receitas[0]?.valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              </p>
+            </div>
+            <div className="px-4 py-3">
+              <p className="text-xs text-gray-500 uppercase mb-1">Maior Despesa</p>
+              <p className="text-lg font-semibold text-red-700">
+                {(despesas[0]?.valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Toggle Receitas/Despesas */}
-        <Card>
-          <div className="px-6 py-4">
+        <div className="bg-white border border-gray-300">
+          <div className="border-b border-gray-300 bg-gray-100 px-4 py-2">
+            <h2 className="text-sm font-semibold text-gray-700 uppercase">Tipo</h2>
+          </div>
+          <div className="p-4">
             <div className="flex items-center justify-center">
-              <div className="flex bg-gray-100 rounded-lg p-1">
+              <div className="flex border border-gray-300">
                 <button
                   onClick={() => setTipo('receitas')}
-                  className={`px-6 py-2 rounded-md font-medium transition-colors ${
+                  className={`px-6 py-2 text-sm font-medium border-r border-gray-300 ${
                     tipo === 'receitas'
-                      ? 'bg-green-600 text-white shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
+                      ? 'bg-green-600 text-white'
+                      : 'bg-white text-gray-700 hover:bg-gray-50'
                   }`}
                 >
                   Receitas
                 </button>
                 <button
                   onClick={() => setTipo('despesas')}
-                  className={`px-6 py-2 rounded-md font-medium transition-colors ${
+                  className={`px-6 py-2 text-sm font-medium ${
                     tipo === 'despesas'
-                      ? 'bg-red-600 text-white shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
+                      ? 'bg-red-600 text-white'
+                      : 'bg-white text-gray-700 hover:bg-gray-50'
                   }`}
                 >
                   Despesas
@@ -181,101 +189,107 @@ export default function TopReceitasDespesasPage() {
               </div>
             </div>
           </div>
-        </Card>
+        </div>
 
         {/* Filtros */}
-        <FilterBar
-          filters={filtros}
-          onFilterChange={(key, value) => setFiltros({ ...filtros, [key]: value })}
-          onClear={() => setFiltros({ periodo: 'mes', ano: new Date().getFullYear().toString(), limite: '15' })}
-        >
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Período</label>
-              <select 
-                value={filtros.periodo}
-                onChange={(e) => setFiltros({ ...filtros, periodo: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="mes">Mês</option>
-                <option value="ano">Ano</option>
-                <option value="trimestre">Trimestre</option>
-              </select>
+        <div className="bg-white border border-gray-300">
+          <div className="border-b border-gray-300 bg-gray-100 px-4 py-2">
+            <h2 className="text-sm font-semibold text-gray-700 uppercase">Filtros</h2>
+          </div>
+          <div className="p-4">
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1">Período</label>
+                <select 
+                  value={filtros.periodo}
+                  onChange={(e) => setFiltros({ ...filtros, periodo: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 text-sm"
+                >
+                  <option value="mes">Mês</option>
+                  <option value="ano">Ano</option>
+                  <option value="trimestre">Trimestre</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1">Ano</label>
+                <select 
+                  value={filtros.ano}
+                  onChange={(e) => setFiltros({ ...filtros, ano: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 text-sm"
+                >
+                  <option value="2025">2025</option>
+                  <option value="2024">2024</option>
+                  <option value="2023">2023</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1">Limite</label>
+                <select 
+                  value={filtros.limite}
+                  onChange={(e) => setFiltros({ ...filtros, limite: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 text-sm"
+                >
+                  <option value="10">Top 10</option>
+                  <option value="15">Top 15</option>
+                  <option value="20">Top 20</option>
+                  <option value="50">Top 50</option>
+                </select>
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Ano</label>
-              <select 
-                value={filtros.ano}
-                onChange={(e) => setFiltros({ ...filtros, ano: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="2025">2025</option>
-                <option value="2024">2024</option>
-                <option value="2023">2023</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Limite</label>
-              <select 
-                value={filtros.limite}
-                onChange={(e) => setFiltros({ ...filtros, limite: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="10">Top 10</option>
-                <option value="15">Top 15</option>
-                <option value="20">Top 20</option>
-                <option value="50">Top 50</option>
-              </select>
+            <div className="mt-4 flex justify-end">
+              <Button variant="secondary" onClick={() => setFiltros({ periodo: 'mes', ano: new Date().getFullYear().toString(), limite: '15' })}>
+                Limpar Filtros
+              </Button>
             </div>
           </div>
-        </FilterBar>
+        </div>
 
         {/* Tabela de Ranking */}
-        <Card>
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900">
+        <div className="bg-white border border-gray-300">
+          <div className="border-b border-gray-300 bg-gray-100 px-4 py-2">
+            <h2 className="text-sm font-semibold text-gray-700 uppercase">
               Top {filtros.limite} {tipo === 'receitas' ? 'Receitas' : 'Despesas'}
-            </h3>
+            </h2>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
+            <table className="w-full border-collapse">
+              <thead className="bg-gray-100 border-b-2 border-gray-300">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descrição</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Categoria</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">#</th>
+                  <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Descrição</th>
+                  <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Categoria</th>
+                  <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Valor</th>
+                  <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Data</th>
+                  <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase">Status</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody>
                 {dadosAtuais.map((item, index) => (
-                  <tr key={item.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  <tr key={item.id} className="hover:bg-gray-50 border-b border-gray-300">
+                    <td className="px-4 py-2 text-sm font-medium text-gray-900 border-r border-gray-300">
                       {index + 1}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-4 py-2 text-sm text-gray-900 border-r border-gray-300">
                       {item.descricao}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                    <td className="px-4 py-2 text-sm text-gray-600 border-r border-gray-300">
                       {item.categoria || '—'}
                     </td>
-                    <td className={`px-6 py-4 whitespace-nowrap text-sm font-semibold ${
-                      item.natureza === 'receita' ? 'text-green-600' : 'text-red-600'
+                    <td className={`px-4 py-2 text-sm font-semibold border-r border-gray-300 ${
+                      item.natureza === 'receita' ? 'text-green-700' : 'text-red-700'
                     }`}>
                       {item.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                    <td className="px-4 py-2 text-sm text-gray-600 border-r border-gray-300">
                       {new Date(item.data).toLocaleDateString('pt-BR')}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                    <td className="px-4 py-2">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold border border-gray-300 ${
                         item.status === 'pago' 
-                          ? 'bg-green-100 text-green-800'
+                          ? 'bg-green-50 text-green-700'
                           : item.status === 'pendente'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-gray-100 text-gray-800'
+                          ? 'bg-yellow-50 text-yellow-700'
+                          : 'bg-gray-50 text-gray-700'
                       }`}>
                         {item.status}
                       </span>
@@ -285,21 +299,21 @@ export default function TopReceitasDespesasPage() {
               </tbody>
             </table>
           </div>
-        </Card>
+        </div>
 
         {/* Gráfico de Barras Simulado */}
-        <Card>
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900">
+        <div className="bg-white border border-gray-300">
+          <div className="border-b border-gray-300 bg-gray-100 px-4 py-2">
+            <h2 className="text-sm font-semibold text-gray-700 uppercase">
               Distribuição dos Valores - {tipo === 'receitas' ? 'Receitas' : 'Despesas'}
-            </h3>
+            </h2>
           </div>
           <div className="p-6">
-            <div className="h-64 bg-gray-100 rounded-lg flex items-center justify-center">
-              <p className="text-gray-500">Gráfico de barras dos valores</p>
+            <div className="h-64 bg-gray-100 border border-gray-300 flex items-center justify-center">
+              <p className="text-gray-600">Gráfico de barras dos valores</p>
             </div>
           </div>
-        </Card>
+        </div>
       </div>
     </main>
   );

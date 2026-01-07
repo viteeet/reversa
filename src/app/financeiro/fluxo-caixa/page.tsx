@@ -3,10 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import StatCard from '@/components/ui/StatCard';
-import FilterBar from '@/components/ui/FilterBar';
 import FinanceLineChart from '@/components/financeiro/LineChart';
 
 type FluxoCaixaData = {
@@ -234,53 +231,69 @@ export default function FluxoCaixaPage() {
   }, [data, limiteTabela]);
 
   return (
-    <main className="min-h-screen p-6 bg-white">
-      <div className="container max-w-7xl space-y-6">
-        <header className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => {
-                if (typeof window !== 'undefined' && window.history.length > 1) {
-                  router.back();
-                } else {
-                  router.push('/menu/financeiro');
-                }
-              }}
-              className="p-2 rounded-lg border border-[#cbd5e1] hover:bg-[#f0f7ff] transition-colors"
-            >←</button>
-            <div>
-              <h1 className="text-3xl font-bold text-[#0369a1]">Fluxo de Caixa</h1>
-              <p className="text-[#64748b]">Análise de entradas e saídas de caixa</p>
-            </div>
+    <main className="min-h-screen bg-gray-50">
+      <div className="container max-w-7xl mx-auto px-4 py-6 space-y-4">
+        {/* Header */}
+        <header className="mb-4">
+          <button
+            onClick={() => {
+              if (typeof window !== 'undefined' && window.history.length > 1) {
+                router.back();
+              } else {
+                router.push('/menu/financeiro');
+              }
+            }}
+            className="inline-flex items-center gap-2 px-3 py-1.5 mb-4 bg-white border border-gray-300 hover:bg-gray-50 text-[#0369a1] text-sm font-medium"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Voltar
+          </button>
+          <div className="border-b-2 border-[#0369a1] pb-3">
+            <h1 className="text-3xl font-bold text-[#0369a1] mb-1">Fluxo de Caixa</h1>
+            <p className="text-sm text-gray-600">Análise de entradas e saídas de caixa</p>
           </div>
         </header>
 
         {/* Cards de Resumo */}
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard 
-            title="Total Receitas" 
-            value={totalReceitas} 
-            variant="success"
-          />
-          <StatCard 
-            title="Total Despesas" 
-            value={totalDespesas} 
-            variant="error"
-          />
-          <StatCard 
-            title="Saldo Final" 
-            value={saldoFinal} 
-            variant={saldoFinal > 0 ? "success" : "error"}
-          />
-          <StatCard 
-            title="Saldo Acumulado" 
-            value={saldoAcumulado} 
-            variant={saldoAcumulado > 0 ? "success" : "error"}
-          />
+        <div className="bg-white border border-gray-300">
+          <div className="border-b border-gray-300 bg-gray-100 px-4 py-2">
+            <h2 className="text-sm font-semibold text-gray-700 uppercase">Resumo</h2>
+          </div>
+          <div className="grid grid-cols-4 divide-x divide-gray-300">
+            <div className="px-4 py-3">
+              <p className="text-xs text-gray-500 uppercase mb-1">Total Receitas</p>
+              <p className="text-lg font-semibold text-green-700">
+                {totalReceitas.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              </p>
+            </div>
+            <div className="px-4 py-3">
+              <p className="text-xs text-gray-500 uppercase mb-1">Total Despesas</p>
+              <p className="text-lg font-semibold text-red-700">
+                {totalDespesas.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              </p>
+            </div>
+            <div className="px-4 py-3">
+              <p className="text-xs text-gray-500 uppercase mb-1">Saldo Final</p>
+              <p className={`text-lg font-semibold ${saldoFinal > 0 ? 'text-green-700' : 'text-red-700'}`}>
+                {saldoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              </p>
+            </div>
+            <div className="px-4 py-3">
+              <p className="text-xs text-gray-500 uppercase mb-1">Saldo Acumulado</p>
+              <p className={`text-lg font-semibold ${saldoAcumulado > 0 ? 'text-green-700' : 'text-red-700'}`}>
+                {saldoAcumulado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Presets de Período */}
-        <Card>
+        <div className="bg-white border border-gray-300">
+          <div className="border-b border-gray-300 bg-gray-100 px-4 py-2">
+            <h2 className="text-sm font-semibold text-gray-700 uppercase">Período</h2>
+          </div>
           <div className="p-4">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
@@ -288,40 +301,40 @@ export default function FluxoCaixaPage() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => setPeriodoPreset(7)}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    className={`px-3 py-1.5 text-xs font-medium border border-gray-300 ${
                       periodoPreset === 7
-                        ? 'bg-[#0369a1] text-white'
-                        : 'bg-white border border-[#cbd5e1] text-[#64748b] hover:bg-[#f8fafc]'
+                        ? 'bg-[#0369a1] text-white border-[#0369a1]'
+                        : 'bg-white text-gray-700 hover:bg-gray-50'
                     }`}
                   >
                     7 dias
                   </button>
                   <button
                     onClick={() => setPeriodoPreset(30)}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    className={`px-3 py-1.5 text-xs font-medium border border-gray-300 ${
                       periodoPreset === 30
-                        ? 'bg-[#0369a1] text-white'
-                        : 'bg-white border border-[#cbd5e1] text-[#64748b] hover:bg-[#f8fafc]'
+                        ? 'bg-[#0369a1] text-white border-[#0369a1]'
+                        : 'bg-white text-gray-700 hover:bg-gray-50'
                     }`}
                   >
                     30 dias
                   </button>
                   <button
                     onClick={() => setPeriodoPreset(90)}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    className={`px-3 py-1.5 text-xs font-medium border border-gray-300 ${
                       periodoPreset === 90
-                        ? 'bg-[#0369a1] text-white'
-                        : 'bg-white border border-[#cbd5e1] text-[#64748b] hover:bg-[#f8fafc]'
+                        ? 'bg-[#0369a1] text-white border-[#0369a1]'
+                        : 'bg-white text-gray-700 hover:bg-gray-50'
                     }`}
                   >
                     90 dias
                   </button>
                   <button
                     onClick={() => setPeriodoPreset('custom')}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    className={`px-3 py-1.5 text-xs font-medium border border-gray-300 ${
                       periodoPreset === 'custom'
-                        ? 'bg-[#0369a1] text-white'
-                        : 'bg-white border border-[#cbd5e1] text-[#64748b] hover:bg-[#f8fafc]'
+                        ? 'bg-[#0369a1] text-white border-[#0369a1]'
+                        : 'bg-white text-gray-700 hover:bg-gray-50'
                     }`}
                   >
                     Personalizado
@@ -336,91 +349,100 @@ export default function FluxoCaixaPage() {
                       type="date"
                       value={periodoCustom.inicio}
                       onChange={(e) => setPeriodoCustom({ ...periodoCustom, inicio: e.target.value })}
-                      className="px-3 py-2 border border-[#cbd5e1] rounded-lg text-sm"
+                      className="px-2 py-1 border border-gray-300 text-sm"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-[#64748b] mb-1">Data Fim</label>
+                    <label className="block text-xs text-gray-600 mb-1">Data Fim</label>
                     <input
                       type="date"
                       value={periodoCustom.fim}
                       onChange={(e) => setPeriodoCustom({ ...periodoCustom, fim: e.target.value })}
-                      className="px-3 py-2 border border-[#cbd5e1] rounded-lg text-sm"
+                      className="px-2 py-1 border border-gray-300 text-sm"
                     />
                   </div>
                 </div>
               )}
             </div>
           </div>
-        </Card>
+        </div>
 
         {/* Filtros */}
-        <FilterBar
-          filters={filtros}
-          onFilterChange={(key, value) => setFiltros({ ...filtros, [key]: value })}
-          onClear={() => setFiltros({ cedente_id: 'todos', status: 'pago', categoria_id: 'todos' })}
-        >
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div>
-              <label className="block text-sm font-medium text-[#64748b] mb-1">Status</label>
-              <select 
-                value={filtros.status}
-                onChange={(e) => setFiltros({ ...filtros, status: e.target.value })}
-                className="w-full px-3 py-2 border border-[#cbd5e1] rounded-lg focus:ring-2 focus:ring-[#0369a1] focus:border-[#0369a1]"
-              >
-                <option value="todos">Todos</option>
-                <option value="pago">Pago/Recebido</option>
-                <option value="pendente">Pendente</option>
-                <option value="previsto">Previsto</option>
-              </select>
+        <div className="bg-white border border-gray-300">
+          <div className="border-b border-gray-300 bg-gray-100 px-4 py-2">
+            <h2 className="text-sm font-semibold text-gray-700 uppercase">Filtros</h2>
+          </div>
+          <div className="p-4">
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1">Status</label>
+                <select 
+                  value={filtros.status}
+                  onChange={(e) => setFiltros({ ...filtros, status: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 text-sm"
+                >
+                  <option value="todos">Todos</option>
+                  <option value="pago">Pago/Recebido</option>
+                  <option value="pendente">Pendente</option>
+                  <option value="previsto">Previsto</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1">Categoria</label>
+                <select 
+                  value={filtros.categoria_id}
+                  onChange={(e) => setFiltros({ ...filtros, categoria_id: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 text-sm"
+                >
+                  <option value="todos">Todas as Categorias</option>
+                  {categorias.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.nome}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1">Cedente</label>
+                <select 
+                  value={filtros.cedente_id}
+                  onChange={(e) => setFiltros({ ...filtros, cedente_id: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 text-sm"
+                  disabled
+                >
+                  <option value="todos">Todos os Cedentes</option>
+                  {cedentes.map((cedente) => (
+                    <option key={cedente.id} value={cedente.id}>
+                      {cedente.nome || cedente.razao_social}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">Filtro por cedente em breve</p>
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-[#64748b] mb-1">Categoria</label>
-              <select 
-                value={filtros.categoria_id}
-                onChange={(e) => setFiltros({ ...filtros, categoria_id: e.target.value })}
-                className="w-full px-3 py-2 border border-[#cbd5e1] rounded-lg focus:ring-2 focus:ring-[#0369a1] focus:border-[#0369a1]"
-              >
-                <option value="todos">Todas as Categorias</option>
-                {categorias.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.nome}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-[#64748b] mb-1">Cedente</label>
-              <select 
-                value={filtros.cedente_id}
-                onChange={(e) => setFiltros({ ...filtros, cedente_id: e.target.value })}
-                className="w-full px-3 py-2 border border-[#cbd5e1] rounded-lg focus:ring-2 focus:ring-[#0369a1] focus:border-[#0369a1]"
-                disabled
-              >
-                <option value="todos">Todos os Cedentes</option>
-                {cedentes.map((cedente) => (
-                  <option key={cedente.id} value={cedente.id}>
-                    {cedente.nome || cedente.razao_social}
-                  </option>
-                ))}
-              </select>
-              <p className="text-xs text-[#64748b] mt-1">Filtro por cedente em breve</p>
+            <div className="mt-4 flex justify-end">
+              <Button variant="secondary" onClick={() => setFiltros({ cedente_id: 'todos', status: 'pago', categoria_id: 'todos' })}>
+                Limpar Filtros
+              </Button>
             </div>
           </div>
-        </FilterBar>
+        </div>
 
         {/* Gráfico de Linha */}
         {loading ? (
-          <Card>
+          <div className="bg-white border border-gray-300">
             <div className="p-6 flex items-center justify-center h-[400px]">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0369a1] mx-auto mb-4"></div>
-                <p className="text-[#64748b]">Carregando dados...</p>
+                <p className="text-gray-600">Carregando dados...</p>
               </div>
             </div>
-          </Card>
+          </div>
         ) : chartData.length > 0 ? (
-          <Card>
+          <div className="bg-white border border-gray-300">
+            <div className="border-b border-gray-300 bg-gray-100 px-4 py-2">
+              <h2 className="text-sm font-semibold text-gray-700 uppercase">Evolução do Fluxo de Caixa</h2>
+            </div>
             <div className="p-6">
               <FinanceLineChart 
                 data={chartData} 
@@ -428,28 +450,28 @@ export default function FluxoCaixaPage() {
                 height={400}
               />
             </div>
-          </Card>
+          </div>
         ) : (
-          <Card>
+          <div className="bg-white border border-gray-300">
             <div className="p-6 flex items-center justify-center h-[400px]">
               <div className="text-center">
-                <p className="text-[#64748b] text-lg">Nenhum dado encontrado para o período selecionado</p>
-                <p className="text-[#94a3b8] text-sm mt-2">Tente ajustar os filtros ou selecionar outro período</p>
+                <p className="text-gray-600 text-lg">Nenhum dado encontrado para o período selecionado</p>
+                <p className="text-gray-500 text-sm mt-2">Tente ajustar os filtros ou selecionar outro período</p>
               </div>
             </div>
-          </Card>
+          </div>
         )}
 
         {/* Tabela de Dados */}
-        <Card>
-          <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-gray-900">Fluxo de Caixa Diário</h3>
+        <div className="bg-white border border-gray-300">
+          <div className="border-b border-gray-300 bg-gray-100 px-4 py-2 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-gray-700 uppercase">Fluxo de Caixa Diário</h2>
             <div className="flex items-center gap-2">
               <label className="text-sm text-[#64748b]">Mostrar:</label>
               <select
                 value={limiteTabela}
                 onChange={(e) => setLimiteTabela(e.target.value as typeof limiteTabela)}
-                className="px-3 py-1.5 border border-[#cbd5e1] rounded-lg text-sm focus:ring-2 focus:ring-[#0369a1] focus:border-[#0369a1]"
+                className="px-3 py-1.5 border border-gray-300 text-sm"
               >
                 <optgroup label="Últimos dias">
                   <option value="ultimos-7">Últimos 7 dias</option>
@@ -476,32 +498,32 @@ export default function FluxoCaixaPage() {
             </div>
           ) : dadosTabela.length > 0 ? (
             <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
+              <table className="w-full border-collapse">
+                <thead className="bg-gray-100 border-b-2 border-gray-300">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Receitas</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Despesas</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Saldo do Dia</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Saldo Acumulado</th>
+                    <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Data</th>
+                    <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Receitas</th>
+                    <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Despesas</th>
+                    <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Saldo do Dia</th>
+                    <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase">Saldo Acumulado</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody>
                   {dadosTabela.map((item, index) => (
-                    <tr key={index} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    <tr key={index} className="hover:bg-gray-50 border-b border-gray-300">
+                      <td className="px-4 py-2 text-sm font-medium text-gray-900 border-r border-gray-300">
                         {new Date(item.data).toLocaleDateString('pt-BR')}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600 font-semibold">
+                      <td className="px-4 py-2 text-sm text-green-700 font-semibold border-r border-gray-300">
                         {item.receitas.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600 font-semibold">
+                      <td className="px-4 py-2 text-sm text-red-700 font-semibold border-r border-gray-300">
                         {item.despesas.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                       </td>
-                      <td className={`px-6 py-4 whitespace-nowrap text-sm font-semibold ${item.saldo > 0 ? 'text-green-600' : item.saldo < 0 ? 'text-red-600' : 'text-gray-500'}`}>
+                      <td className={`px-4 py-2 text-sm font-semibold border-r border-gray-300 ${item.saldo > 0 ? 'text-green-700' : item.saldo < 0 ? 'text-red-700' : 'text-gray-600'}`}>
                         {item.saldo.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                       </td>
-                      <td className={`px-6 py-4 whitespace-nowrap text-sm font-semibold ${item.saldo_acumulado > 0 ? 'text-green-600' : item.saldo_acumulado < 0 ? 'text-red-600' : 'text-gray-500'}`}>
+                      <td className={`px-4 py-2 text-sm font-semibold ${item.saldo_acumulado > 0 ? 'text-green-700' : item.saldo_acumulado < 0 ? 'text-red-700' : 'text-gray-600'}`}>
                         {item.saldo_acumulado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                       </td>
                     </tr>
@@ -512,12 +534,12 @@ export default function FluxoCaixaPage() {
           ) : (
             <div className="p-6 flex items-center justify-center h-[200px]">
               <div className="text-center">
-                <p className="text-[#64748b]">Nenhum dado encontrado</p>
-                <p className="text-[#94a3b8] text-sm mt-1">Ajuste os filtros para ver os dados</p>
+                <p className="text-gray-600">Nenhum dado encontrado</p>
+                <p className="text-gray-500 text-sm mt-1">Ajuste os filtros para ver os dados</p>
               </div>
             </div>
           )}
-        </Card>
+        </div>
       </div>
     </main>
   );

@@ -16,10 +16,10 @@ export default function MenuFinanceiroPage() {
   }, [router]);
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      <div className="container max-w-6xl mx-auto px-4 py-8">
+    <main className="min-h-screen bg-gray-50">
+      <div className="container max-w-6xl mx-auto px-4 py-6">
         {/* Header com botão de voltar */}
-        <header className="mb-10">
+        <header className="mb-6">
           <button 
             onClick={() => {
               if (typeof window !== 'undefined' && window.history.length > 1) {
@@ -28,128 +28,109 @@ export default function MenuFinanceiroPage() {
                 router.push('/');
               }
             }}
-            className="inline-flex items-center gap-2 px-4 py-2 mb-6 rounded-lg bg-white border border-gray-200 hover:border-[#0369a1] hover:bg-blue-50 transition-all shadow-sm hover:shadow-md text-[#0369a1] font-medium"
+            className="inline-flex items-center gap-2 px-3 py-1.5 mb-4 bg-white border border-gray-300 hover:bg-gray-50 text-[#0369a1] text-sm font-medium"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
             Voltar
           </button>
-          <div>
-            <h1 className="text-4xl font-bold text-[#0369a1] mb-2">Menu Financeiro</h1>
-            <p className="text-[#64748b] text-lg">Gestão Financeira</p>
+          <div className="border-b-2 border-[#0369a1] pb-3">
+            <h1 className="text-3xl font-bold text-[#0369a1] mb-1">Menu Financeiro</h1>
+            <p className="text-sm text-gray-600">Gestão Financeira</p>
           </div>
         </header>
 
         {/* Menu de Opções */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          <Link href="/financeiro/a-receber" className="group">
-            <div className="relative bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-200 transform hover:-translate-y-1 border border-gray-100">
-              <div className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                    <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-bold text-[#0369a1]">A Receber</h2>
-                    <p className="text-sm text-[#64748b]">Contas a receber</p>
-                  </div>
+        <div className="bg-white border border-gray-300">
+          <div className="border-b border-gray-300 bg-gray-100 px-4 py-2">
+            <h2 className="text-sm font-semibold text-gray-700 uppercase">Opções Disponíveis</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 divide-y divide-x-0 md:divide-y-0 md:divide-x divide-gray-300">
+            <Link href="/financeiro/a-receber" className="p-4 hover:bg-green-50 transition-colors border-r-0 md:border-r border-gray-300 last:border-r-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-green-100 flex items-center justify-center border border-gray-300">
+                  <svg className="w-5 h-5 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-base font-semibold text-[#0369a1]">A Receber</h2>
+                  <p className="text-xs text-gray-600">Contas a receber</p>
                 </div>
               </div>
-            </div>
-          </Link>
+            </Link>
 
-          <Link href="/financeiro/a-pagar" className="group">
-            <div className="relative bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-200 transform hover:-translate-y-1 border border-gray-100">
-              <div className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                    <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-bold text-[#0369a1]">A Pagar</h2>
-                    <p className="text-sm text-[#64748b]">Contas a pagar</p>
-                  </div>
+            <Link href="/financeiro/a-pagar" className="p-4 hover:bg-orange-50 transition-colors border-r-0 md:border-r border-gray-300 last:border-r-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-orange-100 flex items-center justify-center border border-gray-300">
+                  <svg className="w-5 h-5 text-orange-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-base font-semibold text-[#0369a1]">A Pagar</h2>
+                  <p className="text-xs text-gray-600">Contas a pagar</p>
                 </div>
               </div>
-            </div>
-          </Link>
+            </Link>
 
-          <Link href="/financeiro/fluxo-caixa" className="group">
-            <div className="relative bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-200 transform hover:-translate-y-1 border border-gray-100">
-              <div className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <svg className="w-6 h-6 text-[#0369a1]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-bold text-[#0369a1]">Fluxo de Caixa</h2>
-                    <p className="text-sm text-[#64748b]">Análise de entradas e saídas</p>
-                  </div>
+            <Link href="/financeiro/fluxo-caixa" className="p-4 hover:bg-blue-50 transition-colors border-r-0 md:border-r border-gray-300 last:border-r-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-blue-100 flex items-center justify-center border border-gray-300">
+                  <svg className="w-5 h-5 text-[#0369a1]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-base font-semibold text-[#0369a1]">Fluxo de Caixa</h2>
+                  <p className="text-xs text-gray-600">Análise de entradas e saídas</p>
                 </div>
               </div>
-            </div>
-          </Link>
+            </Link>
 
-          <Link href="/financeiro/calendario" className="group">
-            <div className="relative bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-200 transform hover:-translate-y-1 border border-gray-100">
-              <div className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                    <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-bold text-[#0369a1]">Calendário</h2>
-                    <p className="text-sm text-[#64748b]">Visualização mensal</p>
-                  </div>
+            <Link href="/financeiro/calendario" className="p-4 hover:bg-purple-50 transition-colors border-r-0 md:border-r border-gray-300 last:border-r-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-purple-100 flex items-center justify-center border border-gray-300">
+                  <svg className="w-5 h-5 text-purple-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-base font-semibold text-[#0369a1]">Calendário</h2>
+                  <p className="text-xs text-gray-600">Visualização mensal</p>
                 </div>
               </div>
-            </div>
-          </Link>
+            </Link>
 
-          <Link href="/financeiro/top-receitas-despesas" className="group">
-            <div className="relative bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-200 transform hover:-translate-y-1 border border-gray-100">
-              <div className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-                    <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-bold text-[#0369a1]">Top Receitas/Despesas</h2>
-                    <p className="text-sm text-[#64748b]">Ranking dos maiores valores</p>
-                  </div>
+            <Link href="/financeiro/top-receitas-despesas" className="p-4 hover:bg-yellow-50 transition-colors border-r-0 md:border-r border-gray-300 last:border-r-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-yellow-100 flex items-center justify-center border border-gray-300">
+                  <svg className="w-5 h-5 text-yellow-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-base font-semibold text-[#0369a1]">Top Receitas/Despesas</h2>
+                  <p className="text-xs text-gray-600">Ranking dos maiores valores</p>
                 </div>
               </div>
-            </div>
-          </Link>
+            </Link>
 
-          <Link href="/contas-pagar" className="group">
-            <div className="relative bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-200 transform hover:-translate-y-1 border border-gray-100">
-              <div className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
-                    <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-bold text-[#0369a1]">Todos os Lançamentos</h2>
-                    <p className="text-sm text-[#64748b]">Receitas e despesas</p>
-                  </div>
+            <Link href="/contas-pagar" className="p-4 hover:bg-indigo-50 transition-colors border-r-0 md:border-r border-gray-300 last:border-r-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-indigo-100 flex items-center justify-center border border-gray-300">
+                  <svg className="w-5 h-5 text-indigo-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-base font-semibold text-[#0369a1]">Todos os Lançamentos</h2>
+                  <p className="text-xs text-gray-600">Receitas e despesas</p>
                 </div>
               </div>
-            </div>
-          </Link>
+            </Link>
+          </div>
         </div>
       </div>
     </main>

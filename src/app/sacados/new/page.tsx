@@ -5,6 +5,7 @@ import { FormEvent, useState, useEffect, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
 import { formatCpfCnpj } from '@/lib/format';
 import { consultarCnpj } from '@/lib/cnpjws';
+import { validarCNPJ, validarCedenteId } from '@/lib/validations';
 
 type Cedente = {
   id: string;
@@ -29,6 +30,7 @@ function NewSacadoContent() {
   const [pending, setPending] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [loadingCnpj, setLoadingCnpj] = useState(false);
+  const [consultarAPIs, setConsultarAPIs] = useState(false);
 
   useEffect(() => {
     loadCedentes();
@@ -47,11 +49,81 @@ function NewSacadoContent() {
     }
   }
 
+  async function consultarAPIsSacado(cnpj: string) {
+    if (!cnpj || cnpj.length !== 14) return;
+    
+    try {
+      const tipos = ['enderecos', 'telefones', 'emails', 'qsa'];
+      
+      for (const tipo of tipos) {
+        try {
+          const res = await fetch(`/api/bigdata?cnpj=${encodeURIComponent(cnpj)}&tipo=${tipo}`);
+          const response = await res.json();
+          
+          if (res.ok && response && Array.isArray(response) && response.length > 0) {
+            const tableName = tipo === 'enderecos' ? 'sacados_enderecos' :
+                            tipo === 'telefones' ? 'sacados_telefones' :
+                            tipo === 'emails' ? 'sacados_emails' :
+                            tipo === 'qsa' ? 'sacados_qsa' : null;
+            
+            if (tableName) {
+              // Remove dados antigos da API
+              await supabase
+                .from(tableName)
+                .delete()
+                .eq('sacado_cnpj', cnpj)
+                .eq('origem', 'api');
+              
+              // Insere novos dados
+              const dataToInsert = response.map((item: any) => ({
+                ...item,
+                sacado_cnpj: cnpj,
+                origem: 'api',
+                ativo: true
+              }));
+              
+              await supabase.from(tableName).insert(dataToInsert);
+            }
+          }
+        } catch (err) {
+          console.error(`Erro ao consultar ${tipo}:`, err);
+        }
+      }
+    } catch (err) {
+      console.error('Erro ao consultar APIs:', err);
+    }
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     
-    if (!form.cedente_id) {
+    // Validação crítica: cedente_id obrigatório
+    if (!validarCedenteId(form.cedente_id)) {
       setErr('Selecione um cedente para este sacado');
+      return;
+    }
+    
+    // Validação crítica: CNPJ válido
+    const cnpjLimpo = form.cnpj.replace(/\D+/g, '');
+    if (!cnpjLimpo || cnpjLimpo.length !== 14) {
+      setErr('CNPJ inválido. Deve ter 14 dígitos');
+      return;
+    }
+    
+    if (!validarCNPJ(cnpjLimpo)) {
+      setErr('CNPJ inválido. Verifique os dígitos verificadores');
+      return;
+    }
+    
+    // Validação: CNPJ único (verificar se já existe)
+    const { data: existing } = await supabase
+      .from('sacados')
+      .select('cnpj')
+      .eq('cnpj', cnpjLimpo)
+      .single();
+    
+    if (existing) {
+      setErr('CNPJ já cadastrado no sistema');
       return;
     }
     
@@ -62,7 +134,7 @@ function NewSacadoContent() {
 
     const { error } = await supabase.from('sacados').insert({
       cedente_id: form.cedente_id,
-      cnpj: form.cnpj.replace(/\D+/g, ''),
+      cnpj: cnpjLimpo,
       razao_social: form.razao_social.trim(),
       nome_fantasia: form.nome_fantasia || null,
       grupo: form.grupo || null,
@@ -82,14 +154,22 @@ function NewSacadoContent() {
       user_id: user.id
     });
 
-    if (error) setErr(error.message);
-    else {
-      // Redireciona para a página do cedente se veio de lá, senão para a lista de sacados
-      if (cedente_id_param) {
-        router.replace(`/cedentes/${cedente_id_param}?tab=sacados`);
-      } else {
-        router.replace('/sacados');
-      }
+    if (error) {
+      setErr(error.message);
+      setPending(false);
+      return;
+    }
+    
+    // Se marcou para consultar APIs, consulta
+    if (consultarAPIs && cnpjLimpo && cnpjLimpo.length === 14) {
+      await consultarAPIsSacado(cnpjLimpo);
+    }
+
+    // Redireciona para a página do cedente se veio de lá, senão para a lista de sacados
+    if (cedente_id_param) {
+      router.replace(`/cedentes/${cedente_id_param}?tab=sacados`);
+    } else {
+      router.replace('/sacados');
     }
     setPending(false);
   }
@@ -218,22 +298,37 @@ function NewSacadoContent() {
           ))}
 
           {err && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded p-2">{err}</p>}
-          <div className="flex gap-2 pt-4">
-            <button 
-              disabled={pending || cedentes.length === 0 || !form.cedente_id} 
-              className="flex-1 px-4 py-2 bg-[#0369a1] text-white rounded-lg hover:bg-[#075985] disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {pending ? 'Salvando...' : 'Salvar Sacado'}
-            </button>
-            <button type="button" onClick={() => {
-  if (typeof window !== 'undefined' && window.history.length > 1) {
-    router.back();
-  } else {
-    router.push('/sacados');
-  }
-}} className="px-4 py-2 border border-[#cbd5e1] rounded-lg hover:bg-[#f8fafc]">
-              Cancelar
-            </button>
+          <div className="pt-4 space-y-3 border-t border-gray-300">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="consultar-apis-sacado"
+                checked={consultarAPIs}
+                onChange={(e) => setConsultarAPIs(e.target.checked)}
+                className="w-4 h-4 border border-gray-300"
+              />
+              <label htmlFor="consultar-apis-sacado" className="text-sm text-gray-700">
+                Consultar APIs após salvar (endereços, telefones, emails, QSA)
+              </label>
+            </div>
+            <div className="flex gap-2">
+              <button 
+                type="submit"
+                disabled={pending || cedentes.length === 0 || !form.cedente_id} 
+                className="flex-1 px-4 py-2 bg-[#0369a1] text-white rounded-lg hover:bg-[#075985] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {pending ? 'Salvando...' : 'Salvar Sacado'}
+              </button>
+              <button type="button" onClick={() => {
+                if (typeof window !== 'undefined' && window.history.length > 1) {
+                  router.back();
+                } else {
+                  router.push('/sacados');
+                }
+              }} className="px-4 py-2 border border-[#cbd5e1] rounded-lg hover:bg-[#f8fafc]">
+                Cancelar
+              </button>
+            </div>
           </div>
         </form>
       </div>

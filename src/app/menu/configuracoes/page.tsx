@@ -4,7 +4,6 @@ import { useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import Card from '@/components/ui/Card';
 
 export default function MenuConfiguracoesPage() {
   const router = useRouter();
@@ -17,9 +16,10 @@ export default function MenuConfiguracoesPage() {
   }, [router]);
 
   return (
-    <main className="min-h-screen p-6 bg-white">
-      <div className="container max-w-6xl space-y-6">
-        <header className="flex items-center gap-4">
+    <main className="min-h-screen bg-gray-50">
+      <div className="container max-w-6xl mx-auto px-4 py-6 space-y-4">
+        {/* Header */}
+        <header className="mb-4">
           <button 
             onClick={() => {
               if (typeof window !== 'undefined' && window.history.length > 1) {
@@ -28,116 +28,101 @@ export default function MenuConfiguracoesPage() {
                 router.push('/');
               }
             }}
-            className="p-2 rounded-lg border border-[#cbd5e1] hover:bg-[#f0f7ff] transition-colors"
+            className="inline-flex items-center gap-2 px-3 py-1.5 mb-4 bg-white border border-gray-300 hover:bg-gray-50 text-[#0369a1] text-sm font-medium"
           >
-            ←
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Voltar
           </button>
-          <div>
-            <h1 className="text-3xl font-bold text-[#0369a1]">Configurações</h1>
-            <p className="text-[#64748b]">Configurações do sistema e parâmetros</p>
+          <div className="border-b-2 border-[#0369a1] pb-3">
+            <h1 className="text-3xl font-bold text-[#0369a1] mb-1">Configurações</h1>
+            <p className="text-sm text-gray-600">Configurações do sistema e parâmetros</p>
           </div>
         </header>
 
-        <div className="grid gap-6 md:grid-cols-2">
-          {/* Configurações Gerais */}
-          <Link href="/settings" className="group">
-            <Card hover className="h-full">
-              <div className="p-6">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="text-3xl">⚙️</div>
-                  <div>
-                    <h2 className="text-xl font-bold text-[#0369a1]">Configurações Gerais</h2>
-                    <p className="text-[#64748b] text-sm">Parâmetros do sistema</p>
-                  </div>
-                </div>
-                <p className="text-[#64748b] mb-4">
-                  Configurações gerais do sistema, preferências e parâmetros de funcionamento.
-                </p>
-                <div className="text-[#0369a1] font-medium group-hover:text-[#075985]">
-                  Acessar →
+        {/* Menu Principal */}
+        <div className="bg-white border border-gray-300">
+          <div className="border-b border-gray-300 bg-gray-100 px-4 py-2">
+            <h2 className="text-sm font-semibold text-gray-700 uppercase">Opções Principais</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 divide-y divide-x-0 md:divide-y-0 md:divide-x divide-gray-300">
+            <Link href="/settings" className="p-4 hover:bg-gray-50 transition-colors border-r-0 md:border-r border-gray-300">
+              <div className="flex items-start gap-3">
+                <div className="text-2xl">⚙️</div>
+                <div className="flex-1">
+                  <h2 className="text-base font-semibold text-[#0369a1] mb-1">Configurações Gerais</h2>
+                  <p className="text-xs text-gray-600 mb-2">Parâmetros do sistema</p>
+                  <p className="text-xs text-gray-500">
+                    Configurações gerais do sistema, preferências e parâmetros de funcionamento.
+                  </p>
                 </div>
               </div>
-            </Card>
-          </Link>
+            </Link>
 
-          {/* Configurações Financeiras */}
-          <Link href="/settings/finance" className="group">
-            <Card hover className="h-full">
-              <div className="p-6">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="text-3xl">💳</div>
-                  <div>
-                    <h2 className="text-xl font-bold text-[#0369a1]">Financeiro</h2>
-                    <p className="text-[#64748b] text-sm">Configurações financeiras</p>
-                  </div>
-                </div>
-                <p className="text-[#64748b] mb-4">
-                  Categorias, contas, meios de pagamento, recorrências e elementos financeiros.
-                </p>
-                <div className="text-[#0369a1] font-medium group-hover:text-[#075985]">
-                  Acessar →
+            <Link href="/settings/finance" className="p-4 hover:bg-gray-50 transition-colors border-r-0 md:border-r border-gray-300">
+              <div className="flex items-start gap-3">
+                <div className="text-2xl">💳</div>
+                <div className="flex-1">
+                  <h2 className="text-base font-semibold text-[#0369a1] mb-1">Financeiro</h2>
+                  <p className="text-xs text-gray-600 mb-2">Configurações financeiras</p>
+                  <p className="text-xs text-gray-500">
+                    Categorias, contas, meios de pagamento, recorrências e elementos financeiros.
+                  </p>
                 </div>
               </div>
-            </Card>
-          </Link>
+            </Link>
 
-          {/* Status */}
-          <Link href="/settings/status" className="group">
-            <Card hover className="h-full">
-              <div className="p-6">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="text-3xl">🏷️</div>
-                  <div>
-                    <h2 className="text-xl font-bold text-[#0369a1]">Status</h2>
-                    <p className="text-[#64748b] text-sm">Gestão de status</p>
-                  </div>
-                </div>
-                <p className="text-[#64748b] mb-4">
-                  Configuração de status para sacados, cedentes e transações financeiras.
-                </p>
-                <div className="text-[#0369a1] font-medium group-hover:text-[#075985]">
-                  Acessar →
+            <Link href="/settings/status" className="p-4 hover:bg-gray-50 transition-colors border-r-0 md:border-r border-gray-300">
+              <div className="flex items-start gap-3">
+                <div className="text-2xl">🏷️</div>
+                <div className="flex-1">
+                  <h2 className="text-base font-semibold text-[#0369a1] mb-1">Status</h2>
+                  <p className="text-xs text-gray-600 mb-2">Gestão de status</p>
+                  <p className="text-xs text-gray-500">
+                    Configuração de status para sacados, cedentes e transações financeiras.
+                  </p>
                 </div>
               </div>
-            </Card>
-          </Link>
+            </Link>
+          </div>
         </div>
 
         {/* Submenus Financeiros */}
-        <Card>
-          <div className="p-6">
-            <h2 className="text-lg font-semibold text-[#0369a1] mb-4">Configurações Financeiras Detalhadas</h2>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <Link href="/settings/finance/categorias" className="group">
-                <div className="p-4 rounded-lg border border-[#cbd5e1] hover:border-[#0369a1] hover:bg-[#f0f7ff] transition-all">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="text-2xl">📂</div>
-                    <h3 className="font-medium text-[#1e293b] group-hover:text-[#0369a1]">Categorias</h3>
-                  </div>
-                  <p className="text-sm text-[#64748b]">Categorias de receitas e despesas</p>
-                </div>
-              </Link>
-              <Link href="/settings/finance/contas" className="group">
-                <div className="p-4 rounded-lg border border-[#cbd5e1] hover:border-[#0369a1] hover:bg-[#f0f7ff] transition-all">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="text-2xl">🏦</div>
-                    <h3 className="font-medium text-[#1e293b] group-hover:text-[#0369a1]">Contas</h3>
-                  </div>
-                  <p className="text-sm text-[#64748b]">Contas bancárias e carteiras</p>
-                </div>
-              </Link>
-              <Link href="/settings/finance/meios" className="group">
-                <div className="p-4 rounded-lg border border-[#cbd5e1] hover:border-[#0369a1] hover:bg-[#f0f7ff] transition-all">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="text-2xl">💳</div>
-                    <h3 className="font-medium text-[#1e293b] group-hover:text-[#0369a1]">Meios</h3>
-                  </div>
-                  <p className="text-sm text-[#64748b]">Meios de pagamento</p>
-                </div>
-              </Link>
-            </div>
+        <div className="bg-white border border-gray-300">
+          <div className="border-b border-gray-300 bg-gray-100 px-4 py-2">
+            <h2 className="text-sm font-semibold text-gray-700 uppercase">Configurações Financeiras Detalhadas</h2>
           </div>
-        </Card>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 divide-y divide-x-0 sm:divide-y-0 sm:divide-x divide-gray-300">
+            <Link href="/settings/finance/categorias" className="p-4 hover:bg-gray-50 transition-colors border-r-0 sm:border-r border-gray-300">
+              <div className="flex items-center gap-3">
+                <div className="text-xl">📂</div>
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900">Categorias</h3>
+                  <p className="text-xs text-gray-600">Categorias de receitas e despesas</p>
+                </div>
+              </div>
+            </Link>
+            <Link href="/settings/finance/contas" className="p-4 hover:bg-gray-50 transition-colors border-r-0 sm:border-r border-gray-300">
+              <div className="flex items-center gap-3">
+                <div className="text-xl">🏦</div>
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900">Contas</h3>
+                  <p className="text-xs text-gray-600">Contas bancárias e carteiras</p>
+                </div>
+              </div>
+            </Link>
+            <Link href="/settings/finance/meios" className="p-4 hover:bg-gray-50 transition-colors">
+              <div className="flex items-center gap-3">
+                <div className="text-xl">💳</div>
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900">Meios</h3>
+                  <p className="text-xs text-gray-600">Meios de pagamento</p>
+                </div>
+              </div>
+            </Link>
+          </div>
+        </div>
       </div>
     </main>
   );

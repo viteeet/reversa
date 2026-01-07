@@ -7,9 +7,6 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
 import Badge from '@/components/ui/Badge';
-import StatCard from '@/components/ui/StatCard';
-import FilterBar from '@/components/ui/FilterBar';
-import Table from '@/components/ui/Table';
 import Modal from '@/components/ui/Modal';
 
 type Conta = { id: string; nome: string };
@@ -263,59 +260,73 @@ export default function APagarPage() {
   ];
 
   return (
-    <main className="min-h-screen p-6 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      <div className="container max-w-7xl space-y-6">
-        <header className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <button 
-                onClick={() => {
-                  if (typeof window !== 'undefined' && window.history.length > 1) {
-                    router.back();
-                  } else {
-                    router.push('/menu/financeiro');
-                  }
-                }}
-                className="inline-flex items-center gap-2 px-4 py-2 mb-4 rounded-lg bg-white border border-gray-200 hover:border-[#0369a1] hover:bg-blue-50 transition-all shadow-sm hover:shadow-md text-[#0369a1] font-medium"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-                Voltar
-              </button>
-              <h1 className="text-3xl font-bold text-[#0369a1]">Contas a Pagar</h1>
-              <p className="text-[#64748b]">Gestão de despesas</p>
-            </div>
-            <div className="flex items-center gap-4">
-              <p className="text-sm text-[#64748b]">
-                Período: 
-                <input type="date" className="ml-2 px-3 py-2 border border-slate-300 rounded-lg" value={periodo.ini} onChange={(e) => setPeriodo({ ...periodo, ini: e.target.value })} />
-                <span className="mx-2">até</span>
-                <input type="date" className="px-3 py-2 border border-slate-300 rounded-lg" value={periodo.fim} onChange={(e) => setPeriodo({ ...periodo, fim: e.target.value })} />
-              </p>
-            </div>
-          </div>
-          
-          <div className="grid gap-4 sm:grid-cols-3">
-            <StatCard 
-              title="A Pagar" 
-              value={totalPagar} 
-              variant="warning"
-            />
-            <StatCard 
-              title="Total Pago" 
-              value={totalPago} 
-              variant="success"
-            />
-            <StatCard 
-              title="Total Geral" 
-              value={totalGeral} 
-              variant="neutral"
-            />
+    <main className="min-h-screen bg-gray-50">
+      <div className="container max-w-7xl mx-auto px-4 py-6 space-y-4">
+        {/* Header */}
+        <header className="mb-4">
+          <button 
+            onClick={() => {
+              if (typeof window !== 'undefined' && window.history.length > 1) {
+                router.back();
+              } else {
+                router.push('/menu/financeiro');
+              }
+            }}
+            className="inline-flex items-center gap-2 px-3 py-1.5 mb-4 bg-white border border-gray-300 hover:bg-gray-50 text-[#0369a1] text-sm font-medium"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Voltar
+          </button>
+          <div className="border-b-2 border-[#0369a1] pb-3">
+            <h1 className="text-3xl font-bold text-[#0369a1] mb-1">Contas a Pagar</h1>
+            <p className="text-sm text-gray-600">Gestão de despesas</p>
           </div>
         </header>
 
-        <FilterBar filters={filtros} onFilterChange={(key, value) => setFiltros({ ...filtros, [key]: value })} onClear={() => setFiltros({ conta: '', categoria: '', status: '', meio: '', texto: '' })}>
+        {/* Período e Estatísticas */}
+        <div className="bg-white border border-gray-300">
+          <div className="border-b border-gray-300 bg-gray-100 px-4 py-2">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <h2 className="text-sm font-semibold text-gray-700 uppercase">Período e Resumo</h2>
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <span>Período:</span>
+                <input type="date" className="px-2 py-1 border border-gray-300 text-sm" value={periodo.ini} onChange={(e) => setPeriodo({ ...periodo, ini: e.target.value })} />
+                <span>até</span>
+                <input type="date" className="px-2 py-1 border border-gray-300 text-sm" value={periodo.fim} onChange={(e) => setPeriodo({ ...periodo, fim: e.target.value })} />
+              </div>
+            </div>
+          </div>
+          <div className="grid grid-cols-3 divide-x divide-gray-300 p-4">
+            <div className="px-4 py-3">
+              <p className="text-xs text-gray-500 uppercase mb-1">A Pagar</p>
+              <p className="text-lg font-semibold text-orange-700">
+                {totalPagar.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              </p>
+            </div>
+            <div className="px-4 py-3">
+              <p className="text-xs text-gray-500 uppercase mb-1">Total Pago</p>
+              <p className="text-lg font-semibold text-green-700">
+                {totalPago.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              </p>
+            </div>
+            <div className="px-4 py-3">
+              <p className="text-xs text-gray-500 uppercase mb-1">Total Geral</p>
+              <p className="text-lg font-semibold text-[#0369a1]">
+                {totalGeral.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Filtros */}
+        <div className="bg-white border border-gray-300">
+          <div className="border-b border-gray-300 bg-gray-100 px-4 py-2">
+            <h2 className="text-sm font-semibold text-gray-700 uppercase">Filtros</h2>
+          </div>
+          <div className="p-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Select
             label="Conta"
             value={filtros.conta}
@@ -344,32 +355,67 @@ export default function APagarPage() {
               { value: 'pago', label: 'Pago' },
             ]}
           />
-          <Input
-            label="Buscar"
-            placeholder="Digite para buscar..."
-            value={filtros.texto}
-            onChange={(e) => setFiltros({ ...filtros, texto: e.target.value })}
-          />
-        </FilterBar>
-
-        <div className="flex justify-end">
-          <Button 
-            variant="primary" 
-            onClick={() => {
-              setEditandoId(null);
-              setNovo({ conta_id: '', categoria_id: '', meio_pagamento_id: '', valor: '', vencimento: '', descricao: '' });
-              setShowModal(true);
-            }}
-          >
-            Nova Despesa
-          </Button>
+              <Input
+                label="Buscar"
+                placeholder="Digite para buscar..."
+                value={filtros.texto}
+                onChange={(e) => setFiltros({ ...filtros, texto: e.target.value })}
+              />
+            </div>
+            <div className="mt-4 flex justify-end">
+              <Button variant="secondary" onClick={() => setFiltros({ conta: '', categoria: '', status: '', meio: '', texto: '' })}>
+                Limpar Filtros
+              </Button>
+            </div>
+          </div>
         </div>
 
-        <Table
-          data={filteredItems}
-          columns={columns}
-          emptyMessage="Nenhuma conta a pagar encontrada no período selecionado"
-        />
+        {/* Tabela */}
+        <div className="bg-white border border-gray-300">
+          <div className="border-b border-gray-300 bg-gray-100 px-4 py-2 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-gray-700 uppercase">Contas a Pagar</h2>
+            <Button 
+              variant="primary" 
+              onClick={() => {
+                setEditandoId(null);
+                setNovo({ conta_id: '', categoria_id: '', meio_pagamento_id: '', valor: '', vencimento: '', descricao: '' });
+                setShowModal(true);
+              }}
+            >
+              Nova Despesa
+            </Button>
+          </div>
+          <div className="overflow-x-auto">
+            {filteredItems.length === 0 ? (
+              <div className="p-8 text-center text-gray-600">
+                <p>Nenhuma conta a pagar encontrada no período selecionado</p>
+              </div>
+            ) : (
+              <table className="w-full border-collapse">
+                <thead className="bg-gray-100 border-b-2 border-gray-300">
+                  <tr>
+                    {columns.map((col) => (
+                      <th key={String(col.key)} className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">
+                        {col.label}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredItems.map((item) => (
+                    <tr key={item.id} className="hover:bg-gray-50 border-b border-gray-300">
+                      {columns.map((col) => (
+                        <td key={String(col.key)} className="px-4 py-2 text-sm text-gray-900 border-r border-gray-300">
+                          {col.render ? col.render(item[col.key] as any, item) : String(item[col.key] ?? '—')}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
       </div>
 
       <Modal

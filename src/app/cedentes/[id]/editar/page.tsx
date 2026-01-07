@@ -5,7 +5,6 @@ import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { formatCpfCnpj } from '@/lib/format';
-import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Input from '@/components/ui/Input';
@@ -812,11 +811,11 @@ export default function EditarCedentePage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen p-6 bg-white">
-        <div className="container max-w-6xl">
+      <main className="min-h-screen bg-gray-50">
+        <div className="container max-w-6xl mx-auto px-4 py-6">
           <div className="text-center py-8">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#0369a1]"></div>
-            <p className="mt-2 text-[#64748b]">Carregando...</p>
+            <p className="mt-2 text-gray-600">Carregando...</p>
           </div>
         </div>
       </main>
@@ -825,17 +824,17 @@ export default function EditarCedentePage() {
 
   if (!cedente) {
     return (
-      <main className="min-h-screen p-6 bg-white">
-        <div className="container max-w-6xl">
+      <main className="min-h-screen bg-gray-50">
+        <div className="container max-w-6xl mx-auto px-4 py-6">
           <div className="text-center py-8">
-            <p className="text-[#64748b]">Cedente não encontrado</p>
+            <p className="text-gray-600">Cedente não encontrado</p>
             <Button variant="primary" onClick={() => {
-  if (typeof window !== 'undefined' && window.history.length > 1) {
-    router.back();
-  } else {
-    router.push(`/cedentes/${id}`);
-  }
-}} className="mt-4">
+              if (typeof window !== 'undefined' && window.history.length > 1) {
+                router.back();
+              } else {
+                router.push(`/cedentes/${id}`);
+              }
+            }} className="mt-4">
               Voltar
             </Button>
           </div>
@@ -845,7 +844,7 @@ export default function EditarCedentePage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-white">
+    <div className="flex min-h-screen bg-gray-50">
       {/* Menu Lateral Fixo - Navegação por Seções */}
       <aside className={`hidden lg:block fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 bg-white border-r border-gray-200 overflow-y-auto z-30 transition-transform duration-300 ease-in-out ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
@@ -924,29 +923,37 @@ export default function EditarCedentePage() {
 
       {/* Conteúdo Principal */}
       <main className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'lg:ml-64' : ''}`}>
-        <div className="container max-w-6xl mx-auto p-6 space-y-6">
-          <header className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-[#0369a1]">
-                {cedente.nome}
-              </h1>
-              {cedente.razao_social && <p className="text-[#64748b]">{cedente.razao_social}</p>}
-              {cedente.cnpj && <p className="text-sm text-[#64748b] font-mono">{cedente.cnpj}</p>}
-            </div>
-            <Button variant="secondary" onClick={() => {
-  if (typeof window !== 'undefined' && window.history.length > 1) {
-    router.back();
-  } else {
-    router.push(`/cedentes/${id}`);
-  }
-}}>
+        <div className="container max-w-6xl mx-auto px-4 py-6 space-y-4">
+          <header className="mb-4">
+            <button 
+              onClick={() => {
+                if (typeof window !== 'undefined' && window.history.length > 1) {
+                  router.back();
+                } else {
+                  router.push(`/cedentes/${id}`);
+                }
+              }}
+              className="inline-flex items-center gap-2 px-3 py-1.5 mb-4 bg-white border border-gray-300 hover:bg-gray-50 text-[#0369a1] text-sm font-medium"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
               Voltar
-            </Button>
+            </button>
+            <div className="border-b-2 border-[#0369a1] pb-3 flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-[#0369a1] mb-1">
+                  {cedente.nome}
+                </h1>
+                {cedente.razao_social && <p className="text-sm text-gray-600">{cedente.razao_social}</p>}
+                {cedente.cnpj && <p className="text-xs text-gray-500 font-mono">{formatCpfCnpj(cedente.cnpj)}</p>}
+              </div>
+            </div>
           </header>
 
           {/* Informações Básicas - Formulário de Edição */}
           <div id="informacoes_basicas" ref={(el) => { sectionRefs.current['informacoes_basicas'] = el; }}>
-            <Card>
+            <div className="bg-white border border-gray-300">
               <div className="space-y-4">
                 <div className="flex items-center justify-between pb-2 border-b border-gray-200">
                   <div className="flex items-center gap-2">
@@ -1145,18 +1152,18 @@ export default function EditarCedentePage() {
                 </div>
                 )}
               </div>
-            </Card>
+            </div>
           </div>
 
           {/* Observações Gerais da Empresa - TOPO */}
           <div id="observacoes" ref={(el) => { sectionRefs.current['observacoes'] = el; }}>
-            <Card>
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-gray-800">
-                  Observações Gerais - {cedente.nome}
-                </label>
+            <div className="bg-white border border-gray-300">
+              <div className="border-b border-gray-300 bg-gray-100 px-4 py-2">
+                <h2 className="text-xs font-semibold text-gray-700 uppercase">Observações Gerais - {cedente.nome}</h2>
+              </div>
+              <div className="p-4">
                 <textarea
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[100px] resize-y"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 min-h-[100px] resize-y"
                   value={observacoesGerais}
                   onChange={e => {
                     setObservacoesGerais(e.target.value);
@@ -1164,7 +1171,7 @@ export default function EditarCedentePage() {
                   placeholder="Digite observações gerais sobre esta empresa: contexto, histórico, alertas, etc..."
                 />
               </div>
-            </Card>
+            </div>
           </div>
 
           {/* Categorias dinâmicas (baseadas na configuração) - Agrupadas */}
@@ -1211,7 +1218,7 @@ export default function EditarCedentePage() {
                         id={categoria.id}
                         ref={(el) => { sectionRefs.current[categoria.id] = el; }}
                       >
-                        <Card>
+                        <div className="bg-white border border-gray-300">
                           <CompactDataManager
                             title={categoria.title}
                             entityId={id}
@@ -1224,7 +1231,7 @@ export default function EditarCedentePage() {
                             showDetailsButton={categoria.showDetailsButton}
                             isLoading={loadingCategorias[categoria.id]}
                           />
-                        </Card>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -1235,13 +1242,13 @@ export default function EditarCedentePage() {
 
           {/* Processos Judiciais - SIMPLIFICADO */}
           <div id="processos" ref={(el) => { sectionRefs.current['processos'] = el; }}>
-            <Card>
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-gray-800">
-                  Processos Judiciais e Informações Relevantes
-                </label>
+            <div className="bg-white border border-gray-300">
+              <div className="border-b border-gray-300 bg-gray-100 px-4 py-2">
+                <h2 className="text-xs font-semibold text-gray-700 uppercase">Processos Judiciais e Informações Relevantes</h2>
+              </div>
+              <div className="p-4">
                 <textarea
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[300px] resize-y font-mono"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 min-h-[300px] resize-y font-mono"
                   value={processosTexto}
                   onChange={e => {
                     setProcessosTexto(e.target.value);
@@ -1249,7 +1256,7 @@ export default function EditarCedentePage() {
                   placeholder="Cole aqui todos os processos e informações relevantes encontradas...&#10;&#10;Exemplo:&#10;PROCESSOS: 13&#10;&#10;Processo 1: ...&#10;Processo 2: ...&#10;&#10;INFORMAÇÕES:&#10;- Detalhes importantes&#10;- Endereços relacionados&#10;- Contatos úteis"
                 />
               </div>
-            </Card>
+            </div>
           </div>
 
           {/* QSA com Botão de Detalhes (renderizado separadamente) */}
@@ -1259,23 +1266,21 @@ export default function EditarCedentePage() {
             
             return (
               <div id="qsa" ref={(el) => { sectionRefs.current['qsa'] = el; }}>
-                <Card>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between pb-2 border-b border-gray-200">
-                      <h3 className="text-base font-semibold text-gray-900">
-                        {categoriaQsa.title}
-                      </h3>
-                      <div className="flex gap-2">
-                        {cedente.cnpj && categoriaQsa.apiType && (
-                          <button
-                            onClick={() => fetchFromAPI(categoriaQsa.apiType!).then(() => loadCategoria('qsa', categoriaQsa.tableName))}
-                            className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded border border-gray-300"
-                          >
-                            🔄 API
-                          </button>
-                        )}
-                      </div>
+                <div className="bg-white border border-gray-300">
+                  <div className="border-b border-gray-300 bg-gray-100 px-4 py-2 flex items-center justify-between">
+                    <h2 className="text-xs font-semibold text-gray-700 uppercase">{categoriaQsa.title}</h2>
+                    <div className="flex gap-2">
+                      {cedente.cnpj && categoriaQsa.apiType && (
+                        <button
+                          onClick={() => fetchFromAPI(categoriaQsa.apiType!).then(() => loadCategoria('qsa', categoriaQsa.tableName))}
+                          className="px-2 py-1 text-xs border border-gray-300 bg-white hover:bg-gray-50 text-[#0369a1] font-medium"
+                        >
+                          API
+                        </button>
+                      )}
                     </div>
+                  </div>
+                  <div className="p-4">
 
                     <CompactDataManager
                       title=""
@@ -1290,41 +1295,41 @@ export default function EditarCedentePage() {
                       onOpenDetails={openQsaDetails}
                     />
                   </div>
-                </Card>
+                </div>
               </div>
             );
           })()}
 
           {/* Sacados Relacionados */}
           <div id="sacados" ref={(el) => { sectionRefs.current['sacados'] = el; }}>
-            <Card>
-          <div className="space-y-4">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 pb-2 border-b border-gray-200">
-              <div>
-                <h3 className="text-base font-semibold text-gray-800">Sacados Relacionados</h3>
-                <p className="text-xs text-gray-500 mt-1">Gerencie os sacados (devedores) deste cedente</p>
+            <div className="bg-white border border-gray-300">
+              <div className="border-b border-gray-300 bg-gray-100 px-4 py-2 flex items-center justify-between">
+                <div>
+                  <h2 className="text-xs font-semibold text-gray-700 uppercase">Sacados Relacionados</h2>
+                  <p className="text-xs text-gray-500 mt-1">Gerencie os sacados (devedores) deste cedente</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    value={sacadosQuery}
+                    onChange={(e) => setSacadosQuery(e.target.value)}
+                    placeholder="Buscar sacado (nome, CNPJ)"
+                    className="px-3 py-1.5 text-sm border border-gray-300 w-64"
+                  />
+                  <button 
+                    className="px-3 py-1.5 text-sm font-medium bg-[#0369a1] text-white hover:bg-[#075985]"
+                    onClick={() => setShowAddSacado(true)}
+                  >
+                    + Adicionar
+                  </button>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <input
-                  value={sacadosQuery}
-                  onChange={(e) => setSacadosQuery(e.target.value)}
-                  placeholder="Buscar sacado (nome, CNPJ)"
-                  className="px-3 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 w-64"
-                />
-                <button 
-                  className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700"
-                  onClick={() => setShowAddSacado(true)}
-                >
-                  + Adicionar
-                </button>
-              </div>
-            </div>
+              <div className="p-4 space-y-4">
 
             {sacados.length === 0 ? (
-              <div className="text-center py-8 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-                <p className="text-gray-500 text-sm mb-2">Nenhum sacado cadastrado ainda</p>
+              <div className="text-center py-8 bg-gray-50 border border-gray-300">
+                <p className="text-gray-600 text-sm mb-2">Nenhum sacado cadastrado ainda</p>
                 <button 
-                  className="px-4 py-2 text-sm font-medium text-blue-600 bg-white border border-blue-300 rounded hover:bg-blue-50"
+                  className="px-3 py-1.5 text-sm font-medium bg-[#0369a1] text-white hover:bg-[#075985]"
                   onClick={() => setShowAddSacado(true)}
                 >
                   + Adicionar Primeiro Sacado
@@ -1332,17 +1337,17 @@ export default function EditarCedentePage() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50">
+                <table className="w-full border-collapse">
+                  <thead className="bg-gray-100 border-b-2 border-gray-300">
                     <tr>
-                      <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700">Razão Social</th>
-                      <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700">Nome Fantasia</th>
-                      <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700">CNPJ</th>
-                      <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700">Situação</th>
-                      <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700">Ações</th>
+                      <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Razão Social</th>
+                      <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Nome Fantasia</th>
+                      <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">CNPJ</th>
+                      <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Situação</th>
+                      <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase">Ações</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200">
+                  <tbody>
                     {sacados
                       .filter(s => {
                         const t = sacadosQuery.trim().toLowerCase();
@@ -1354,11 +1359,11 @@ export default function EditarCedentePage() {
                         );
                       })
                       .map(sacado => (
-                      <tr key={sacado.cnpj} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-4 py-2 text-sm text-gray-900 font-medium">{sacado.razao_social}</td>
-                        <td className="px-4 py-2 text-sm text-gray-600">{sacado.nome_fantasia || '—'}</td>
-                        <td className="px-4 py-2 text-sm text-gray-600 font-mono">{formatCpfCnpj(sacado.cnpj)}</td>
-                        <td className="px-4 py-2">
+                      <tr key={sacado.cnpj} className="hover:bg-gray-50 border-b border-gray-300">
+                        <td className="px-4 py-2 text-sm text-gray-900 font-medium border-r border-gray-300">{sacado.razao_social}</td>
+                        <td className="px-4 py-2 text-sm text-gray-600 border-r border-gray-300">{sacado.nome_fantasia || '—'}</td>
+                        <td className="px-4 py-2 text-sm text-gray-600 font-mono border-r border-gray-300">{formatCpfCnpj(sacado.cnpj)}</td>
+                        <td className="px-4 py-2 border-r border-gray-300">
                           {sacado.situacao && (
                             <Badge variant={sacado.situacao === 'ATIVA' ? 'success' : 'error'} size="sm">
                               {sacado.situacao}
@@ -1367,15 +1372,15 @@ export default function EditarCedentePage() {
                         </td>
                         <td className="px-4 py-2">
                           <div className="flex gap-1">
-                            <Link href={`/sacados/${encodeURIComponent(sacado.cnpj)}`} title="Ver">
-                              <button className="px-2 py-1 text-xs text-gray-600 bg-white border border-gray-300 rounded hover:bg-gray-50" aria-label="Ver">Ver</button>
+                            <Link href={`/sacados/${encodeURIComponent(sacado.cnpj)}`}>
+                              <button className="px-2 py-1 border border-gray-300 bg-white hover:bg-gray-50 text-[#0369a1] text-xs font-medium" title="Ver">Ver</button>
                             </Link>
-                            <Link href={`/sacados/${encodeURIComponent(sacado.cnpj)}/editar`} title="Editar">
-                              <button className="px-2 py-1 text-xs text-gray-600 bg-white border border-gray-300 rounded hover:bg-gray-50" aria-label="Editar">Editar</button>
+                            <Link href={`/sacados/${encodeURIComponent(sacado.cnpj)}/editar`}>
+                              <button className="px-2 py-1 border border-gray-300 bg-white hover:bg-gray-50 text-[#0369a1] text-xs font-medium" title="Editar">Editar</button>
                             </Link>
                             <button 
                               onClick={() => removerSacado(sacado.cnpj)}
-                              className="px-2 py-1 text-xs text-red-600 bg-white border border-red-300 rounded hover:bg-red-50" 
+                              className="px-2 py-1 border border-gray-300 bg-white hover:bg-gray-50 text-red-600 text-xs font-medium" 
                               title="Remover"
                               aria-label="Remover"
                             >
@@ -1389,8 +1394,8 @@ export default function EditarCedentePage() {
                 </table>
               </div>
             )}
-          </div>
-          </Card>
+              </div>
+            </div>
           </div>
 
           {/* Botões de Ação */}

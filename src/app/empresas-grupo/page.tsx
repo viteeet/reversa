@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { formatCpfCnpj } from '@/lib/format';
-import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Badge from '@/components/ui/Badge';
@@ -98,15 +97,30 @@ export default function EmpresasGrupoPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      <div className="container max-w-7xl mx-auto px-4 py-8">
-        <Card>
-          <div className="p-6">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+    <main className="min-h-screen bg-gray-50">
+      <div className="container max-w-7xl mx-auto px-4 py-6">
+        {/* Header com botão de voltar */}
+        <header className="mb-4">
+          <button 
+            onClick={() => router.push('/menu/operacional')}
+            className="inline-flex items-center gap-2 px-3 py-1.5 mb-4 bg-white border border-gray-300 hover:bg-gray-50 text-[#0369a1] text-sm font-medium"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Voltar
+          </button>
+          <div className="border-b-2 border-[#0369a1] pb-3">
+            <h1 className="text-3xl font-bold text-[#0369a1] mb-1">Grupos de Empresas</h1>
+            <p className="text-sm text-gray-600">Gerencie grupos de empresas com múltiplos CNPJs</p>
+          </div>
+        </header>
+
+        <div className="bg-white border border-gray-300">
+          <div className="border-b border-gray-300 bg-gray-100 px-4 py-2">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
-                <h1 className="text-3xl font-bold text-[#0369a1] mb-2">Grupos de Empresas</h1>
-                <p className="text-[#64748b]">Gerencie grupos de empresas com múltiplos CNPJs</p>
+                <h2 className="text-sm font-semibold text-gray-700 uppercase">Opções</h2>
               </div>
               <Button
                 variant="primary"
@@ -115,9 +129,11 @@ export default function EmpresasGrupoPage() {
                 + Criar Grupo
               </Button>
             </div>
+          </div>
+          <div className="p-4">
 
             {/* Busca */}
-            <div className="mb-6">
+            <div className="mb-4">
               <Input
                 placeholder="Buscar por nome do grupo ou CNPJ matriz..."
                 value={q}
@@ -127,12 +143,12 @@ export default function EmpresasGrupoPage() {
 
             {/* Lista */}
             {loading ? (
-              <div className="text-center py-12">
-                <p className="text-[#64748b]">Carregando...</p>
+              <div className="text-center py-12 border-t border-gray-300">
+                <p className="text-gray-600">Carregando...</p>
               </div>
             ) : filtered.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-[#64748b] mb-4">
+              <div className="text-center py-12 border-t border-gray-300">
+                <p className="text-gray-600 mb-4">
                   {q ? 'Nenhum grupo encontrado.' : 'Nenhum grupo cadastrado.'}
                 </p>
                 {!q && (
@@ -145,55 +161,64 @@ export default function EmpresasGrupoPage() {
                 )}
               </div>
             ) : (
-              <div className="space-y-4">
-                {filtered.map((grupo) => (
-                  <div
-                    key={grupo.id}
-                    className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <Link
-                          href={`/empresas-grupo/${grupo.id}`}
-                          className="text-lg font-semibold text-[#0369a1] hover:underline"
-                        >
-                          {grupo.nome_grupo}
-                        </Link>
-                        <div className="mt-2 flex items-center gap-4 text-sm text-[#64748b]">
-                          <span>CNPJ Matriz: {formatCpfCnpj(grupo.cnpj_matriz)}</span>
+              <div className="border-t border-gray-300">
+                <table className="w-full border-collapse">
+                  <thead className="bg-gray-100 border-b-2 border-gray-300">
+                    <tr>
+                      <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Nome do Grupo</th>
+                      <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">CNPJ Matriz</th>
+                      <th className="px-4 py-2 text-center text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">CNPJs Vinculados</th>
+                      <th className="px-4 py-2 text-center text-xs font-semibold text-gray-700 uppercase">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map((grupo) => (
+                      <tr key={grupo.id} className="hover:bg-gray-50 border-b border-gray-300">
+                        <td className="px-4 py-2 border-r border-gray-300">
+                          <Link
+                            href={`/empresas-grupo/${grupo.id}`}
+                            className="text-sm font-semibold text-[#0369a1] hover:underline"
+                          >
+                            {grupo.nome_grupo}
+                          </Link>
+                        </td>
+                        <td className="px-4 py-2 text-sm text-gray-600 border-r border-gray-300">{formatCpfCnpj(grupo.cnpj_matriz)}</td>
+                        <td className="px-4 py-2 text-center border-r border-gray-300">
                           <Badge variant="info">
-                            {grupo.cnpjs_count || 0} CNPJ(s) vinculado(s)
+                            {grupo.cnpjs_count || 0} CNPJ(s)
                           </Badge>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Link href={`/empresas-grupo/${grupo.id}/editar`}>
-                          <Button variant="secondary" size="sm">Editar</Button>
-                        </Link>
-                        <Button
-                          variant="error"
-                          size="sm"
-                          onClick={() => remove(grupo.id)}
-                        >
-                          Excluir
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                        </td>
+                        <td className="px-4 py-2">
+                          <div className="flex gap-2 justify-center">
+                            <Link href={`/empresas-grupo/${grupo.id}/editar`}>
+                              <Button variant="secondary" size="sm">Editar</Button>
+                            </Link>
+                            <Button
+                              variant="error"
+                              size="sm"
+                              onClick={() => remove(grupo.id)}
+                            >
+                              Excluir
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
 
             {/* Estatísticas */}
             {!loading && filtered.length > 0 && (
-              <div className="mt-6 pt-6 border-t border-gray-200">
-                <p className="text-sm text-[#64748b]">
-                  Total: {filtered.length} grupo(s)
+              <div className="mt-4 pt-4 border-t border-gray-300 bg-gray-100 px-4 py-2">
+                <p className="text-sm text-gray-600">
+                  Total: <strong className="text-[#0369a1]">{filtered.length}</strong> grupo(s)
                 </p>
               </div>
             )}
           </div>
-        </Card>
+        </div>
       </div>
     </main>
   );

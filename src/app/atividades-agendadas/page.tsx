@@ -3,7 +3,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import Card from '@/components/ui/Card';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
@@ -234,26 +233,31 @@ export default function AtividadesAgendadasPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      <div className="container max-w-7xl mx-auto px-4 py-8 space-y-6">
+    <main className="min-h-screen bg-gray-50">
+      <div className="container max-w-7xl mx-auto px-4 py-6 space-y-4">
         <header className="flex flex-col gap-4">
           <div>
             <button 
               onClick={() => router.push('/menu/operacional')}
-              className="inline-flex items-center gap-2 px-4 py-2 mb-4 rounded-lg bg-white border border-gray-200 hover:border-[#0369a1] hover:bg-blue-50 transition-all shadow-sm hover:shadow-md text-[#0369a1] font-medium"
+              className="inline-flex items-center gap-2 px-3 py-1.5 mb-4 bg-white border border-gray-300 hover:bg-gray-50 text-[#0369a1] text-sm font-medium"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
               Voltar
             </button>
-            <h1 className="text-4xl font-bold text-[#0369a1] mb-2">Atividades Agendadas</h1>
-            <p className="text-[#64748b] text-lg">Visualize todas as atividades por data</p>
+            <div className="border-b-2 border-[#0369a1] pb-3">
+              <h1 className="text-3xl font-bold text-[#0369a1] mb-1">Atividades Agendadas</h1>
+              <p className="text-sm text-gray-600">Visualize todas as atividades por data</p>
+            </div>
           </div>
         </header>
 
         {/* Filtros */}
-        <Card>
+        <div className="bg-white border border-gray-300">
+          <div className="border-b border-gray-300 bg-gray-100 px-4 py-2">
+            <h2 className="text-sm font-semibold text-gray-700 uppercase">Filtros</h2>
+          </div>
           <div className="p-4">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
@@ -320,60 +324,60 @@ export default function AtividadesAgendadasPage() {
               </div>
             )}
           </div>
-        </Card>
+        </div>
 
         {loading ? (
-          <Card>
+          <div className="bg-white border border-gray-300">
             <div className="text-center py-12">
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#0369a1]"></div>
-              <p className="mt-2 text-[#64748b]">Carregando atividades...</p>
+              <p className="mt-2 text-gray-600">Carregando atividades...</p>
             </div>
-          </Card>
+          </div>
         ) : atividadesOrdenadas.length === 0 ? (
-          <Card>
+          <div className="bg-white border border-gray-300">
             <div className="text-center py-12">
               <div className="flex flex-col items-center gap-3">
                 <span className="text-4xl">📅</span>
-                <p className="text-[#64748b]">Nenhuma atividade encontrada no período selecionado</p>
+                <p className="text-gray-600">Nenhuma atividade encontrada no período selecionado</p>
               </div>
             </div>
-          </Card>
+          </div>
         ) : (
-          <Card>
+          <div className="bg-white border border-gray-300">
             <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gradient-to-r from-[#e0efff] to-[#f0f7ff]">
+              <table className="w-full border-collapse">
+                <thead className="bg-gray-100 border-b-2 border-gray-300">
                   <tr>
-                    <th className="px-4 py-3 text-center text-sm font-semibold text-[#0369a1]">Data</th>
-                    <th className="px-4 py-3 text-center text-sm font-semibold text-[#0369a1]">Hora</th>
-                    <th className="px-4 py-3 text-center text-sm font-semibold text-[#0369a1]">Tipo</th>
-                    <th className="px-4 py-3 text-center text-sm font-semibold text-[#0369a1]">Status</th>
-                    <th className="px-4 py-3 text-center text-sm font-semibold text-[#0369a1]">Empresa</th>
-                    <th className="px-4 py-3 text-center text-sm font-semibold text-[#0369a1]">Descrição</th>
+                    <th className="px-4 py-2 text-center text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Data</th>
+                    <th className="px-4 py-2 text-center text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Hora</th>
+                    <th className="px-4 py-2 text-center text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Tipo</th>
+                    <th className="px-4 py-2 text-center text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Status</th>
+                    <th className="px-4 py-2 text-center text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Empresa</th>
+                    <th className="px-4 py-2 text-center text-xs font-semibold text-gray-700 uppercase">Descrição</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#cbd5e1]">
+                <tbody>
                   {atividadesOrdenadas.map(atividade => {
                     const tipoInfo = getTipoInfo(atividade.tipo);
                     const dataHora = atividade.data_hora.split('T');
                     return (
                       <tr
                         key={`${atividade.tipo_entidade}-${atividade.id}`}
-                        className="hover:bg-[#f8fbff] transition-colors cursor-pointer group"
+                        className="hover:bg-gray-50 border-b border-gray-300 cursor-pointer group"
                         onClick={() => router.push(atividade.link)}
                       >
-                        <td className="px-4 py-3 text-sm text-[#1e293b] font-medium text-center">
+                        <td className="px-4 py-2 text-sm text-gray-900 font-medium text-center border-r border-gray-300">
                           {formatarData(dataHora[0])}
                         </td>
-                        <td className="px-4 py-3 text-sm text-[#64748b] text-center">
+                        <td className="px-4 py-2 text-sm text-gray-600 text-center border-r border-gray-300">
                           {formatarHora(atividade.data_hora)}
                         </td>
-                        <td className="px-4 py-3 text-center">
-                          <span className="text-xs font-medium px-2 py-1 rounded" style={{ backgroundColor: `${tipoInfo.cor}20`, color: tipoInfo.cor }}>
+                        <td className="px-4 py-2 text-center border-r border-gray-300">
+                          <span className="text-xs font-medium px-2 py-1 border border-gray-300" style={{ color: tipoInfo.cor }}>
                             {tipoInfo.label}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-center">
+                        <td className="px-4 py-2 text-center border-r border-gray-300">
                           <Badge
                             variant={atividade.status === 'concluida' ? 'success' : 'warning'}
                             size="sm"
@@ -381,10 +385,10 @@ export default function AtividadesAgendadasPage() {
                             {atividade.status === 'concluida' ? 'Concluída' : 'Pendente'}
                           </Badge>
                         </td>
-                        <td className="px-4 py-3 text-sm text-[#64748b] text-center">
+                        <td className="px-4 py-2 text-sm text-gray-600 text-center border-r border-gray-300">
                           {atividade.tipo_entidade === 'sacado' ? '🏢' : '👤'} {atividade.entidade_nome}
                         </td>
-                        <td className="px-4 py-3 text-sm text-[#64748b] max-w-xs truncate text-center">
+                        <td className="px-4 py-2 text-sm text-gray-600 max-w-xs truncate text-center">
                           {atividade.descricao}
                         </td>
                       </tr>
@@ -393,7 +397,7 @@ export default function AtividadesAgendadasPage() {
                 </tbody>
               </table>
             </div>
-          </Card>
+          </div>
         )}
       </div>
     </main>

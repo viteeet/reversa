@@ -335,8 +335,8 @@ export default function CompactDataManager({
   return (
     <div className="space-y-3">
       {/* Header compacto */}
-      <div className="flex items-center justify-between border-b border-gray-200 pb-2">
-        <h3 className="text-base font-semibold text-gray-800">{title}</h3>
+      <div className="flex items-center justify-between border-b border-gray-300 bg-gray-100 px-4 py-2 -mx-4 -mt-4 mb-4">
+        <h3 className="text-xs font-semibold text-gray-700 uppercase">{title}</h3>
         <div className="flex gap-2">
           {onFetchFromAPI && (
             <button 
@@ -368,6 +368,8 @@ export default function CompactDataManager({
         </div>
       </div>
 
+      {/* Conteúdo com padding */}
+      <div className="px-4">
       {/* Formulário de novo item - com animação */}
       {showNewForm && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 animate-fade-in transition-item">
@@ -548,6 +550,7 @@ export default function CompactDataManager({
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 }

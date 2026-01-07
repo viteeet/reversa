@@ -4,11 +4,11 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
-import { formatCpfCnpj } from '@/lib/format';
-import Card from '@/components/ui/Card';
+import { formatCpfCnpj, formatCpf } from '@/lib/format';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import AtividadesManager from '@/components/atividades/AtividadesManager';
+import { categoriasCedentes } from '@/config/cedentesCategorias';
 
 type Cedente = {
   id: string;
@@ -50,11 +50,13 @@ export default function CedentePage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'info' | 'sacados' | 'atividades'>('info');
   const [sacadosQuery, setSacadosQuery] = useState('');
-  const [showAddSacado, setShowAddSacado] = useState(false);
-  const [sacadoForm, setSacadoForm] = useState({ cnpj: '', razao_social: '', nome_fantasia: '' });
-  const [loadingSacadoCnpj, setLoadingSacadoCnpj] = useState(false);
-  const [savingSacado, setSavingSacado] = useState(false);
   const [grupoInfo, setGrupoInfo] = useState<{ nome_grupo: string; id: string; cnpjs_count: number } | null>(null);
+  
+  // Dados complementares
+  const [categoriasData, setCategoriasData] = useState<Record<string, any[]>>({});
+  const [observacoesGerais, setObservacoesGerais] = useState<string>('');
+  const [processosTexto, setProcessosTexto] = useState<string>('');
+  const [qsaDetalhes, setQsaDetalhes] = useState<Record<string, string>>({});
 
   useEffect(() => {
     loadData();
@@ -103,7 +105,92 @@ export default function CedentePage() {
     // Carrega sacados deste cedente
     await loadSacados();
     
+    // Carrega dados complementares das APIs
+    await loadDadosComplementares();
+    
     setLoading(false);
+  }
+
+  async function loadDadosComplementares() {
+    if (!id) return;
+    
+    try {
+      // Carrega todas as categorias
+      for (const categoria of categoriasCedentes) {
+        try {
+          const { data } = await supabase
+            .from(categoria.tableName)
+            .select('*')
+            .eq('cedente_id', id)
+            .eq('ativo', true)
+            .order('created_at', { ascending: false });
+          
+          setCategoriasData(prev => ({
+            ...prev,
+            [categoria.id]: data || []
+          }));
+        } catch (err) {
+          // Tabela pode não existir
+          setCategoriasData(prev => ({
+            ...prev,
+            [categoria.id]: []
+          }));
+        }
+      }
+      
+      // Carrega observações gerais
+      try {
+        const { data } = await supabase
+          .from('cedentes_observacoes_gerais')
+          .select('observacoes')
+          .eq('cedente_id', id)
+          .single();
+        
+        setObservacoesGerais(data?.observacoes || '');
+      } catch (err) {
+        setObservacoesGerais('');
+      }
+      
+      // Carrega processos
+      try {
+        const { data } = await supabase
+          .from('cedentes_observacoes_gerais')
+          .select('processos_texto')
+          .eq('cedente_id', id)
+          .single();
+        
+        setProcessosTexto(data?.processos_texto || '');
+      } catch (err) {
+        setProcessosTexto('');
+      }
+      
+      // Carrega detalhes do QSA (após carregar os dados do QSA)
+      try {
+        const qsaItems = categoriasData['qsa'] || [];
+        if (qsaItems.length > 0) {
+          const detalhesPromises = qsaItems.map(async (item) => {
+            const { data } = await supabase
+              .from('cedentes_qsa_detalhes')
+              .select('detalhes_completos')
+              .eq('qsa_id', item.id)
+              .single();
+            
+            return { id: item.id, detalhes: data?.detalhes_completos || '' };
+          });
+          
+          const detalhes = await Promise.all(detalhesPromises);
+          const detalhesMap: Record<string, string> = {};
+          detalhes.forEach(d => {
+            if (d.id) detalhesMap[d.id] = d.detalhes;
+          });
+          setQsaDetalhes(detalhesMap);
+        }
+      } catch (err) {
+        // Ignora erros
+      }
+    } catch (err) {
+      console.error('Erro ao carregar dados complementares:', err);
+    }
   }
 
   async function loadSacados() {
@@ -129,82 +216,6 @@ export default function CedentePage() {
     }
   }
 
-  async function consultarCnpjSacado() {
-    const raw = sacadoForm.cnpj.replace(/\D+/g, '');
-    if (!raw || raw.length !== 14) {
-      alert('CNPJ inválido');
-      return;
-    }
-
-    setLoadingSacadoCnpj(true);
-    try {
-      // Usa BigData (mais confiável que CNPJWS)
-      const res = await fetch(`/api/bigdata?cnpj=${raw}&tipo=basico`);
-      const data = await res.json();
-      
-      if (!res.ok) {
-        alert(data?.error || 'Erro ao consultar CNPJ');
-        return;
-      }
-
-      // BigData retorna no formato normalizado (mesmo formato do CNPJWS)
-      const razao = data?.razao_social || '';
-      const fantasia = data?.nome_fantasia || '';
-
-      setSacadoForm(f => ({
-        ...f,
-        razao_social: razao,
-        nome_fantasia: fantasia
-      }));
-    } catch (err) {
-      alert('Erro ao consultar CNPJ');
-    } finally {
-      setLoadingSacadoCnpj(false);
-    }
-  }
-
-  async function adicionarSacado() {
-    const raw = sacadoForm.cnpj.replace(/\D+/g, '');
-    if (!raw || !sacadoForm.razao_social.trim()) {
-      alert('Preencha CNPJ e Razão Social');
-      return;
-    }
-
-    setSavingSacado(true);
-    try {
-      // Verifica se já existe
-      const { data: existing } = await supabase
-        .from('sacados')
-        .select('cnpj')
-        .eq('cnpj', raw)
-        .single();
-
-      if (existing) {
-        alert('Sacado já cadastrado com este CNPJ');
-        setSavingSacado(false);
-        return;
-      }
-
-      // Insere novo sacado
-      const { error } = await supabase.from('sacados').insert({
-        cnpj: raw,
-        cedente_id: id,
-        razao_social: sacadoForm.razao_social.trim(),
-        nome_fantasia: sacadoForm.nome_fantasia.trim() || null,
-      });
-
-      if (error) {
-        console.error('Erro ao adicionar sacado:', error);
-        alert('Erro ao adicionar sacado');
-      } else {
-        setSacadoForm({ cnpj: '', razao_social: '', nome_fantasia: '' });
-        setShowAddSacado(false);
-        await loadSacados();
-      }
-    } finally {
-      setSavingSacado(false);
-    }
-  }
 
   if (loading) {
     return (
@@ -241,261 +252,396 @@ export default function CedentePage() {
   }
 
   return (
-    <main className="min-h-screen p-6 bg-white">
-      <div className="container max-w-6xl space-y-6">
-        {/* Header compacto */}
-        <header className="flex items-start justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-bold text-[#0369a1]">{cedente.nome}</h1>
-              {grupoInfo && (
-                <Link href={`/empresas-grupo/${grupoInfo.id}`}>
-                  <Badge variant="info" className="cursor-pointer hover:opacity-80">
-                    🏭 {grupoInfo.nome_grupo} ({grupoInfo.cnpjs_count} CNPJs)
-                  </Badge>
-                </Link>
-              )}
+    <main className="min-h-screen bg-gray-50">
+      <div className="container max-w-6xl mx-auto px-4 py-6 space-y-4">
+        {/* Header */}
+        <header className="mb-4">
+          <button 
+            onClick={() => {
+              if (typeof window !== 'undefined' && window.history.length > 1) {
+                router.back();
+              } else {
+                router.push('/cedentes');
+              }
+            }}
+            className="inline-flex items-center gap-2 px-3 py-1.5 mb-4 bg-white border border-gray-300 hover:bg-gray-50 text-[#0369a1] text-sm font-medium"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Voltar
+          </button>
+          <div className="border-b-2 border-[#0369a1] pb-3 flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-3 mb-1">
+                <h1 className="text-3xl font-bold text-[#0369a1]">{cedente.nome}</h1>
+                {grupoInfo && (
+                  <Link href={`/empresas-grupo/${grupoInfo.id}`}>
+                    <Badge variant="info" className="cursor-pointer hover:opacity-80">
+                      🏭 {grupoInfo.nome_grupo} ({grupoInfo.cnpjs_count} CNPJs)
+                    </Badge>
+                  </Link>
+                )}
+              </div>
+              {cedente.razao_social && <p className="text-sm text-gray-600">{cedente.razao_social}</p>}
+              {cedente.cnpj && <p className="text-xs text-gray-500 font-mono">{formatCpfCnpj(cedente.cnpj)}</p>}
             </div>
-            {cedente.razao_social && <p className="text-[#64748b]">{cedente.razao_social}</p>}
-            {cedente.cnpj && <p className="text-sm text-[#64748b] font-mono">{formatCpfCnpj(cedente.cnpj)}</p>}
-          </div>
-          <div className="flex gap-1">
             <button
-              className="px-3 py-2 rounded border border-[#cbd5e1] text-sm text-[#0369a1] hover:bg-[#f1f5f9]"
-              onClick={() => {
-  if (typeof window !== 'undefined' && window.history.length > 1) {
-    router.back();
-  } else {
-    router.push('/cedentes');
-  }
-}}
-              aria-label="Voltar"
-              title="Voltar"
-            >←</button>
-            <button
-              className="px-3 py-2 rounded border border-[#0369a1] bg-[#0369a1] text-white text-sm hover:opacity-90"
+              className="px-3 py-1.5 border border-[#0369a1] bg-[#0369a1] text-white text-sm font-medium hover:bg-[#075985]"
               onClick={() => router.push(`/cedentes/${cedente.id}/editar`)}
-              aria-label="Editar"
-              title="Editar"
-            >✏️</button>
+            >
+              Editar
+            </button>
           </div>
         </header>
 
         {/* Abas */}
-        <Card>
-          <div className="border-b border-[#cbd5e1]">
-            <nav className="flex space-x-8">
+        <div className="bg-white border border-gray-300">
+          <div className="border-b border-gray-300 bg-gray-100">
+            <nav className="flex">
               <button
                 onClick={() => setActiveTab('info')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                className={`px-4 py-2 text-sm font-medium border-r border-gray-300 ${
                   activeTab === 'info'
-                    ? 'border-[#0369a1] text-[#0369a1]'
-                    : 'border-transparent text-[#64748b] hover:text-[#1e293b] hover:border-[#cbd5e1]'
+                    ? 'bg-white text-[#0369a1] border-b-2 border-[#0369a1] -mb-[2px]'
+                    : 'text-gray-600 hover:bg-gray-50'
                 }`}
               >
-                📋 Informações
+                Informações
               </button>
               <button
                 onClick={() => setActiveTab('sacados')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                className={`px-4 py-2 text-sm font-medium border-r border-gray-300 ${
                   activeTab === 'sacados'
-                    ? 'border-[#0369a1] text-[#0369a1]'
-                    : 'border-transparent text-[#64748b] hover:text-[#1e293b] hover:border-[#cbd5e1]'
+                    ? 'bg-white text-[#0369a1] border-b-2 border-[#0369a1] -mb-[2px]'
+                    : 'text-gray-600 hover:bg-gray-50'
                 }`}
               >
-                👥 Sacados ({sacados.length})
+                Sacados ({sacados.length})
               </button>
               <button
                 onClick={() => setActiveTab('atividades')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                className={`px-4 py-2 text-sm font-medium ${
                   activeTab === 'atividades'
-                    ? 'border-[#0369a1] text-[#0369a1]'
-                    : 'border-transparent text-[#64748b] hover:text-[#1e293b] hover:border-[#cbd5e1]'
+                    ? 'bg-white text-[#0369a1] border-b-2 border-[#0369a1] -mb-[2px]'
+                    : 'text-gray-600 hover:bg-gray-50'
                 }`}
               >
-                📞 Atividades
+                Atividades
               </button>
             </nav>
           </div>
 
-          <div className="p-6">
+          <div className="p-4">
             {activeTab === 'info' ? (
-              <div className="space-y-8">
-                <div className="grid gap-6 md:grid-cols-2">
-                  {/* Informações Básicas */}
-                  <div className="space-y-4">
-                    <h2 className="text-xl font-semibold text-[#0369a1]">Informações Básicas</h2>
-                    <div className="space-y-3">
+              <div className="space-y-4">
+                {/* Informações Básicas */}
+                <div className="bg-white border border-gray-300 p-4">
+                  <div className="border-b border-gray-300 bg-gray-100 -mx-4 -mt-4 px-4 py-2 mb-4">
+                    <h2 className="text-xs font-semibold text-gray-700 uppercase">Informações Básicas</h2>
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase mb-1">Nome</p>
+                      <p className="text-sm text-gray-900">{cedente.nome}</p>
+                    </div>
+                    {cedente.razao_social && (
                       <div>
-                        <label className="text-sm font-medium text-[#64748b]">Nome</label>
-                        <p className="text-[#1e293b]">{cedente.nome}</p>
+                        <p className="text-xs text-gray-500 uppercase mb-1">Razão Social</p>
+                        <p className="text-sm text-gray-900">{cedente.razao_social}</p>
                       </div>
-                      {cedente.razao_social && (
-                        <div>
-                          <label className="text-sm font-medium text-[#64748b]">Razão Social</label>
-                          <p className="text-[#1e293b]">{cedente.razao_social}</p>
-                        </div>
-                      )}
-                      {cedente.cnpj && (
-                        <div>
-                          <label className="text-sm font-medium text-[#64748b]">CNPJ</label>
-                          <p className="text-[#1e293b] font-mono">{formatCpfCnpj(cedente.cnpj)}</p>
-                        </div>
-                      )}
-                      {cedente.situacao && (
-                        <div>
-                          <label className="text-sm font-medium text-[#64748b]">Situação</label>
-                          <div className="mt-1">
-                            <Badge variant={cedente.situacao === 'ATIVA' ? 'success' : cedente.situacao === 'INATIVA' ? 'error' : 'neutral'} size="sm">
-                              {cedente.situacao}
-                            </Badge>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Informações de Contato */}
-                  <div className="space-y-4">
-                    <h2 className="text-xl font-semibold text-[#0369a1]">Contato</h2>
-                    <div className="space-y-3">
-                      {cedente.telefone && (
-                        <div>
-                          <label className="text-sm font-medium text-[#64748b]">Telefone</label>
-                          <p className="text-[#1e293b]">{cedente.telefone}</p>
-                        </div>
-                      )}
-                      {cedente.email && (
-                        <div>
-                          <label className="text-sm font-medium text-[#64748b]">E-mail</label>
-                          <p className="text-[#1e293b]">{cedente.email}</p>
-                        </div>
-                      )}
-                      {cedente.endereco && (
-                        <div>
-                          <label className="text-sm font-medium text-[#64748b]">Endereço</label>
-                          <p className="text-[#1e293b]">{cedente.endereco}</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Informações Empresariais */}
-                  <div className="space-y-4">
-                    <h2 className="text-xl font-semibold text-[#0369a1]">Informações Empresariais</h2>
-                    <div className="space-y-3">
-                      {cedente.porte && (
-                        <div>
-                          <label className="text-sm font-medium text-[#64748b]">Porte</label>
-                          <p className="text-[#1e293b]">{cedente.porte}</p>
-                        </div>
-                      )}
-                      {cedente.natureza_juridica && (
-                        <div>
-                          <label className="text-sm font-medium text-[#64748b]">Natureza Jurídica</label>
-                          <p className="text-[#1e293b]">{cedente.natureza_juridica}</p>
-                        </div>
-                      )}
-                      {cedente.data_abertura && (
-                        <div>
-                          <label className="text-sm font-medium text-[#64748b]">Data de Abertura</label>
-                          <p className="text-[#1e293b]">{new Date(cedente.data_abertura).toLocaleDateString('pt-BR')}</p>
-                        </div>
-                      )}
-                      {cedente.capital_social && (
-                        <div>
-                          <label className="text-sm font-medium text-[#64748b]">Capital Social</label>
-                          <p className="text-[#1e293b]">R$ {cedente.capital_social.toLocaleString('pt-BR')}</p>
-                        </div>
-                      )}
-                      {cedente.simples_nacional !== null && (
-                        <div>
-                          <label className="text-sm font-medium text-[#64748b]">Simples Nacional</label>
-                          <div className="mt-1">
-                            <Badge variant={cedente.simples_nacional ? 'success' : 'neutral'} size="sm">
-                              {cedente.simples_nacional ? 'Sim' : 'Não'}
-                            </Badge>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Atividades */}
-                  <div className="space-y-4">
-                    <h2 className="text-xl font-semibold text-[#0369a1]">Atividades</h2>
-                    <div className="space-y-3">
-                      {cedente.atividade_principal_codigo && (
-                        <div>
-                          <label className="text-sm font-medium text-[#64748b]">Código da Atividade Principal</label>
-                          <p className="text-[#1e293b] font-mono">{cedente.atividade_principal_codigo}</p>
-                        </div>
-                      )}
-                      {cedente.atividade_principal_descricao && (
-                        <div>
-                          <label className="text-sm font-medium text-[#64748b]">Atividade Principal</label>
-                          <p className="text-[#1e293b]">{cedente.atividade_principal_descricao}</p>
-                        </div>
-                      )}
-                      {cedente.atividades_secundarias && (
-                        <div>
-                          <label className="text-sm font-medium text-[#64748b]">Atividades Secundárias</label>
-                          <p className="text-[#1e293b] text-sm">{cedente.atividades_secundarias}</p>
-                        </div>
-                      )}
-                    </div>
+                    )}
+                    {cedente.cnpj && (
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase mb-1">CNPJ</p>
+                        <p className="text-sm text-gray-900 font-mono">{formatCpfCnpj(cedente.cnpj)}</p>
+                      </div>
+                    )}
+                    {cedente.situacao && (
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase mb-1">Situação</p>
+                        <Badge variant={cedente.situacao === 'ATIVA' ? 'success' : cedente.situacao === 'INATIVA' ? 'error' : 'neutral'} size="sm">
+                          {cedente.situacao}
+                        </Badge>
+                      </div>
+                    )}
+                    {cedente.porte && (
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase mb-1">Porte</p>
+                        <p className="text-sm text-gray-900">{cedente.porte}</p>
+                      </div>
+                    )}
+                    {cedente.natureza_juridica && (
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase mb-1">Natureza Jurídica</p>
+                        <p className="text-sm text-gray-900">{cedente.natureza_juridica}</p>
+                      </div>
+                    )}
+                    {cedente.data_abertura && (
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase mb-1">Data de Abertura</p>
+                        <p className="text-sm text-gray-900">{new Date(cedente.data_abertura).toLocaleDateString('pt-BR')}</p>
+                      </div>
+                    )}
+                    {cedente.capital_social && (
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase mb-1">Capital Social</p>
+                        <p className="text-sm text-gray-900">R$ {cedente.capital_social.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                      </div>
+                    )}
+                    {cedente.simples_nacional !== null && (
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase mb-1">Simples Nacional</p>
+                        <Badge variant={cedente.simples_nacional ? 'success' : 'neutral'} size="sm">
+                          {cedente.simples_nacional ? 'Sim' : 'Não'}
+                        </Badge>
+                      </div>
+                    )}
+                    {cedente.telefone && (
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase mb-1">Telefone</p>
+                        <p className="text-sm text-gray-900">{cedente.telefone}</p>
+                      </div>
+                    )}
+                    {cedente.email && (
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase mb-1">E-mail</p>
+                        <p className="text-sm text-gray-900">{cedente.email}</p>
+                      </div>
+                    )}
+                    {cedente.endereco && (
+                      <div className="md:col-span-2">
+                        <p className="text-xs text-gray-500 uppercase mb-1">Endereço</p>
+                        <p className="text-sm text-gray-900">{cedente.endereco}</p>
+                      </div>
+                    )}
+                    {cedente.atividade_principal_codigo && (
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase mb-1">Código da Atividade Principal</p>
+                        <p className="text-sm text-gray-900 font-mono">{cedente.atividade_principal_codigo}</p>
+                      </div>
+                    )}
+                    {cedente.atividade_principal_descricao && (
+                      <div className="md:col-span-2">
+                        <p className="text-xs text-gray-500 uppercase mb-1">Atividade Principal</p>
+                        <p className="text-sm text-gray-900">{cedente.atividade_principal_descricao}</p>
+                      </div>
+                    )}
+                    {cedente.atividades_secundarias && (
+                      <div className="md:col-span-2">
+                        <p className="text-xs text-gray-500 uppercase mb-1">Atividades Secundárias</p>
+                        <p className="text-sm text-gray-900 whitespace-pre-line">{cedente.atividades_secundarias}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
+
+                {/* Observações Gerais */}
+                {observacoesGerais && (
+                  <div className="bg-white border border-gray-300 p-4">
+                    <div className="border-b border-gray-300 bg-gray-100 -mx-4 -mt-4 px-4 py-2 mb-4">
+                      <h2 className="text-xs font-semibold text-gray-700 uppercase">Observações Gerais</h2>
+                    </div>
+                    <div className="whitespace-pre-line text-sm text-gray-900">{observacoesGerais}</div>
+                  </div>
+                )}
+
+                {/* Categorias dinâmicas (baseadas na configuração) */}
+                {(() => {
+                  const categoriasPorGrupo: Record<string, typeof categoriasCedentes> = {};
+                  categoriasCedentes
+                    .filter(cat => cat.id !== 'qsa') // QSA é renderizado separadamente
+                    .forEach(categoria => {
+                      const grupo = categoria.group || 'outros';
+                      if (!categoriasPorGrupo[grupo]) {
+                        categoriasPorGrupo[grupo] = [];
+                      }
+                      categoriasPorGrupo[grupo].push(categoria);
+                    });
+
+                  const grupoLabels: Record<string, string> = {
+                    'contatos': 'Informações de Contato',
+                    'relacionamentos': 'Relacionamentos',
+                    'outros': 'Outros'
+                  };
+
+                  return Object.entries(categoriasPorGrupo).map(([grupo, categorias]) => {
+                    const temDados = categorias.some(cat => (categoriasData[cat.id] || []).length > 0);
+                    if (!temDados) return null;
+
+                    return (
+                      <div key={grupo} className="space-y-4">
+                        {grupo !== 'outros' && (
+                          <h2 className="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2">
+                            {grupoLabels[grupo] || grupo}
+                          </h2>
+                        )}
+                        <div className="space-y-4">
+                          {categorias.map(categoria => {
+                            const items = categoriasData[categoria.id] || [];
+                            if (items.length === 0) return null;
+
+                            return (
+                              <div key={categoria.id} className="bg-white border border-gray-300">
+                                <div className="border-b border-gray-300 bg-gray-100 px-4 py-2">
+                                  <h2 className="text-xs font-semibold text-gray-700 uppercase">
+                                    {categoria.title} ({items.length})
+                                  </h2>
+                                </div>
+                                <div className="p-4">
+                                  <div className="space-y-3">
+                                    {items.map((item, idx) => (
+                                      <div key={item.id || idx} className="border-b border-gray-200 pb-3 last:border-b-0">
+                                        <div className="grid gap-2 sm:grid-cols-2">
+                                          {categoria.displayFields.map(field => {
+                                            const fieldConfig = categoria.fields.find(f => f.key === field);
+                                            if (!fieldConfig) return null;
+                                            const value = item[field];
+                                            if (!value && value !== 0) return null;
+                                            
+                                            return (
+                                              <div key={field}>
+                                                <p className="text-xs text-gray-500 uppercase mb-1">{fieldConfig.label}</p>
+                                                <p className="text-sm text-gray-900">
+                                                  {field === 'cpf' && value ? formatCpf(value) : 
+                                                   field === 'cnpj' && value ? formatCpfCnpj(value) :
+                                                   String(value)}
+                                                </p>
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
+                                        {item.origem === 'api' && (
+                                          <span className="inline-block mt-2 text-xs text-[#0369a1] bg-blue-50 px-2 py-1 rounded">API</span>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
+
+                {/* QSA - Quadro de Sócios */}
+                {(() => {
+                  const categoriaQsa = categoriasCedentes.find(c => c.id === 'qsa');
+                  if (!categoriaQsa) return null;
+                  const qsaItems = categoriasData['qsa'] || [];
+                  if (qsaItems.length === 0) return null;
+
+                  return (
+                    <div className="bg-white border border-gray-300">
+                      <div className="border-b border-gray-300 bg-gray-100 px-4 py-2">
+                        <h2 className="text-xs font-semibold text-gray-700 uppercase">
+                          {categoriaQsa.title} ({qsaItems.length})
+                        </h2>
+                      </div>
+                      <div className="p-4">
+                        <div className="overflow-x-auto">
+                          <table className="w-full border-collapse text-sm">
+                            <thead className="bg-gray-50 border-b border-gray-300">
+                              <tr>
+                                {categoriaQsa.displayFields.map(field => {
+                                  const fieldConfig = categoriaQsa.fields.find(f => f.key === field);
+                                  return (
+                                    <th key={field} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">
+                                      {fieldConfig?.label || field}
+                                    </th>
+                                  );
+                                })}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {qsaItems.map((item, idx) => (
+                                <tr key={item.id || idx} className="border-b border-gray-200 hover:bg-gray-50">
+                                  {categoriaQsa.displayFields.map(field => {
+                                    const value = item[field];
+                                    return (
+                                      <td key={field} className="px-3 py-2 text-gray-900 border-r border-gray-300">
+                                        {field === 'cpf' && value ? formatCpf(value) :
+                                         field === 'participacao' && value ? `${value}%` :
+                                         value || '—'}
+                                      </td>
+                                    );
+                                  })}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Processos Judiciais */}
+                {processosTexto && (
+                  <div className="bg-white border border-gray-300">
+                    <div className="border-b border-gray-300 bg-gray-100 px-4 py-2">
+                      <h2 className="text-xs font-semibold text-gray-700 uppercase">Processos Judiciais e Informações Relevantes</h2>
+                    </div>
+                    <div className="p-4">
+                      <div className="whitespace-pre-line text-sm text-gray-900 font-mono bg-gray-50 p-3 rounded border border-gray-200">
+                        {processosTexto}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : activeTab === 'sacados' ? (
               <div className="space-y-4">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 pb-3 border-b border-gray-300">
                   <div>
-                    <h2 className="text-xl font-semibold text-[#0369a1]">Sacados do Cedente</h2>
-                    <p className="text-xs text-[#64748b]">Os sacados (devedores) pertencem a este cedente.</p>
+                    <h2 className="text-base font-semibold text-gray-700">Sacados do Cedente</h2>
+                    <p className="text-xs text-gray-600">Visualização dos sacados (devedores) deste cedente. Para adicionar ou editar, use a página de edição.</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <input
                       value={sacadosQuery}
                       onChange={(e) => setSacadosQuery(e.target.value)}
                       placeholder="Buscar sacado (nome, CNPJ)"
-                      className="px-3 py-2 border border-[#cbd5e1] rounded text-sm w-64"
+                      className="px-3 py-2 border border-gray-300 text-sm"
                     />
                     <button 
-                      className="px-3 py-2 rounded border border-[#0369a1] bg-[#0369a1] text-white text-sm hover:opacity-90"
-                      onClick={() => setShowAddSacado(true)}
+                      className="px-3 py-1.5 border border-[#0369a1] bg-[#0369a1] text-white text-sm font-medium hover:bg-[#075985]"
+                      onClick={() => router.push(`/cedentes/${cedente.id}/editar`)}
                     >
-                      + Adicionar Sacado
+                      Ir para Edição
                     </button>
                   </div>
                 </div>
 
                 {sacados.length === 0 ? (
-                  <div className="text-center py-12 bg-[#f8fafc] rounded-lg border border-dashed border-[#cbd5e1]">
-                    <p className="text-[#64748b] text-lg mb-2">Nenhum sacado cadastrado ainda</p>
-                    <p className="text-sm text-[#94a3b8] mb-4">
-                      Adicione os devedores deste cedente para iniciar a cobrança
+                  <div className="text-center py-12 bg-gray-50 border border-gray-300">
+                    <p className="text-gray-600 mb-2">Nenhum sacado cadastrado ainda</p>
+                    <p className="text-xs text-gray-500 mb-4">
+                      Para adicionar sacados, acesse a página de edição
                     </p>
                     <button 
-                      className="px-4 py-2 rounded border border-[#0369a1] bg-[#0369a1] text-white text-sm hover:opacity-90"
-                      onClick={() => setShowAddSacado(true)}
+                      className="px-4 py-2 border border-[#0369a1] bg-[#0369a1] text-white text-sm font-medium hover:bg-[#075985]"
+                      onClick={() => router.push(`/cedentes/${cedente.id}/editar`)}
                     >
-                      + Adicionar Primeiro Sacado
+                      Ir para Edição
                     </button>
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead className="bg-gradient-to-r from-[#e0efff] to-[#f0f7ff]">
+                    <table className="w-full border-collapse">
+                      <thead className="bg-gray-100 border-b-2 border-gray-300">
                         <tr>
-                          <th className="px-4 py-3 text-left text-sm font-semibold text-[#0369a1]">Razão Social</th>
-                          <th className="px-4 py-3 text-left text-sm font-semibold text-[#0369a1]">Nome Fantasia</th>
-                          <th className="px-4 py-3 text-left text-sm font-semibold text-[#0369a1]">CNPJ</th>
-                          <th className="px-4 py-3 text-left text-sm font-semibold text-[#0369a1]">Situação</th>
-                          <th className="px-4 py-3 text-left text-sm font-semibold text-[#0369a1]">Ações</th>
+                          <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Razão Social</th>
+                          <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Nome Fantasia</th>
+                          <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">CNPJ</th>
+                          <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Situação</th>
+                          <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase">Ações</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-[#cbd5e1]">
+                      <tbody>
                         {sacados
                           .filter(s => {
                             const t = sacadosQuery.trim().toLowerCase();
@@ -507,27 +653,27 @@ export default function CedentePage() {
                             );
                           })
                           .map(sacado => (
-                          <tr key={sacado.cnpj} className="hover:bg-[#f8fbff] transition-colors">
-                            <td className="px-4 py-3 text-sm text-[#1e293b] font-medium">{sacado.razao_social}</td>
-                            <td className="px-4 py-3 text-sm text-[#64748b]">{sacado.nome_fantasia || '—'}</td>
-                            <td className="px-4 py-3 text-sm text-[#64748b] font-mono">{formatCpfCnpj(sacado.cnpj)}</td>
-                            <td className="px-4 py-3">
+                          <tr key={sacado.cnpj} className="hover:bg-gray-50 border-b border-gray-300">
+                            <td className="px-4 py-2 text-sm text-gray-900 font-medium border-r border-gray-300">{sacado.razao_social}</td>
+                            <td className="px-4 py-2 text-sm text-gray-600 border-r border-gray-300">{sacado.nome_fantasia || '—'}</td>
+                            <td className="px-4 py-2 text-sm text-gray-600 font-mono border-r border-gray-300">{formatCpfCnpj(sacado.cnpj)}</td>
+                            <td className="px-4 py-2 border-r border-gray-300">
                               {sacado.situacao && (
                                 <Badge variant={sacado.situacao === 'ATIVA' ? 'success' : 'error'} size="sm">
                                   {sacado.situacao}
                                 </Badge>
                               )}
                             </td>
-                            <td className="px-4 py-3">
+                            <td className="px-4 py-2">
                               <div className="flex gap-1">
-                                <Link href={`/sacados/${encodeURIComponent(sacado.cnpj)}`} title="Ver">
-                                  <button className="p-2 rounded hover:bg-[#e2e8f0]" aria-label="Ver">👁️</button>
+                                <Link href={`/sacados/${encodeURIComponent(sacado.cnpj)}`}>
+                                  <button className="px-2 py-1 border border-gray-300 bg-white hover:bg-gray-50 text-[#0369a1] text-xs font-medium" title="Ver">Ver</button>
                                 </Link>
-                                <Link href={`/sacados/${encodeURIComponent(sacado.cnpj)}/editar`} title="Editar">
-                                  <button className="p-2 rounded hover:bg-[#e2e8f0]" aria-label="Editar">✏️</button>
+                                <Link href={`/sacados/${encodeURIComponent(sacado.cnpj)}/editar`}>
+                                  <button className="px-2 py-1 border border-gray-300 bg-white hover:bg-gray-50 text-[#0369a1] text-xs font-medium" title="Editar">Editar</button>
                                 </Link>
-                                <Link href={`/sacados/${encodeURIComponent(sacado.cnpj)}/cobranca`} title="Ficha de Cobrança">
-                                  <button className="p-2 rounded hover:bg-[#e2e8f0]" aria-label="Ficha">📄</button>
+                                <Link href={`/sacados/${encodeURIComponent(sacado.cnpj)}/cobranca`}>
+                                  <button className="px-2 py-1 border border-gray-300 bg-white hover:bg-gray-50 text-[#0369a1] text-xs font-medium" title="Ficha">Ficha</button>
                                 </Link>
                               </div>
                             </td>
@@ -546,101 +692,17 @@ export default function CedentePage() {
               />
             )}
           </div>
-        </Card>
+        </div>
 
         {cedente.ultima_atualizacao && (
-          <Card>
-            <div className="text-center">
-              <p className="text-sm text-[#64748b]">
-                Última atualização: {new Date(cedente.ultima_atualizacao).toLocaleString('pt-BR')}
-              </p>
-            </div>
-          </Card>
-        )}
-      </div>
-
-      {/* Modal Adicionar Sacado */}
-      {showAddSacado && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg border border-[#e2e8f0]">
-            <div className="flex items-center justify-between px-5 py-3 border-b">
-              <h2 className="text-lg font-semibold text-[#0369a1]">Adicionar Sacado</h2>
-              <button
-                onClick={() => {
-                  setShowAddSacado(false);
-                  setSacadoForm({ cnpj: '', razao_social: '', nome_fantasia: '' });
-                }}
-                className="px-2 py-1 text-[#64748b] hover:text-[#0f172a] text-xl"
-                aria-label="Fechar"
-              >×</button>
-            </div>
-            
-            <div className="p-5 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-[#64748b] mb-1">CNPJ*</label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={sacadoForm.cnpj}
-                    onChange={(e) => setSacadoForm(f => ({ ...f, cnpj: formatCpfCnpj(e.target.value) }))}
-                    placeholder="00.000.000/0000-00"
-                    className="flex-1 px-3 py-2 border border-[#cbd5e1] rounded text-sm"
-                    maxLength={18}
-                  />
-                  <button
-                    onClick={consultarCnpjSacado}
-                    disabled={loadingSacadoCnpj}
-                    className="px-3 py-2 border border-[#0369a1] text-[#0369a1] rounded text-sm hover:bg-[#f0f7ff] disabled:opacity-50"
-                  >
-                    {loadingSacadoCnpj ? 'Consultando...' : '🔍 Consultar'}
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-[#64748b] mb-1">Razão Social*</label>
-                <input
-                  type="text"
-                  value={sacadoForm.razao_social}
-                  onChange={(e) => setSacadoForm(f => ({ ...f, razao_social: e.target.value }))}
-                  placeholder="Razão social da empresa"
-                  className="w-full px-3 py-2 border border-[#cbd5e1] rounded text-sm"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-[#64748b] mb-1">Nome Fantasia</label>
-                <input
-                  type="text"
-                  value={sacadoForm.nome_fantasia}
-                  onChange={(e) => setSacadoForm(f => ({ ...f, nome_fantasia: e.target.value }))}
-                  placeholder="Nome fantasia (opcional)"
-                  className="w-full px-3 py-2 border border-[#cbd5e1] rounded text-sm"
-                />
-              </div>
-
-              <div className="flex gap-2 justify-end pt-2">
-                <button
-                  onClick={() => {
-                    setShowAddSacado(false);
-                    setSacadoForm({ cnpj: '', razao_social: '', nome_fantasia: '' });
-                  }}
-                  className="px-4 py-2 border border-[#cbd5e1] rounded text-sm text-[#64748b] hover:bg-[#f1f5f9]"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={adicionarSacado}
-                  disabled={savingSacado || !sacadoForm.cnpj || !sacadoForm.razao_social}
-                  className="px-4 py-2 bg-[#0369a1] text-white rounded text-sm hover:opacity-90 disabled:opacity-50"
-                >
-                  {savingSacado ? 'Salvando...' : 'Adicionar'}
-                </button>
-              </div>
-            </div>
+          <div className="bg-white border border-gray-300 p-3">
+            <p className="text-xs text-gray-600 text-center">
+              Última atualização: {new Date(cedente.ultima_atualizacao).toLocaleString('pt-BR')}
+            </p>
           </div>
-        </div>
-      )}
+        )}
+
+      </div>
     </main>
   );
 }

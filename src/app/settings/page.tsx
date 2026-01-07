@@ -1,53 +1,79 @@
 'use client';
 
-import Card from '@/components/ui/Card';
+import { useRouter } from 'next/navigation';
 import Button from '@/components/ui/Button';
 
 export default function SettingsPage() {
+  const router = useRouter();
+
   return (
-    <main className="min-h-screen p-6">
-      <div className="container max-w-4xl space-y-6">
-        <header>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-slate-800 bg-clip-text text-transparent">Configurações</h1>
-          <p className="text-slate-600">Configurações do sistema</p>
+    <main className="min-h-screen bg-gray-50">
+      <div className="container max-w-4xl mx-auto px-4 py-6 space-y-4">
+        {/* Header */}
+        <header className="mb-4">
+          <button 
+            onClick={() => {
+              if (typeof window !== 'undefined' && window.history.length > 1) {
+                router.back();
+              } else {
+                router.push('/menu/configuracoes');
+              }
+            }}
+            className="inline-flex items-center gap-2 px-3 py-1.5 mb-4 bg-white border border-gray-300 hover:bg-gray-50 text-[#0369a1] text-sm font-medium"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Voltar
+          </button>
+          <div className="border-b-2 border-[#0369a1] pb-3">
+            <h1 className="text-3xl font-bold text-[#0369a1] mb-1">Configurações</h1>
+            <p className="text-sm text-gray-600">Configurações do sistema</p>
+          </div>
         </header>
 
-        <div className="grid gap-6 sm:grid-cols-2">
-          <Card>
-            <div className="space-y-4">
-              <h2 className="text-xl font-semibold text-slate-800">Financeiro</h2>
-              <p className="text-slate-600">Configurações relacionadas ao fluxo de caixa</p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {/* Financeiro */}
+          <div className="bg-white border border-gray-300">
+            <div className="border-b border-gray-300 bg-gray-100 px-4 py-2">
+              <h2 className="text-sm font-semibold text-gray-700 uppercase">Financeiro</h2>
+            </div>
+            <div className="p-4 space-y-3">
+              <p className="text-xs text-gray-600 mb-3">Configurações relacionadas ao fluxo de caixa</p>
               <div className="space-y-2">
-                <Button variant="outline" className="w-full justify-start">
+                <Button variant="outline" className="w-full justify-start text-sm">
                   Contas
                 </Button>
-                <Button variant="outline" className="w-full justify-start">
+                <Button variant="outline" className="w-full justify-start text-sm">
                   Categorias
                 </Button>
-                <Button variant="outline" className="w-full justify-start">
+                <Button variant="outline" className="w-full justify-start text-sm">
                   Meios de Pagamento
                 </Button>
               </div>
             </div>
-          </Card>
+          </div>
 
-          <Card>
-            <div className="space-y-4">
-              <h2 className="text-xl font-semibold text-slate-800">Sistema</h2>
-              <p className="text-slate-600">Configurações gerais do sistema</p>
+          {/* Sistema */}
+          <div className="bg-white border border-gray-300">
+            <div className="border-b border-gray-300 bg-gray-100 px-4 py-2">
+              <h2 className="text-sm font-semibold text-gray-700 uppercase">Sistema</h2>
+            </div>
+            <div className="p-4 space-y-3">
+              <p className="text-xs text-gray-600 mb-3">Configurações gerais do sistema</p>
               <div className="space-y-2">
-                <Button variant="outline" className="w-full justify-start">
+                <Button variant="outline" className="w-full justify-start text-sm">
                   Perfil do Usuário
                 </Button>
-                <Button variant="outline" className="w-full justify-start">
+                <Button variant="outline" className="w-full justify-start text-sm">
                   Backup de Dados
                 </Button>
-                <Button variant="outline" className="w-full justify-start">
+                <Button variant="outline" className="w-full justify-start text-sm">
                   Sobre o Sistema
                 </Button>
               </div>
             </div>
-          </Card>
+          </div>
         </div>
       </div>
     </main>

@@ -47,6 +47,7 @@ export default function CedentesPage() {
   const [q, setQ] = useState('');
   const [loadingCnpj, setLoadingCnpj] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
+  const [consultarAPIs, setConsultarAPIs] = useState(false);
   const [sortBy, setSortBy] = useState<'nome' | 'razao_social' | 'cnpj' | 'situacao'>('nome');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [page, setPage] = useState(1);
@@ -71,16 +72,64 @@ export default function CedentesPage() {
     setItems((data as Cedente[]) ?? []);
   }
 
+  async function consultarAPIsCedente(cedenteId: string, cnpj: string) {
+    if (!cnpj || cnpj.length !== 14) return;
+    
+    try {
+      const tipos = ['enderecos', 'telefones', 'emails', 'qsa'];
+      
+      for (const tipo of tipos) {
+        try {
+          const res = await fetch(`/api/bigdata?cnpj=${encodeURIComponent(cnpj)}&tipo=${tipo}`);
+          const response = await res.json();
+          
+          if (res.ok && response && Array.isArray(response) && response.length > 0) {
+            const tableName = tipo === 'enderecos' ? 'cedentes_enderecos' :
+                            tipo === 'telefones' ? 'cedentes_telefones' :
+                            tipo === 'emails' ? 'cedentes_emails' :
+                            tipo === 'qsa' ? 'cedentes_qsa' : null;
+            
+            if (tableName) {
+              // Remove dados antigos da API
+              await supabase
+                .from(tableName)
+                .delete()
+                .eq('cedente_id', cedenteId)
+                .eq('origem', 'api');
+              
+              // Insere novos dados
+              const dataToInsert = response.map((item: any) => ({
+                ...item,
+                cedente_id: cedenteId,
+                origem: 'api',
+                ativo: true
+              }));
+              
+              await supabase.from(tableName).insert(dataToInsert);
+            }
+          }
+        } catch (err) {
+          console.error(`Erro ao consultar ${tipo}:`, err);
+        }
+      }
+    } catch (err) {
+      console.error('Erro ao consultar APIs:', err);
+    }
+  }
+
   async function add() {
     if (!form.nome.trim()) return;
     setPending(true); setErr(null);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setErr('Não autenticado'); setPending(false); return; }
-    const { error } = await supabase.from('cedentes').insert({
+    
+    const cnpjLimpo = form.cnpj ? form.cnpj.replace(/\D+/g, '') : null;
+    
+    const { data: novoCedente, error } = await supabase.from('cedentes').insert({
       user_id: user.id,
       nome: form.nome.trim(),
       razao_social: form.razao_social || null,
-      cnpj: form.cnpj ? form.cnpj.replace(/\D+/g, '') : null,
+      cnpj: cnpjLimpo,
       telefone: form.telefone || null,
       email: form.email || null,
       endereco: form.endereco || null,
@@ -94,17 +143,27 @@ export default function CedentesPage() {
       atividades_secundarias: form.atividades_secundarias || null,
       simples_nacional: form.simples_nacional || null,
       ultima_atualizacao: new Date().toISOString(),
-    });
-    if (error) setErr(error.message);
-    else {
-      setShowCreate(false);
-      setForm({ 
-        nome: '', razao_social: '', cnpj: '', telefone: '', email: '', endereco: '',
-        porte: '', natureza_juridica: '', situacao: '', data_abertura: '', capital_social: '',
-        atividade_principal_codigo: '', atividade_principal_descricao: '', atividades_secundarias: '',
-        simples_nacional: false
-      });
+    }).select('id, cnpj').single();
+    
+    if (error) {
+      setErr(error.message);
+      setPending(false);
+      return;
     }
+    
+    // Se marcou para consultar APIs e tem CNPJ, consulta
+    if (consultarAPIs && novoCedente && cnpjLimpo && cnpjLimpo.length === 14) {
+      await consultarAPIsCedente(novoCedente.id, cnpjLimpo);
+    }
+    
+    setShowCreate(false);
+    setConsultarAPIs(false);
+    setForm({ 
+      nome: '', razao_social: '', cnpj: '', telefone: '', email: '', endereco: '',
+      porte: '', natureza_juridica: '', situacao: '', data_abertura: '', capital_social: '',
+      atividade_principal_codigo: '', atividade_principal_descricao: '', atividades_secundarias: '',
+      simples_nacional: false
+    });
     await load();
     setPending(false);
   }
@@ -173,27 +232,29 @@ export default function CedentesPage() {
   useEffect(() => { setPage(1); }, [q, filterSituacao]);
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      <div className="container max-w-7xl mx-auto px-4 py-8 space-y-6">
+    <main className="min-h-screen bg-gray-50">
+      <div className="container max-w-7xl mx-auto px-4 py-6 space-y-4">
         {/* Header */}
         <header className="flex flex-col gap-4">
           <div>
             <button 
               onClick={() => router.push('/menu/operacional')}
-              className="inline-flex items-center gap-2 px-4 py-2 mb-4 rounded-lg bg-white border border-gray-200 hover:border-[#0369a1] hover:bg-blue-50 transition-all shadow-sm hover:shadow-md text-[#0369a1] font-medium"
+              className="inline-flex items-center gap-2 px-3 py-1.5 mb-4 bg-white border border-gray-300 hover:bg-gray-50 text-[#0369a1] text-sm font-medium"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
               Voltar
             </button>
-            <h1 className="text-4xl font-bold text-[#0369a1] mb-2">Cedentes</h1>
-            <p className="text-[#64748b] text-lg">Gestão completa de cedentes e relacionamentos</p>
+            <div className="border-b-2 border-[#0369a1] pb-3">
+              <h1 className="text-3xl font-bold text-[#0369a1] mb-1">Cedentes</h1>
+              <p className="text-sm text-gray-600">Gestão completa de cedentes e relacionamentos</p>
+            </div>
           </div>
         </header>
 
         {/* Toolbar */}
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
+        <div className="bg-white border border-gray-300 p-4">
           <div className="flex flex-col lg:flex-row gap-4 lg:items-center lg:justify-between">
             {/* Busca e filtros */}
             <div className="flex flex-col sm:flex-row gap-3 flex-1">
@@ -208,7 +269,7 @@ export default function CedentesPage() {
               <select
                 value={filterSituacao}
                 onChange={(e) => setFilterSituacao(e.target.value)}
-                className="px-4 py-2 border border-[#cbd5e1] rounded-lg text-sm text-[#0369a1] bg-white hover:bg-blue-50 transition-colors"
+                className="px-3 py-2 border border-gray-300 text-sm text-[#0369a1] bg-white hover:bg-gray-50"
               >
                 <option value="all">📊 Todas as situações</option>
                 <option value="ativa">✅ Apenas Ativos</option>
@@ -220,7 +281,7 @@ export default function CedentesPage() {
             <div className="flex gap-2">
               <button
                 onClick={() => setViewMode(viewMode === 'table' ? 'grid' : 'table')}
-                className="px-4 py-2 rounded-lg border border-[#cbd5e1] bg-white hover:bg-blue-50 transition-all text-[#0369a1] font-medium"
+                className="px-3 py-2 border border-gray-300 bg-white hover:bg-gray-50 text-[#0369a1] text-sm font-medium"
                 title={viewMode === 'table' ? 'Visualizar em Grid' : 'Visualizar em Tabela'}
               >
                 {viewMode === 'table' ? '⊞' : '≡'}
@@ -232,7 +293,7 @@ export default function CedentesPage() {
           </div>
 
           {/* Contador de resultados */}
-          <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between text-sm">
+          <div className="mt-3 pt-3 border-t border-gray-300 flex items-center justify-between text-sm">
             <span className="text-[#64748b]">
               Exibindo <strong className="text-[#0369a1]">{paginated.length}</strong> de <strong className="text-[#0369a1]">{total}</strong> cedentes
               {q && <span> (filtrado de <strong>{items.length}</strong>)</span>}
@@ -247,120 +308,129 @@ export default function CedentesPage() {
 
         {/* Modal Novo Cedente */}
         {showCreate && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl border border-[#e2e8f0] max-h-[90vh] overflow-auto">
-              <div className="sticky top-0 bg-gradient-to-r from-[#0369a1] to-[#0284c7] px-6 py-4 rounded-t-2xl">
-                <div className="flex items-center justify-between text-white">
-                  <div>
-                    <h2 className="text-xl font-bold">Novo Cedente</h2>
-                    <p className="text-sm text-blue-100">Preencha os dados do cedente</p>
-                  </div>
-                  <button
-                    onClick={() => setShowCreate(false)}
-                    className="w-8 h-8 rounded-lg hover:bg-white/20 transition-colors text-2xl"
-                    aria-label="Fechar"
-                  >×</button>
-                </div>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="bg-white border border-gray-300 w-full max-w-3xl max-h-[90vh] overflow-auto">
+              <div className="border-b border-gray-300 bg-gray-100 px-4 py-2 flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-gray-700 uppercase">Novo Cedente</h2>
+                <button
+                  onClick={() => { setShowCreate(false); setErr(null); }}
+                  className="text-gray-600 hover:text-gray-900 text-xl"
+                  aria-label="Fechar"
+                >×</button>
               </div>
-              <div className="p-6 space-y-4">
+              <div className="p-4 space-y-4">
                 <div className="grid gap-4 sm:grid-cols-2">
-              <Input
-                label="Nome*"
-                value={form.nome}
-                onChange={(e) => setForm({ ...form, nome: e.target.value })}
-              />
-              <Input
-                label="Razão social"
-                value={form.razao_social}
-                onChange={(e) => setForm({ ...form, razao_social: e.target.value })}
-              />
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">CNPJ</label>
-                <div className="flex gap-2">
                   <Input
-                    value={form.cnpj}
-                    onChange={(e) => setForm({ ...form, cnpj: formatCpfCnpj(e.target.value) })}
-                    className="flex-1"
+                    label="Nome*"
+                    value={form.nome}
+                    onChange={(e) => setForm({ ...form, nome: e.target.value })}
                   />
-                  <Button 
-                    variant="secondary" 
-                    disabled={loadingCnpj}
-                    onClick={async () => {
-                      try {
-                        setLoadingCnpj(true);
-                        const raw = (form.cnpj || '').replace(/\D+/g, '');
-                        if (!raw) return;
-                        
-                        // Usa o helper que normaliza a resposta
-                        const dadosCnpj = await consultarCnpj(raw);
-                        
-                        setForm(f => ({
-                          ...f,
-                          nome: dadosCnpj.nome_fantasia,
-                          razao_social: dadosCnpj.razao_social,
-                          telefone: dadosCnpj.telefone,
-                          email: dadosCnpj.email,
-                          endereco: dadosCnpj.endereco,
-                          porte: dadosCnpj.porte,
-                          natureza_juridica: dadosCnpj.natureza_juridica,
-                          situacao: dadosCnpj.situacao,
-                        }));
-                        
-                      } catch (error) {
-                        const msg = error instanceof Error ? error.message : 'Erro ao consultar CNPJ';
-                        alert(msg);
-                      } finally {
-                        setLoadingCnpj(false);
-                      }
-                    }}
-                  >
-                    {loadingCnpj ? '⏳ Consultando...' : '🔍 Consultar'}
-                  </Button>
+                  <Input
+                    label="Razão social"
+                    value={form.razao_social}
+                    onChange={(e) => setForm({ ...form, razao_social: e.target.value })}
+                  />
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">CNPJ</label>
+                    <div className="flex gap-2">
+                      <Input
+                        value={form.cnpj}
+                        onChange={(e) => setForm({ ...form, cnpj: formatCpfCnpj(e.target.value) })}
+                        className="flex-1"
+                      />
+                      <Button 
+                        variant="secondary" 
+                        disabled={loadingCnpj}
+                        onClick={async () => {
+                          try {
+                            setLoadingCnpj(true);
+                            const raw = (form.cnpj || '').replace(/\D+/g, '');
+                            if (!raw) return;
+                            
+                            const dadosCnpj = await consultarCnpj(raw);
+                            
+                            setForm(f => ({
+                              ...f,
+                              nome: dadosCnpj.nome_fantasia,
+                              razao_social: dadosCnpj.razao_social,
+                              telefone: dadosCnpj.telefone,
+                              email: dadosCnpj.email,
+                              endereco: dadosCnpj.endereco,
+                              porte: dadosCnpj.porte,
+                              natureza_juridica: dadosCnpj.natureza_juridica,
+                              situacao: dadosCnpj.situacao,
+                            }));
+                            
+                          } catch (error) {
+                            const msg = error instanceof Error ? error.message : 'Erro ao consultar CNPJ';
+                            alert(msg);
+                          } finally {
+                            setLoadingCnpj(false);
+                          }
+                        }}
+                      >
+                        {loadingCnpj ? 'Consultando...' : 'Consultar'}
+                      </Button>
+                    </div>
+                  </div>
+                  <Input
+                    label="Telefone"
+                    value={form.telefone}
+                    onChange={(e) => setForm({ ...form, telefone: e.target.value })}
+                  />
+                  <Input
+                    label="E-mail"
+                    type="email"
+                    value={form.email}
+                    onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  />
+                  <Input
+                    label="Endereço"
+                    value={form.endereco}
+                    onChange={(e) => setForm({ ...form, endereco: e.target.value })}
+                    className="sm:col-span-2"
+                  />
                 </div>
-              </div>
-              <Input
-                label="Telefone"
-                value={form.telefone}
-                onChange={(e) => setForm({ ...form, telefone: e.target.value })}
-              />
-              <Input
-                label="E-mail"
-                type="email"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-              />
-              <Input
-                label="Endereço"
-                value={form.endereco}
-                onChange={(e) => setForm({ ...form, endereco: e.target.value })}
-                className="sm:col-span-2"
-              />
-            </div>
-            
-            <div className="flex gap-3 pt-4 border-t">
-              <Button 
-                variant="secondary" 
-                onClick={() => setForm({ 
-                  nome: '', razao_social: '', cnpj: '', telefone: '', email: '', endereco: '',
-                  porte: '', natureza_juridica: '', situacao: '', data_abertura: '', capital_social: '',
-                  atividade_principal_codigo: '', atividade_principal_descricao: '', atividades_secundarias: '',
-                  simples_nacional: false
-                })}
-              >
-                🗑️ Limpar
-              </Button>
-              <Button 
-                variant="primary" 
-                onClick={add} 
-                loading={pending}
-                disabled={!form.nome}
-                className="flex-1"
-              >
-                ✓ Adicionar Cedente
-              </Button>
-            </div>
-            
-            {err && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">⚠️ {err}</p>}
+                
+                <div className="pt-4 border-t border-gray-300 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="consultar-apis"
+                      checked={consultarAPIs}
+                      onChange={(e) => setConsultarAPIs(e.target.checked)}
+                      className="w-4 h-4 border border-gray-300"
+                    />
+                    <label htmlFor="consultar-apis" className="text-sm text-gray-700">
+                      Consultar APIs após salvar (endereços, telefones, emails, QSA)
+                    </label>
+                  </div>
+                  <div className="flex gap-2 justify-end">
+                    <button 
+                      className="px-3 py-1.5 border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 text-sm font-medium"
+                      onClick={() => {
+                        setForm({ 
+                          nome: '', razao_social: '', cnpj: '', telefone: '', email: '', endereco: '',
+                          porte: '', natureza_juridica: '', situacao: '', data_abertura: '', capital_social: '',
+                          atividade_principal_codigo: '', atividade_principal_descricao: '', atividades_secundarias: '',
+                          simples_nacional: false
+                        });
+                        setConsultarAPIs(false);
+                      }}
+                    >
+                      Limpar
+                    </button>
+                    <button 
+                      className="px-3 py-1.5 bg-[#0369a1] hover:bg-[#075985] text-white text-sm font-medium disabled:opacity-50"
+                      onClick={add} 
+                      disabled={pending || !form.nome}
+                    >
+                      {pending ? 'Salvando...' : 'Adicionar Cedente'}
+                    </button>
+                  </div>
+                </div>
+                
+                {err && <p className="text-xs text-red-600 bg-red-50 border border-red-200 p-2">{err}</p>}
               </div>
             </div>
           </div>
@@ -370,55 +440,55 @@ export default function CedentesPage() {
         <Card>
           {viewMode === 'table' ? (
             <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gradient-to-r from-[#e0efff] to-[#f0f7ff]">
+              <table className="w-full border-collapse">
+                <thead className="bg-gray-100 border-b-2 border-gray-300">
                   <tr>
                     {(['nome','razao_social','cnpj'] as const).map(col => (
-                      <th key={col} className="px-4 py-3 text-left text-sm font-semibold text-[#0369a1] cursor-pointer select-none hover:bg-blue-100 transition-colors" onClick={() => onSort(col)}>
+                      <th key={col} className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 cursor-pointer select-none hover:bg-gray-200" onClick={() => onSort(col)}>
                         {col === 'nome' ? 'Nome' : col === 'razao_social' ? 'Razão Social' : 'CNPJ'}
                         {sortBy === col && (
                           <span className="ml-1 text-[#64748b]">{sortDir === 'asc' ? '▲' : '▼'}</span>
                         )}
                       </th>
                     ))}
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-[#0369a1] cursor-pointer select-none hover:bg-blue-100 transition-colors" onClick={() => onSort('situacao')}>
+                    <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 cursor-pointer select-none hover:bg-gray-200" onClick={() => onSort('situacao')}>
                       Status
                       {sortBy === 'situacao' && (
-                        <span className="ml-1 text-[#64748b]">{sortDir === 'asc' ? '▲' : '▼'}</span>
+                        <span className="ml-1 text-gray-500">{sortDir === 'asc' ? '▲' : '▼'}</span>
                       )}
                     </th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-[#0369a1]">Ações</th>
+                    <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase">Ações</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#cbd5e1]">
+                <tbody>
                   {paginated.length === 0 ? (
-                    <tr><td colSpan={5} className="p-8 text-center text-[#64748b]">
+                    <tr><td colSpan={5} className="p-8 text-center text-gray-600 border-b border-gray-300">
                       <div className="flex flex-col items-center gap-3">
                         <span className="text-4xl">📭</span>
                         <p>Nenhum cedente encontrado.</p>
                       </div>
                     </td></tr>
                   ) : paginated.map(c => (
-                    <tr key={c.id} className="hover:bg-[#f8fbff] transition-colors group">
-                      <td className="px-4 py-3 text-sm text-[#1e293b] font-medium">{c.nome}</td>
-                      <td className="px-4 py-3 text-sm text-[#64748b]">{c.razao_social ?? '—'}</td>
-                      <td className="px-4 py-3 text-sm text-[#64748b] font-mono">{c.cnpj ? formatCpfCnpj(c.cnpj) : '—'}</td>
-                      <td className="px-4 py-3">
+                    <tr key={c.id} className="hover:bg-gray-50 border-b border-gray-300 group">
+                      <td className="px-4 py-2 text-sm text-gray-900 font-medium border-r border-gray-300">{c.nome}</td>
+                      <td className="px-4 py-2 text-sm text-gray-600 border-r border-gray-300">{c.razao_social ?? '—'}</td>
+                      <td className="px-4 py-2 text-sm text-gray-600 font-mono border-r border-gray-300">{c.cnpj ? formatCpfCnpj(c.cnpj) : '—'}</td>
+                      <td className="px-4 py-2 border-r border-gray-300">
                         {c.situacao && (
                           <Badge variant={c.situacao === 'ATIVA' ? 'success' : 'neutral'} size="sm">
                             {c.situacao}
                           </Badge>
                         )}
                       </td>
-                      <td className="px-4 py-3">
-                        <div className="flex gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
-                          <Link href={`/cedentes/${c.id}`} title="Ver detalhes">
-                            <button className="p-2 rounded-lg hover:bg-blue-50 transition-colors" aria-label="Ver">👁️</button>
+                      <td className="px-4 py-2">
+                        <div className="flex gap-2">
+                          <Link href={`/cedentes/${c.id}`}>
+                            <button className="px-2 py-1 border border-gray-300 bg-white hover:bg-gray-50 text-[#0369a1] text-xs font-medium">Ver</button>
                           </Link>
-                          <Link href={`/cedentes/${c.id}/editar`} title="Editar">
-                            <button className="p-2 rounded-lg hover:bg-blue-50 transition-colors" aria-label="Editar">✏️</button>
+                          <Link href={`/cedentes/${c.id}/editar`}>
+                            <button className="px-2 py-1 border border-gray-300 bg-white hover:bg-gray-50 text-[#0369a1] text-xs font-medium">Editar</button>
                           </Link>
-                          <button className="p-2 rounded-lg hover:bg-red-50 transition-colors" title="Excluir" aria-label="Excluir" onClick={() => remove(c.id)}>🗑️</button>
+                          <button className="px-2 py-1 border border-gray-300 bg-white hover:bg-gray-50 text-red-600 text-xs font-medium" onClick={() => remove(c.id)}>Apagar</button>
                         </div>
                       </td>
                     </tr>
@@ -452,20 +522,20 @@ export default function CedentesPage() {
                   {c.cnpj && <p className="text-xs text-[#64748b] font-mono mb-3">{formatCpfCnpj(c.cnpj)}</p>}
                   <div className="flex gap-2 pt-3 border-t border-gray-100">
                     <Link href={`/cedentes/${c.id}`} className="flex-1">
-                      <button className="w-full px-3 py-2 rounded-lg bg-blue-50 hover:bg-blue-100 text-[#0369a1] font-medium text-sm transition-colors">
-                        👁️ Ver
+                      <button className="w-full px-3 py-2 border border-gray-300 bg-white hover:bg-gray-50 text-[#0369a1] font-medium text-sm">
+                        Ver
                       </button>
                     </Link>
                     <Link href={`/cedentes/${c.id}/editar`}>
-                      <button className="px-3 py-2 rounded-lg bg-blue-50 hover:bg-blue-100 text-[#0369a1] font-medium text-sm transition-colors">
-                        ✏️
+                      <button className="px-3 py-2 border border-gray-300 bg-white hover:bg-gray-50 text-[#0369a1] font-medium text-sm">
+                        Editar
                       </button>
                     </Link>
                     <button 
                       onClick={() => remove(c.id)}
-                      className="px-3 py-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 font-medium text-sm transition-colors"
+                      className="px-3 py-2 border border-gray-300 bg-white hover:bg-gray-50 text-red-600 font-medium text-sm"
                     >
-                      🗑️
+                      Apagar
                     </button>
                   </div>
                 </div>
@@ -474,24 +544,24 @@ export default function CedentesPage() {
           )}
 
           {/* Paginação */}
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-4 border-t border-gray-100 bg-gray-50">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-4 border-t border-gray-300 bg-gray-100">
             <div className="text-sm text-[#64748b]">
               Página <strong className="text-[#0369a1]">{currentPage}</strong> de <strong className="text-[#0369a1]">{totalPages}</strong>
             </div>
             <div className="flex items-center gap-2 justify-center">
               <button
-                className="px-4 py-2 rounded-lg border border-[#cbd5e1] text-sm text-[#0369a1] font-medium bg-white hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="px-3 py-1.5 border border-gray-300 text-sm text-[#0369a1] font-medium bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
               >← Anterior</button>
-              <span className="text-sm text-[#64748b] px-2">•</span>
+              <span className="text-sm text-gray-600 px-2">•</span>
               <button
-                className="px-4 py-2 rounded-lg border border-[#cbd5e1] text-sm text-[#0369a1] font-medium bg-white hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="px-3 py-1.5 border border-gray-300 text-sm text-[#0369a1] font-medium bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
               >Próxima →</button>
               <select
-                className="ml-2 px-3 py-2 border border-[#cbd5e1] rounded-lg text-sm text-[#0369a1] bg-white hover:bg-blue-50 transition-colors"
+                className="ml-2 px-3 py-1.5 border border-gray-300 text-sm text-[#0369a1] bg-white hover:bg-gray-50"
                 value={pageSize}
                 onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
               >
