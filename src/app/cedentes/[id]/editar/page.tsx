@@ -96,13 +96,6 @@ export default function EditarCedentePage() {
   const [loadingSacadoCnpj, setLoadingSacadoCnpj] = useState(false);
   const [savingSacado, setSavingSacado] = useState(false);
   const [consultarAPIsSacado, setConsultarAPIsSacado] = useState(false);
-  const [loadingAPIsSacado, setLoadingAPIsSacado] = useState(false);
-  const [dadosAPIsSacado, setDadosAPIsSacado] = useState<{
-    enderecos: any[];
-    telefones: any[];
-    emails: any[];
-    qsa: any[];
-  } | null>(null);
 
   // Estados para navegação lateral e botão voltar ao topo
   const [activeSection, setActiveSection] = useState<string>('');
@@ -357,29 +350,6 @@ export default function EditarCedentePage() {
     }
   }
 
-  async function consultarAPIsAgoraSacado() {
-    const cnpjLimpo = sacadoForm.cnpj.replace(/\D+/g, '');
-    if (!cnpjLimpo || cnpjLimpo.length !== 14) {
-      showToast('Informe um CNPJ válido com 14 dígitos para consultar as APIs', 'warning');
-      return;
-    }
-
-    setLoadingAPIsSacado(true);
-    try {
-      const dados = await consultarAPIsSacadoFunc(cnpjLimpo, false);
-      
-      if (dados) {
-        setDadosAPIsSacado(dados);
-        showToast(`Encontrados: ${dados.enderecos.length} endereços, ${dados.telefones.length} telefones, ${dados.emails.length} emails, ${dados.qsa.length} sócios`, 'success');
-      } else {
-        showToast('Nenhum dado encontrado nas APIs para este CNPJ', 'warning');
-      }
-    } catch (e) {
-      showToast('Erro ao consultar APIs', 'error');
-    } finally {
-      setLoadingAPIsSacado(false);
-    }
-  }
 
   async function adicionarSacado() {
     const raw = sacadoForm.cnpj.replace(/\D+/g, '');
@@ -451,18 +421,14 @@ export default function EditarCedentePage() {
           showToast('Erro ao adicionar sacado', 'error');
         }
       } else {
-        // Se marcou para consultar APIs ou já consultou, salva os dados
+        // Se marcou para consultar APIs, consulta e salva os dados
         if (consultarAPIsSacado && raw && raw.length === 14) {
-          await consultarAPIsSacadoFunc(raw, true);
-        } else if (dadosAPIsSacado && raw && raw.length === 14) {
-          // Se já consultou as APIs antes, salva os dados encontrados
           await consultarAPIsSacadoFunc(raw, true);
         }
         
         setSacadoForm({ cnpj: '', razao_social: '', nome_fantasia: '' });
         setShowAddSacado(false);
         setConsultarAPIsSacado(false);
-        setDadosAPIsSacado(null);
         showToast('Sacado adicionado com sucesso!', 'success');
         await loadSacados();
       }
@@ -1577,15 +1543,7 @@ export default function EditarCedentePage() {
                     className="px-3 py-2 border border-blue-600 text-blue-600 rounded text-sm hover:bg-blue-50 disabled:opacity-50 whitespace-nowrap"
                     title="Consultar dados básicos na Receita"
                   >
-                    {loadingSacadoCnpj ? 'Consultando...' : 'Receita'}
-                  </button>
-                  <button
-                    onClick={consultarAPIsAgoraSacado}
-                    disabled={loadingAPIsSacado || !sacadoForm.cnpj}
-                    className="px-3 py-2 bg-[#0369a1] text-white rounded text-sm hover:bg-[#075985] disabled:opacity-50 whitespace-nowrap"
-                    title="Consultar APIs BigData (endereços, telefones, emails, QSA)"
-                  >
-                    {loadingAPIsSacado ? 'Consultando...' : 'APIs'}
+                    {loadingSacadoCnpj ? 'Consultando...' : 'Consultar'}
                   </button>
                 </div>
               </div>
@@ -1612,37 +1570,6 @@ export default function EditarCedentePage() {
                 />
               </div>
 
-              {/* Resultados da Consulta de APIs */}
-              {dadosAPIsSacado && (
-                <div className="bg-green-50 border-2 border-green-200 rounded-lg p-3">
-                  <div className="flex items-start gap-2">
-                    <svg className="w-5 h-5 text-green-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <div className="flex-1">
-                      <h3 className="text-xs font-semibold text-green-800 mb-1">Dados encontrados nas APIs:</h3>
-                      <div className="flex flex-wrap gap-1 text-xs">
-                        <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded">
-                          {dadosAPIsSacado.enderecos.length} Endereço{dadosAPIsSacado.enderecos.length !== 1 ? 's' : ''}
-                        </span>
-                        <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded">
-                          {dadosAPIsSacado.telefones.length} Telefone{dadosAPIsSacado.telefones.length !== 1 ? 's' : ''}
-                        </span>
-                        <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded">
-                          {dadosAPIsSacado.emails.length} E-mail{dadosAPIsSacado.emails.length !== 1 ? 's' : ''}
-                        </span>
-                        <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded">
-                          {dadosAPIsSacado.qsa.length} Sócio{dadosAPIsSacado.qsa.length !== 1 ? 's' : ''} (QSA)
-                        </span>
-                      </div>
-                      <p className="text-xs text-green-700 mt-2">
-                        Os dados serão salvos automaticamente ao adicionar o sacado.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
               {/* Marcador de Consulta de APIs */}
               <div className="pt-2 border-t border-gray-200">
                 <div 
@@ -1666,10 +1593,7 @@ export default function EditarCedentePage() {
                         Consultar APIs após salvar (endereços, telefones, emails, QSA)
                       </label>
                       <p className="text-xs text-gray-600 mt-1">
-                        {dadosAPIsSacado 
-                          ? 'Dados já consultados. Serão salvos automaticamente ao adicionar o sacado.'
-                          : 'Marque esta opção para que o sistema busque automaticamente dados complementares nas APIs BigData ao adicionar o sacado.'
-                        }
+                        Marque esta opção para que o sistema busque automaticamente dados complementares nas APIs BigData ao adicionar o sacado.
                       </p>
                     </div>
                   </div>
@@ -1682,7 +1606,6 @@ export default function EditarCedentePage() {
                     setShowAddSacado(false);
                     setSacadoForm({ cnpj: '', razao_social: '', nome_fantasia: '' });
                     setConsultarAPIsSacado(false);
-                    setDadosAPIsSacado(null);
                   }}
                   className="px-4 py-2 border border-gray-300 rounded text-sm text-gray-700 hover:bg-gray-50"
                 >

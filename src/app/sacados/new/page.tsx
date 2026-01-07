@@ -31,13 +31,6 @@ function NewSacadoContent() {
   const [err, setErr] = useState<string | null>(null);
   const [loadingCnpj, setLoadingCnpj] = useState(false);
   const [consultarAPIs, setConsultarAPIs] = useState(false);
-  const [loadingAPIs, setLoadingAPIs] = useState(false);
-  const [dadosAPIs, setDadosAPIs] = useState<{
-    enderecos: any[];
-    telefones: any[];
-    emails: any[];
-    qsa: any[];
-  } | null>(null);
 
   useEffect(() => {
     loadCedentes();
@@ -114,53 +107,6 @@ function NewSacadoContent() {
     }
   }
 
-  async function consultarAPIsAgora() {
-    const cnpjLimpo = form.cnpj.replace(/\D+/g, '');
-    if (!cnpjLimpo || cnpjLimpo.length !== 14) {
-      setErr('Informe um CNPJ válido com 14 dígitos para consultar as APIs');
-      return;
-    }
-
-    setLoadingAPIs(true);
-    setErr(null);
-
-    try {
-      const dados = await consultarAPIsSacado(cnpjLimpo, false);
-      
-      if (dados) {
-        setDadosAPIs(dados);
-        
-        // Preenche campos do formulário com os primeiros dados encontrados
-        if (dados.enderecos && dados.enderecos.length > 0) {
-          const primeiroEndereco = dados.enderecos[0];
-          const enderecoCompleto = [
-            primeiroEndereco.endereco,
-            primeiroEndereco.numero,
-            primeiroEndereco.bairro,
-            primeiroEndereco.cidade,
-            primeiroEndereco.estado
-          ].filter(Boolean).join(', ');
-          setForm(f => ({ ...f, endereco_receita: enderecoCompleto || f.endereco_receita }));
-        }
-        
-        if (dados.telefones && dados.telefones.length > 0) {
-          const primeiroTelefone = dados.telefones[0];
-          setForm(f => ({ ...f, telefone_receita: primeiroTelefone.telefone || f.telefone_receita }));
-        }
-        
-        if (dados.emails && dados.emails.length > 0) {
-          const primeiroEmail = dados.emails[0];
-          setForm(f => ({ ...f, email_receita: primeiroEmail.email || f.email_receita }));
-        }
-      } else {
-        setErr('Nenhum dado encontrado nas APIs para este CNPJ');
-      }
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Erro ao consultar APIs');
-    } finally {
-      setLoadingAPIs(false);
-    }
-  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -228,13 +174,10 @@ function NewSacadoContent() {
       return;
     }
     
-    // Se marcou para consultar APIs ou já consultou, salva os dados
-    if (consultarAPIs && cnpjLimpo && cnpjLimpo.length === 14) {
-      await consultarAPIsSacado(cnpjLimpo, true);
-    } else if (dadosAPIs && cnpjLimpo && cnpjLimpo.length === 14) {
-      // Se já consultou as APIs antes, salva os dados encontrados
-      await consultarAPIsSacado(cnpjLimpo, true);
-    }
+      // Se marcou para consultar APIs, consulta e salva os dados
+      if (consultarAPIs && cnpjLimpo && cnpjLimpo.length === 14) {
+        await consultarAPIsSacado(cnpjLimpo, true);
+      }
 
     // Redireciona para a página do cedente se veio de lá, senão para a lista de sacados
     if (cedente_id_param) {
@@ -349,14 +292,6 @@ function NewSacadoContent() {
                 }}>
                 {loadingCnpj ? 'Buscando...' : 'Receita'}
               </button>
-              <button type="button" 
-                className="px-4 py-2 bg-[#0369a1] text-white rounded-lg hover:bg-[#075985] disabled:opacity-50 text-sm whitespace-nowrap"
-                disabled={loadingAPIs || !form.cnpj}
-                onClick={consultarAPIsAgora}
-                title="Consultar APIs BigData (endereços, telefones, emails, QSA)"
-              >
-                {loadingAPIs ? 'Consultando...' : 'APIs'}
-              </button>
             </div>
           </div>
           {[
@@ -408,54 +343,12 @@ function NewSacadoContent() {
                     </label>
                   </div>
                   <p className="text-xs text-gray-600 ml-7">
-                    {dadosAPIs 
-                      ? 'Dados já consultados. Serão salvos automaticamente ao salvar o sacado.'
-                      : 'Marque esta opção para que o sistema busque automaticamente dados complementares nas APIs BigData ao salvar o sacado.'
-                    }
+                    Marque esta opção para que o sistema busque automaticamente dados complementares nas APIs BigData ao salvar o sacado.
                   </p>
                 </div>
               </div>
             </div>
           </div>
-          
-          {/* Resultados da Consulta de APIs */}
-          {dadosAPIs && (
-            <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4">
-              <div className="flex items-start gap-2 mb-2">
-                <svg className="w-5 h-5 text-green-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <div className="flex-1">
-                  <h3 className="text-sm font-semibold text-green-800 mb-2">Dados encontrados nas APIs:</h3>
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="flex items-center gap-1">
-                      <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded">
-                        {dadosAPIs.enderecos.length} Endereço{dadosAPIs.enderecos.length !== 1 ? 's' : ''}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded">
-                        {dadosAPIs.telefones.length} Telefone{dadosAPIs.telefones.length !== 1 ? 's' : ''}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded">
-                        {dadosAPIs.emails.length} E-mail{dadosAPIs.emails.length !== 1 ? 's' : ''}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded">
-                        {dadosAPIs.qsa.length} Sócio{dadosAPIs.qsa.length !== 1 ? 's' : ''} (QSA)
-                      </span>
-                    </div>
-                  </div>
-                  <p className="text-xs text-green-700 mt-2">
-                    Os dados serão salvos automaticamente ao salvar o sacado.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
           
           <div className="pt-4 space-y-3">
             <div className="flex gap-2">

@@ -72,11 +72,17 @@ export default function CedentesPage() {
     setItems((data as Cedente[]) ?? []);
   }
 
-  async function consultarAPIsCedente(cedenteId: string, cnpj: string) {
-    if (!cnpj || cnpj.length !== 14) return;
+  async function consultarAPIsCedente(cedenteId: string, cnpj: string, salvarNoBanco: boolean = false) {
+    if (!cnpj || cnpj.length !== 14) return null;
     
     try {
       const tipos = ['enderecos', 'telefones', 'emails', 'qsa'];
+      const resultados: any = {
+        enderecos: [],
+        telefones: [],
+        emails: [],
+        qsa: []
+      };
       
       for (const tipo of tipos) {
         try {
@@ -84,38 +90,46 @@ export default function CedentesPage() {
           const response = await res.json();
           
           if (res.ok && response && Array.isArray(response) && response.length > 0) {
-            const tableName = tipo === 'enderecos' ? 'cedentes_enderecos' :
-                            tipo === 'telefones' ? 'cedentes_telefones' :
-                            tipo === 'emails' ? 'cedentes_emails' :
-                            tipo === 'qsa' ? 'cedentes_qsa' : null;
+            resultados[tipo as keyof typeof resultados] = response;
             
-            if (tableName) {
-              // Remove dados antigos da API
-              await supabase
-                .from(tableName)
-                .delete()
-                .eq('cedente_id', cedenteId)
-                .eq('origem', 'api');
+            if (salvarNoBanco) {
+              const tableName = tipo === 'enderecos' ? 'cedentes_enderecos' :
+                              tipo === 'telefones' ? 'cedentes_telefones' :
+                              tipo === 'emails' ? 'cedentes_emails' :
+                              tipo === 'qsa' ? 'cedentes_qsa' : null;
               
-              // Insere novos dados
-              const dataToInsert = response.map((item: any) => ({
-                ...item,
-                cedente_id: cedenteId,
-                origem: 'api',
-                ativo: true
-              }));
-              
-              await supabase.from(tableName).insert(dataToInsert);
+              if (tableName) {
+                // Remove dados antigos da API
+                await supabase
+                  .from(tableName)
+                  .delete()
+                  .eq('cedente_id', cedenteId)
+                  .eq('origem', 'api');
+                
+                // Insere novos dados
+                const dataToInsert = response.map((item: any) => ({
+                  ...item,
+                  cedente_id: cedenteId,
+                  origem: 'api',
+                  ativo: true
+                }));
+                
+                await supabase.from(tableName).insert(dataToInsert);
+              }
             }
           }
         } catch (err) {
           console.error(`Erro ao consultar ${tipo}:`, err);
         }
       }
+      
+      return resultados;
     } catch (err) {
       console.error('Erro ao consultar APIs:', err);
+      return null;
     }
   }
+
 
   async function add() {
     if (!form.nome.trim()) return;
@@ -151,9 +165,9 @@ export default function CedentesPage() {
       return;
     }
     
-    // Se marcou para consultar APIs e tem CNPJ, consulta
+    // Se marcou para consultar APIs, consulta e salva os dados
     if (consultarAPIs && novoCedente && cnpjLimpo && cnpjLimpo.length === 14) {
-      await consultarAPIsCedente(novoCedente.id, cnpjLimpo);
+      await consultarAPIsCedente(novoCedente.id, cnpjLimpo, true);
     }
     
     setShowCreate(false);
@@ -313,7 +327,11 @@ export default function CedentesPage() {
               <div className="border-b border-gray-300 bg-gray-100 px-4 py-2 flex items-center justify-between">
                 <h2 className="text-sm font-semibold text-gray-700 uppercase">Novo Cedente</h2>
                 <button
-                  onClick={() => { setShowCreate(false); setErr(null); }}
+                  onClick={() => { 
+                    setShowCreate(false); 
+                    setErr(null);
+                    setConsultarAPIs(false);
+                  }}
                   className="text-gray-600 hover:text-gray-900 text-xl"
                   aria-label="Fechar"
                 >×</button>
@@ -374,6 +392,7 @@ export default function CedentesPage() {
                             setLoadingCnpj(false);
                           }
                         }}
+                        className="whitespace-nowrap"
                       >
                         {loadingCnpj ? 'Consultando...' : 'Consultar'}
                       </Button>
@@ -398,19 +417,44 @@ export default function CedentesPage() {
                   />
                 </div>
                 
-                <div className="pt-4 border-t border-gray-300 space-y-3">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="consultar-apis"
-                      checked={consultarAPIs}
-                      onChange={(e) => setConsultarAPIs(e.target.checked)}
-                      className="w-4 h-4 border border-gray-300"
-                    />
-                    <label htmlFor="consultar-apis" className="text-sm text-gray-700">
-                      Consultar APIs após salvar (endereços, telefones, emails, QSA)
-                    </label>
+                {err && <p className="text-xs text-red-600 bg-red-50 border border-red-200 p-2">{err}</p>}
+                
+                {/* Marcador de Consulta de APIs */}
+                <div className="pt-4 border-t border-gray-300">
+                  <div 
+                    className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
+                      consultarAPIs 
+                        ? 'border-[#0369a1] bg-blue-50' 
+                        : 'border-gray-300 bg-white hover:border-gray-400'
+                    }`}
+                    onClick={() => setConsultarAPIs(!consultarAPIs)}
+                  >
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        id="consultar-apis"
+                        checked={consultarAPIs}
+                        onChange={(e) => setConsultarAPIs(e.target.checked)}
+                        className="mt-1 w-5 h-5 border-2 border-gray-300 text-[#0369a1] focus:ring-[#0369a1] cursor-pointer"
+                      />
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <svg className="w-5 h-5 text-[#0369a1]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                          <label htmlFor="consultar-apis" className="text-sm font-semibold text-[#0369a1] cursor-pointer">
+                            Consultar APIs após salvar (endereços, telefones, emails, QSA)
+                          </label>
+                        </div>
+                        <p className="text-xs text-gray-600 ml-7">
+                          Marque esta opção para que o sistema busque automaticamente dados complementares nas APIs BigData ao adicionar o cedente.
+                        </p>
+                      </div>
+                    </div>
                   </div>
+                </div>
+                
+                <div className="pt-4 space-y-3">
                   <div className="flex gap-2 justify-end">
                     <button 
                       className="px-3 py-1.5 border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 text-sm font-medium"
@@ -436,7 +480,6 @@ export default function CedentesPage() {
                   </div>
                 </div>
                 
-                {err && <p className="text-xs text-red-600 bg-red-50 border border-red-200 p-2">{err}</p>}
               </div>
             </div>
           </div>
