@@ -5,7 +5,6 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { formatCpfCnpj, formatCpf } from '@/lib/format';
-import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import AtividadesManager from '@/components/atividades/AtividadesManager';
@@ -37,31 +36,17 @@ type Sacado = {
   telefone_receita: string | null;
   email_receita: string | null;
   grupo_empresa_id: string | null;
-  grupo_empresa?: {
-    id: string;
-    nome_grupo: string;
-    cnpj_matriz: string;
-  };
-};
-
-type FoundDataItem = {
-  id: string;
-  tipo: string;
-  titulo: string;
-  conteudo: string;
-  observacoes?: string;
-  fonte?: string;
-  data_encontrado?: string;
 };
 
 export default function SacadoDetailPage() {
-  const router = useRouter();
   const params = useParams();
+  const router = useRouter();
   const cnpj = decodeURIComponent(params.cnpj as string);
   
   const [sacado, setSacado] = useState<Sacado | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'info' | 'atividades'>('info');
+  const [grupoInfo, setGrupoInfo] = useState<{ nome_grupo: string; id: string; cnpjs_count: number } | null>(null);
   
   // Dados complementares
   const [categoriasData, setCategoriasData] = useState<Record<string, any[]>>({});
@@ -71,40 +56,53 @@ export default function SacadoDetailPage() {
 
   useEffect(() => {
     loadData();
+    
+    // Verifica se há tab na URL
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tab = urlParams.get('tab');
+      if (tab && ['info', 'atividades'].includes(tab)) {
+        setActiveTab(tab as 'info' | 'atividades');
+      }
+    }
   }, [cnpj]);
 
   async function loadData() {
     setLoading(true);
     
-    const { data: sacadoData } = await supabase
+    const { data: sacadoData, error: sacadoError } = await supabase
       .from('sacados')
       .select('*')
       .eq('cnpj', cnpj)
       .single();
     
-    setSacado(sacadoData);
-    
-    // Carrega informações do grupo, se houver
-    if (sacadoData?.grupo_empresa_id) {
-      const { data: grupoData } = await supabase
-        .from('empresas_grupo')
-        .select('id, nome_grupo, cnpj_matriz')
-        .eq('id', sacadoData.grupo_empresa_id)
-        .single();
+    if (sacadoError) {
+      console.error('Erro ao carregar sacado:', sacadoError);
+    } else {
+      setSacado(sacadoData);
       
-      if (grupoData) {
-        // Conta quantos CNPJs estão no grupo
-        const { count } = await supabase
-          .from('empresas_grupo_cnpjs')
-          .select('*', { count: 'exact', head: true })
-          .eq('grupo_id', grupoData.id)
-          .eq('ativo', true);
+      // Carrega informações do grupo, se houver
+      if (sacadoData?.grupo_empresa_id) {
+        const { data: grupoData } = await supabase
+          .from('empresas_grupo')
+          .select('id, nome_grupo, cnpj_matriz')
+          .eq('id', sacadoData.grupo_empresa_id)
+          .single();
         
-        // setGrupoInfo({
-        //   nome_grupo: grupoData.nome_grupo,
-        //   id: grupoData.id,
-        //   cnpjs_count: count || 0
-        // });
+        if (grupoData) {
+          // Conta quantos CNPJs estão no grupo
+          const { count } = await supabase
+            .from('empresas_grupo_cnpjs')
+            .select('*', { count: 'exact', head: true })
+            .eq('grupo_id', grupoData.id)
+            .eq('ativo', true);
+          
+          setGrupoInfo({
+            nome_grupo: grupoData.nome_grupo,
+            id: grupoData.id,
+            cnpjs_count: count || 0
+          });
+        }
       }
     }
     
@@ -117,6 +115,8 @@ export default function SacadoDetailPage() {
     if (!cnpj) return;
     
     try {
+      const categoriasTemp: Record<string, any[]> = {};
+      
       // Carrega todas as categorias
       for (const categoria of categoriasCedentes) {
         try {
@@ -125,20 +125,18 @@ export default function SacadoDetailPage() {
             .from(tableName)
             .select('*')
             .eq('sacado_cnpj', cnpj)
+            .eq('ativo', true)
             .order('created_at', { ascending: false });
-
-          setCategoriasData(prev => ({
-            ...prev,
-            [categoria.id]: data || []
-          }));
-        } catch (error: any) {
-          // Ignora erros de tabelas que não existem
-          if (error.code !== 'PGRST116' && error.code !== '42P01') {
-            console.error(`Erro ao carregar ${categoria.id}:`, error);
-          }
+          
+          categoriasTemp[categoria.id] = data || [];
+        } catch (err) {
+          // Tabela pode não existir
+          categoriasTemp[categoria.id] = [];
         }
       }
-
+      
+      setCategoriasData(categoriasTemp);
+      
       // Carrega observações gerais
       try {
         const { data } = await supabase
@@ -146,58 +144,61 @@ export default function SacadoDetailPage() {
           .select('observacoes_gerais')
           .eq('cnpj', cnpj)
           .single();
+        
         setObservacoesGerais(data?.observacoes_gerais || '');
-      } catch (error: any) {
-        if (error.code !== 'PGRST116' && error.code !== '42P01') {
-          console.error('Erro ao carregar observações:', error);
-        }
+      } catch (err) {
+        setObservacoesGerais('');
       }
-
-      // Carrega processos (texto simples)
+      
+      // Carrega processos
       try {
-        const processosData = categoriasData['processos'] || [];
-        if (processosData.length > 0) {
-          setProcessosTexto(processosData[0]?.processos_texto || '');
-        }
-      } catch (error) {
-        // Ignora
+        const { data } = await supabase
+          .from('sacados_processos')
+          .select('processos_texto')
+          .eq('sacado_cnpj', cnpj)
+          .single();
+        
+        setProcessosTexto(data?.processos_texto || '');
+      } catch (err) {
+        setProcessosTexto('');
       }
-
-      // Carrega detalhes do QSA
-      const qsaItems = categoriasData['qsa'] || [];
-      if (qsaItems.length > 0) {
-        const detalhesPromises = qsaItems.map(async (item) => {
-          try {
+      
+      // Carrega detalhes do QSA (após carregar os dados do QSA)
+      try {
+        const qsaItems = categoriasTemp['qsa'] || [];
+        if (qsaItems.length > 0) {
+          const detalhesPromises = qsaItems.map(async (item) => {
             const { data } = await supabase
               .from('sacados_qsa_detalhes')
               .select('detalhes_completos')
               .eq('qsa_id', item.id)
               .single();
+            
             return { id: item.id, detalhes: data?.detalhes_completos || '' };
-          } catch {
-            return { id: item.id, detalhes: '' };
-          }
-        });
-
-        const detalhesResults = await Promise.all(detalhesPromises);
-        const detalhesMap: Record<string, string> = {};
-        detalhesResults.forEach(r => {
-          detalhesMap[r.id] = r.detalhes;
-        });
-        setQsaDetalhes(detalhesMap);
+          });
+          
+          const detalhes = await Promise.all(detalhesPromises);
+          const detalhesMap: Record<string, string> = {};
+          detalhes.forEach(d => {
+            if (d.id) detalhesMap[d.id] = d.detalhes;
+          });
+          setQsaDetalhes(detalhesMap);
+        }
+      } catch (err) {
+        // Ignora erros
       }
-    } catch (error) {
-      console.error('Erro ao carregar dados complementares:', error);
+    } catch (err) {
+      console.error('Erro ao carregar dados complementares:', err);
     }
   }
 
   if (loading) {
     return (
-      <main className="min-h-screen p-6">
+      <main className="min-h-screen p-6 bg-white">
         <div className="container max-w-6xl">
           <div className="text-center py-8">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-            <p className="mt-2 text-slate-600">Carregando...</p>
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#0369a1]"></div>
+            <p className="mt-2 text-[#64748b]">Carregando...</p>
           </div>
         </div>
       </main>
@@ -206,17 +207,17 @@ export default function SacadoDetailPage() {
 
   if (!sacado) {
     return (
-      <main className="min-h-screen p-6">
+      <main className="min-h-screen p-6 bg-white">
         <div className="container max-w-6xl">
           <div className="text-center py-8">
-            <p className="text-slate-600">Sacado não encontrado</p>
+            <p className="text-[#64748b]">Sacado não encontrado</p>
             <Button variant="primary" onClick={() => {
-  if (typeof window !== 'undefined' && window.history.length > 1) {
-    router.back();
-  } else {
-    router.push('/sacados');
-  }
-}} className="mt-4">
+              if (typeof window !== 'undefined' && window.history.length > 1) {
+                router.back();
+              } else {
+                router.push('/sacados');
+              }
+            }} className="mt-4">
               Voltar
             </Button>
           </div>
@@ -226,83 +227,103 @@ export default function SacadoDetailPage() {
   }
 
   return (
-    <main className="min-h-screen p-6">
-      <div className="container max-w-6xl space-y-6">
-        <header className="flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-slate-800 bg-clip-text text-transparent">
-                {sacado.razao_social}
-              </h1>
-            </div>
-            <p className="text-slate-600">{sacado.nome_fantasia}</p>
-            <p className="text-sm text-slate-500 font-mono">{sacado.cnpj}</p>
-          </div>
-          <Button variant="secondary" onClick={() => {
-  if (typeof window !== 'undefined' && window.history.length > 1) {
-    router.back();
-  } else {
-    router.push('/sacados');
-  }
-}}>
+    <main className="min-h-screen bg-gray-50">
+      <div className="container max-w-6xl mx-auto px-4 py-6 space-y-4">
+        {/* Header */}
+        <header className="mb-4">
+          <button 
+            onClick={() => {
+              if (typeof window !== 'undefined' && window.history.length > 1) {
+                router.back();
+              } else {
+                router.push('/sacados');
+              }
+            }}
+            className="inline-flex items-center gap-2 px-3 py-1.5 mb-4 bg-white border border-gray-300 hover:bg-gray-50 text-[#0369a1] text-sm font-medium"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
             Voltar
-          </Button>
+          </button>
+          <div className="border-b-2 border-[#0369a1] pb-3 flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-3 mb-1">
+                <h1 className="text-3xl font-bold text-[#0369a1]">{sacado.razao_social}</h1>
+                {grupoInfo && (
+                  <Link href={`/empresas-grupo/${grupoInfo.id}`}>
+                    <Badge variant="info" className="cursor-pointer hover:opacity-80">
+                      🏭 {grupoInfo.nome_grupo} ({grupoInfo.cnpjs_count} CNPJs)
+                    </Badge>
+                  </Link>
+                )}
+              </div>
+              {sacado.nome_fantasia && <p className="text-sm text-gray-600">{sacado.nome_fantasia}</p>}
+              <p className="text-xs text-gray-500 font-mono">{formatCpfCnpj(sacado.cnpj)}</p>
+            </div>
+            <button
+              className="px-3 py-1.5 border border-[#0369a1] bg-[#0369a1] text-white text-sm font-medium hover:bg-[#075985]"
+              onClick={() => router.push(`/sacados/${encodeURIComponent(cnpj)}/editar`)}
+            >
+              Editar
+            </button>
+          </div>
         </header>
 
         {/* Abas */}
-        <Card>
-          <div className="border-b border-[#cbd5e1]">
-            <nav className="flex space-x-8">
+        <div className="bg-white border border-gray-300">
+          <div className="border-b border-gray-300 bg-gray-100">
+            <nav className="flex">
               <button
                 onClick={() => setActiveTab('info')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                className={`px-4 py-2 text-sm font-medium border-r border-gray-300 ${
                   activeTab === 'info'
-                    ? 'border-[#0369a1] text-[#0369a1]'
-                    : 'border-transparent text-[#64748b] hover:text-[#1e293b] hover:border-[#cbd5e1]'
+                    ? 'bg-white text-[#0369a1] border-b-2 border-[#0369a1] -mb-[2px]'
+                    : 'text-gray-600 hover:bg-gray-50'
                 }`}
               >
-                📋 Informações
+                Informações
               </button>
               <button
                 onClick={() => setActiveTab('atividades')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                className={`px-4 py-2 text-sm font-medium ${
                   activeTab === 'atividades'
-                    ? 'border-[#0369a1] text-[#0369a1]'
-                    : 'border-transparent text-[#64748b] hover:text-[#1e293b] hover:border-[#cbd5e1]'
+                    ? 'bg-white text-[#0369a1] border-b-2 border-[#0369a1] -mb-[2px]'
+                    : 'text-gray-600 hover:bg-gray-50'
                 }`}
               >
-                📞 Atividades
+                Atividades
               </button>
             </nav>
           </div>
 
-          <div className="p-6">
+          <div className="p-4">
             {activeTab === 'info' ? (
-              <div className="space-y-6">
+              <div className="space-y-4">
                 {/* Informações Básicas */}
-                <div className="bg-white border border-gray-300">
-                  <div className="border-b border-gray-300 bg-gray-100 px-4 py-2">
+                <div className="bg-white border border-gray-300 p-4">
+                  <div className="border-b border-gray-300 bg-gray-100 -mx-4 -mt-4 px-4 py-2 mb-4">
                     <h2 className="text-xs font-semibold text-gray-700 uppercase">Informações Básicas</h2>
                   </div>
-                  <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="grid gap-4 md:grid-cols-2">
                     <div>
                       <p className="text-xs text-gray-500 uppercase mb-1">Razão Social</p>
-                      <p className="text-sm font-medium text-gray-900">{sacado.razao_social}</p>
+                      <p className="text-sm text-gray-900">{sacado.razao_social}</p>
                     </div>
                     {sacado.nome_fantasia && (
                       <div>
                         <p className="text-xs text-gray-500 uppercase mb-1">Nome Fantasia</p>
-                        <p className="text-sm font-medium text-gray-900">{sacado.nome_fantasia}</p>
+                        <p className="text-sm text-gray-900">{sacado.nome_fantasia}</p>
                       </div>
                     )}
                     <div>
                       <p className="text-xs text-gray-500 uppercase mb-1">CNPJ</p>
-                      <p className="text-sm font-mono text-gray-900">{formatCpfCnpj(sacado.cnpj)}</p>
+                      <p className="text-sm text-gray-900 font-mono">{formatCpfCnpj(sacado.cnpj)}</p>
                     </div>
                     {sacado.situacao && (
                       <div>
                         <p className="text-xs text-gray-500 uppercase mb-1">Situação</p>
-                        <Badge variant={sacado.situacao === 'ATIVA' ? 'success' : 'error'} size="sm">
+                        <Badge variant={sacado.situacao === 'ATIVA' ? 'success' : sacado.situacao === 'INATIVA' ? 'error' : 'neutral'} size="sm">
                           {sacado.situacao}
                         </Badge>
                       </div>
@@ -322,29 +343,13 @@ export default function SacadoDetailPage() {
                     {sacado.data_abertura && (
                       <div>
                         <p className="text-xs text-gray-500 uppercase mb-1">Data de Abertura</p>
-                        <p className="text-sm text-gray-900">
-                          {new Date(sacado.data_abertura).toLocaleDateString('pt-BR')}
-                        </p>
+                        <p className="text-sm text-gray-900">{new Date(sacado.data_abertura).toLocaleDateString('pt-BR')}</p>
                       </div>
                     )}
                     {sacado.capital_social !== null && (
                       <div>
                         <p className="text-xs text-gray-500 uppercase mb-1">Capital Social</p>
-                        <p className="text-sm text-gray-900">
-                          R$ {sacado.capital_social.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        </p>
-                      </div>
-                    )}
-                    {sacado.atividade_principal_descricao && (
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase mb-1">Atividade Principal</p>
-                        <p className="text-sm text-gray-900">{sacado.atividade_principal_descricao}</p>
-                      </div>
-                    )}
-                    {sacado.atividades_secundarias && (
-                      <div className="md:col-span-2 lg:col-span-3">
-                        <p className="text-xs text-gray-500 uppercase mb-1">Atividades Secundárias</p>
-                        <p className="text-sm text-gray-900">{sacado.atividades_secundarias}</p>
+                        <p className="text-sm text-gray-900">R$ {sacado.capital_social.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                       </div>
                     )}
                     {sacado.simples_nacional !== null && (
@@ -355,28 +360,50 @@ export default function SacadoDetailPage() {
                         </Badge>
                       </div>
                     )}
-                    {sacado.endereco_receita && (
-                      <div className="md:col-span-2 lg:col-span-3">
-                        <p className="text-xs text-gray-500 uppercase mb-1">Endereço (Receita)</p>
-                        <p className="text-sm text-gray-900">{sacado.endereco_receita}</p>
-                      </div>
-                    )}
                     {sacado.telefone_receita && (
                       <div>
-                        <p className="text-xs text-gray-500 uppercase mb-1">Telefone (Receita)</p>
+                        <p className="text-xs text-gray-500 uppercase mb-1">Telefone</p>
                         <p className="text-sm text-gray-900">{sacado.telefone_receita}</p>
                       </div>
                     )}
                     {sacado.email_receita && (
                       <div>
-                        <p className="text-xs text-gray-500 uppercase mb-1">Email (Receita)</p>
+                        <p className="text-xs text-gray-500 uppercase mb-1">E-mail</p>
                         <p className="text-sm text-gray-900">{sacado.email_receita}</p>
+                      </div>
+                    )}
+                    {sacado.endereco_receita && (
+                      <div className="md:col-span-2">
+                        <p className="text-xs text-gray-500 uppercase mb-1">Endereço</p>
+                        <p className="text-sm text-gray-900">{sacado.endereco_receita}</p>
+                      </div>
+                    )}
+                    {sacado.atividade_principal_descricao && (
+                      <div className="md:col-span-2">
+                        <p className="text-xs text-gray-500 uppercase mb-1">Atividade Principal</p>
+                        <p className="text-sm text-gray-900">{sacado.atividade_principal_descricao}</p>
+                      </div>
+                    )}
+                    {sacado.atividades_secundarias && (
+                      <div className="md:col-span-2">
+                        <p className="text-xs text-gray-500 uppercase mb-1">Atividades Secundárias</p>
+                        <p className="text-sm text-gray-900 whitespace-pre-line">{sacado.atividades_secundarias}</p>
                       </div>
                     )}
                   </div>
                 </div>
 
-                {/* Dados Complementares - Organizados por Grupos */}
+                {/* Observações Gerais */}
+                {observacoesGerais && (
+                  <div className="bg-white border border-gray-300 p-4">
+                    <div className="border-b border-gray-300 bg-gray-100 -mx-4 -mt-4 px-4 py-2 mb-4">
+                      <h2 className="text-xs font-semibold text-gray-700 uppercase">Observações Gerais</h2>
+                    </div>
+                    <div className="whitespace-pre-line text-sm text-gray-900">{observacoesGerais}</div>
+                  </div>
+                )}
+
+                {/* Categorias dinâmicas (baseadas na configuração) */}
                 {(() => {
                   const categoriasPorGrupo: Record<string, typeof categoriasCedentes> = {};
                   categoriasCedentes
@@ -402,57 +429,62 @@ export default function SacadoDetailPage() {
                     return (
                       <div key={grupo} className="space-y-4">
                         {grupo !== 'outros' && (
-                          <h2 className="text-base font-semibold text-gray-700">
+                          <h2 className="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2">
                             {grupoLabels[grupo] || grupo}
                           </h2>
                         )}
-                        {categorias.map(categoria => {
-                          const items = categoriasData[categoria.id] || [];
-                          if (items.length === 0) return null;
+                        <div className="space-y-4">
+                          {categorias.map(categoria => {
+                            const items = categoriasData[categoria.id] || [];
+                            if (items.length === 0) return null;
 
-                          return (
-                            <div key={categoria.id} className="bg-white border border-gray-300">
-                              <div className="border-b border-gray-300 bg-gray-100 px-4 py-2">
-                                <h3 className="text-xs font-semibold text-gray-700 uppercase">
-                                  {categoria.title || categoria.id}
-                                  {items.length > 0 && (
-                                    <span className="ml-2 text-gray-500">({items.length})</span>
-                                  )}
-                                </h3>
-                              </div>
-                              <div className="p-4">
-                                <div className="space-y-3">
-                                  {items.map((item: any, idx: number) => (
-                                    <div key={item.id || idx} className="border-b border-gray-200 pb-3 last:border-0">
-                                      {categoria.fields?.map(field => {
-                                        const value = item[field.key];
-                                        if (!value && field.key !== 'observacoes') return null;
-                                        return (
-                                          <div key={field.key} className="mb-2">
-                                            <p className="text-xs text-gray-500 uppercase mb-1">
-                                              {field.label}
-                                            </p>
-                                            <p className="text-sm text-gray-900">
-                                              {field.key === 'cpf' && value ? formatCpf(value) :
-                                               field.key === 'participacao' && value ? `${value}%` :
-                                               value || '—'}
-                                            </p>
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
-                                  ))}
+                            return (
+                              <div key={categoria.id} className="bg-white border border-gray-300">
+                                <div className="border-b border-gray-300 bg-gray-100 px-4 py-2">
+                                  <h2 className="text-xs font-semibold text-gray-700 uppercase">
+                                    {categoria.title} ({items.length})
+                                  </h2>
+                                </div>
+                                <div className="p-4">
+                                  <div className="space-y-3">
+                                    {items.map((item, idx) => (
+                                      <div key={item.id || idx} className="border-b border-gray-200 pb-3 last:border-b-0">
+                                        <div className="grid gap-2 sm:grid-cols-2">
+                                          {categoria.displayFields.map(field => {
+                                            const fieldConfig = categoria.fields.find(f => f.key === field);
+                                            if (!fieldConfig) return null;
+                                            const value = item[field];
+                                            if (!value && value !== 0) return null;
+                                            
+                                            return (
+                                              <div key={field}>
+                                                <p className="text-xs text-gray-500 uppercase mb-1">{fieldConfig.label}</p>
+                                                <p className="text-sm text-gray-900">
+                                                  {field === 'cpf' && value ? formatCpf(value) : 
+                                                   field === 'cnpj' && value ? formatCpfCnpj(value) :
+                                                   String(value)}
+                                                </p>
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
+                                        {item.origem === 'api' && (
+                                          <span className="inline-block mt-2 text-xs text-[#0369a1] bg-blue-50 px-2 py-1 rounded">API</span>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          );
-                        })}
+                            );
+                          })}
+                        </div>
                       </div>
                     );
                   });
                 })()}
 
-                {/* QSA com Detalhes */}
+                {/* QSA - Quadro de Sócios */}
                 {(() => {
                   const categoriaQsa = categoriasCedentes.find(c => c.id === 'qsa');
                   if (!categoriaQsa) return null;
@@ -468,49 +500,34 @@ export default function SacadoDetailPage() {
                       </div>
                       <div className="p-4">
                         <div className="overflow-x-auto">
-                          <table className="w-full">
-                            <thead className="bg-gray-50">
+                          <table className="w-full border-collapse text-sm">
+                            <thead className="bg-gray-50 border-b border-gray-300">
                               <tr>
-                                {categoriaQsa.fields?.map(field => (
-                                  <th key={field.key} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-r border-gray-300">
-                                    {field.label}
-                                  </th>
-                                ))}
-                                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700">Detalhes</th>
+                                {categoriaQsa.displayFields.map(field => {
+                                  const fieldConfig = categoriaQsa.fields.find(f => f.key === field);
+                                  return (
+                                    <th key={field} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">
+                                      {fieldConfig?.label || field}
+                                    </th>
+                                  );
+                                })}
                               </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-200">
-                              {qsaItems.map((item: any, idx: number) => {
-                                const detalhes = qsaDetalhes[item.id] || '';
-                                return (
-                                  <tr key={item.id || idx} className="hover:bg-gray-50">
-                                    {categoriaQsa.fields?.map(field => {
-                                      const value = item[field.key];
-                                      return (
-                                        <td key={field.key} className="px-3 py-2 text-gray-900 border-r border-gray-300">
-                                          {field.key === 'cpf' && value ? formatCpf(value) :
-                                           field.key === 'participacao' && value ? `${value}%` :
-                                           value || '—'}
-                                        </td>
-                                      );
-                                    })}
-                                    <td className="px-3 py-2">
-                                      {detalhes ? (
-                                        <details className="cursor-pointer">
-                                          <summary className="text-sm text-[#0369a1] hover:underline">
-                                            Ver detalhes
-                                          </summary>
-                                          <div className="mt-2 p-3 bg-gray-50 rounded text-sm text-gray-700 whitespace-pre-wrap">
-                                            {detalhes}
-                                          </div>
-                                        </details>
-                                      ) : (
-                                        <span className="text-gray-400">—</span>
-                                      )}
-                                    </td>
-                                  </tr>
-                                );
-                              })}
+                            <tbody>
+                              {qsaItems.map((item, idx) => (
+                                <tr key={item.id || idx} className="border-b border-gray-200 hover:bg-gray-50">
+                                  {categoriaQsa.displayFields.map(field => {
+                                    const value = item[field];
+                                    return (
+                                      <td key={field} className="px-3 py-2 text-gray-900 border-r border-gray-300">
+                                        {field === 'cpf' && value ? formatCpf(value) :
+                                         field === 'participacao' && value ? `${value}%` :
+                                         value || '—'}
+                                      </td>
+                                    );
+                                  })}
+                                </tr>
+                              ))}
                             </tbody>
                           </table>
                         </div>
@@ -526,22 +543,8 @@ export default function SacadoDetailPage() {
                       <h2 className="text-xs font-semibold text-gray-700 uppercase">Processos Judiciais e Informações Relevantes</h2>
                     </div>
                     <div className="p-4">
-                      <div className="whitespace-pre-wrap text-sm text-gray-700">
+                      <div className="whitespace-pre-line text-sm text-gray-900 font-mono bg-gray-50 p-3 rounded border border-gray-200">
                         {processosTexto}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Observações Gerais */}
-                {observacoesGerais && (
-                  <div className="bg-white border border-gray-300">
-                    <div className="border-b border-gray-300 bg-gray-100 px-4 py-2">
-                      <h2 className="text-xs font-semibold text-gray-700 uppercase">Observações Gerais</h2>
-                    </div>
-                    <div className="p-4">
-                      <div className="whitespace-pre-wrap text-sm text-gray-700">
-                        {observacoesGerais}
                       </div>
                     </div>
                   </div>
@@ -555,7 +558,7 @@ export default function SacadoDetailPage() {
               />
             )}
           </div>
-        </Card>
+        </div>
       </div>
     </main>
   );
