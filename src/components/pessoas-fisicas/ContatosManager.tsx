@@ -604,9 +604,90 @@ export default function ContatosManager({
                           item.tipo || '—'
                         )}
                       </td>
-                      <td className="px-3 py-1.5 text-gray-700 border-r border-gray-200">{item.cep || '—'}</td>
-                      <td className="px-3 py-1.5 text-gray-700 border-r border-gray-200">{item.cidade || '—'}</td>
-                      <td className="px-3 py-1.5 text-gray-700 border-r border-gray-200">{item.estado || '—'}</td>
+                      <td 
+                        className="px-3 py-1.5 text-gray-700 border-r border-gray-200 cursor-pointer hover:bg-blue-50"
+                        onDoubleClick={() => {
+                          setEditingCell({ id: item.id, field: 'cep' });
+                          setCellValue(item.cep || '');
+                        }}
+                      >
+                        {editingCell?.id === item.id && editingCell?.field === 'cep' ? (
+                          <input
+                            type="text"
+                            className="w-full px-1 py-0.5 border border-blue-500 text-xs bg-white"
+                            value={cellValue}
+                            onChange={(e) => setCellValue(e.target.value)}
+                            onBlur={() => handleCellSave(item.id, 'cep', cellValue)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleCellSave(item.id, 'cep', cellValue);
+                              if (e.key === 'Escape') { setEditingCell(null); setCellValue(''); }
+                            }}
+                            placeholder="00000-000"
+                            autoFocus
+                          />
+                        ) : (
+                          <span className="group relative">
+                            {item.cep || '—'}
+                            <span className="absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 text-[8px] text-blue-500">✏️</span>
+                          </span>
+                        )}
+                      </td>
+                      <td 
+                        className="px-3 py-1.5 text-gray-700 border-r border-gray-200 cursor-pointer hover:bg-blue-50"
+                        onDoubleClick={() => {
+                          setEditingCell({ id: item.id, field: 'cidade' });
+                          setCellValue(item.cidade || '');
+                        }}
+                      >
+                        {editingCell?.id === item.id && editingCell?.field === 'cidade' ? (
+                          <input
+                            type="text"
+                            className="w-full px-1 py-0.5 border border-blue-500 text-xs bg-white"
+                            value={cellValue}
+                            onChange={(e) => setCellValue(e.target.value)}
+                            onBlur={() => handleCellSave(item.id, 'cidade', cellValue)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleCellSave(item.id, 'cidade', cellValue);
+                              if (e.key === 'Escape') { setEditingCell(null); setCellValue(''); }
+                            }}
+                            autoFocus
+                          />
+                        ) : (
+                          <span className="group relative">
+                            {item.cidade || '—'}
+                            <span className="absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 text-[8px] text-blue-500">✏️</span>
+                          </span>
+                        )}
+                      </td>
+                      <td 
+                        className="px-3 py-1.5 text-gray-700 border-r border-gray-200 cursor-pointer hover:bg-blue-50"
+                        onDoubleClick={() => {
+                          setEditingCell({ id: item.id, field: 'estado' });
+                          setCellValue(item.estado || '');
+                        }}
+                      >
+                        {editingCell?.id === item.id && editingCell?.field === 'estado' ? (
+                          <input
+                            type="text"
+                            className="w-full px-1 py-0.5 border border-blue-500 text-xs bg-white"
+                            value={cellValue}
+                            onChange={(e) => setCellValue(e.target.value.toUpperCase())}
+                            onBlur={() => handleCellSave(item.id, 'estado', cellValue.toUpperCase())}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleCellSave(item.id, 'estado', cellValue.toUpperCase());
+                              if (e.key === 'Escape') { setEditingCell(null); setCellValue(''); }
+                            }}
+                            maxLength={2}
+                            placeholder="UF"
+                            autoFocus
+                          />
+                        ) : (
+                          <span className="group relative">
+                            {item.estado || '—'}
+                            <span className="absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 text-[8px] text-blue-500">✏️</span>
+                          </span>
+                        )}
+                      </td>
                       <td 
                         className="px-3 py-1.5 border-r border-gray-200 cursor-pointer hover:bg-blue-50"
                         onClick={() => {
@@ -700,7 +781,33 @@ export default function ContatosManager({
                           item.tipo || '—'
                         )}
                       </td>
-                      <td className="px-3 py-1.5 text-gray-700 border-r border-gray-200">{item.nome_contato || '—'}</td>
+                      <td 
+                        className="px-3 py-1.5 text-gray-700 border-r border-gray-200 cursor-pointer hover:bg-blue-50"
+                        onDoubleClick={() => {
+                          setEditingCell({ id: item.id, field: 'nome_contato' });
+                          setCellValue(item.nome_contato || '');
+                        }}
+                      >
+                        {editingCell?.id === item.id && editingCell?.field === 'nome_contato' ? (
+                          <input
+                            type="text"
+                            className="w-full px-1 py-0.5 border border-blue-500 text-xs bg-white"
+                            value={cellValue}
+                            onChange={(e) => setCellValue(e.target.value)}
+                            onBlur={() => handleCellSave(item.id, 'nome_contato', cellValue)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleCellSave(item.id, 'nome_contato', cellValue);
+                              if (e.key === 'Escape') { setEditingCell(null); setCellValue(''); }
+                            }}
+                            autoFocus
+                          />
+                        ) : (
+                          <span className="group relative">
+                            {item.nome_contato || '—'}
+                            <span className="absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 text-[8px] text-blue-500">✏️</span>
+                          </span>
+                        )}
+                      </td>
                       <td 
                         className="px-3 py-1.5 border-r border-gray-200 cursor-pointer hover:bg-blue-50"
                         onClick={() => {

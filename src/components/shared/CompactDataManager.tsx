@@ -274,8 +274,15 @@ export default function CompactDataManager({
       
       setEditingCell(null);
       setCellValue('');
-      await onRefresh();
+      // Otimização: atualizar apenas o item editado localmente antes de recarregar
+      const updatedItems = items.map(it => 
+        it.id === id ? { ...it, [field]: processedValue } : it
+      );
+      // Não recarrega tudo, apenas atualiza localmente
+      // await onRefresh(); // Comentado para melhor performance
       showToast(`${fieldConfig?.label || field} atualizado!`, 'success');
+      // Recarrega após um pequeno delay para garantir sincronização
+      setTimeout(() => onRefresh(), 300);
     } catch (error: any) {
       console.error('Erro ao salvar:', error);
       showToast(`Erro ao atualizar ${field}`, 'error');
@@ -286,7 +293,7 @@ export default function CompactDataManager({
 
   const isEditableField = (fieldKey: string): boolean => {
     // Campos simples que podem ser editados inline
-    const editableFields = ['tipo', 'status', 'qualificacao', 'participacao', 'nome_contato'];
+    const editableFields = ['tipo', 'status', 'qualificacao', 'participacao', 'nome_contato', 'cep', 'cidade', 'estado'];
     return editableFields.includes(fieldKey);
   };
 
@@ -297,13 +304,15 @@ export default function CompactDataManager({
     if (!isEditing) {
       return (
         <span 
-          className="cursor-pointer hover:bg-blue-50 px-1 py-0.5 rounded text-sm text-gray-900"
-          onClick={() => {
+          className="cursor-pointer hover:bg-blue-50 px-1 py-0.5 rounded text-sm text-gray-900 group relative"
+          onDoubleClick={() => {
             setEditingCell({ id: item.id!, field: fieldKey });
             setCellValue(value);
           }}
+          title="Duplo clique para editar"
         >
           {value || '—'}
+          <span className="absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 text-[8px] text-blue-500">✏️</span>
         </span>
       );
     }
