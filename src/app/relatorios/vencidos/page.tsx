@@ -535,6 +535,11 @@ export default function RelatorioVencidosPage() {
                     </th>
                     {tipoVisualizacao === 'cedentes' && (
                       <th className="px-2 py-1.5 text-left border-r border-gray-300 font-semibold text-gray-700 whitespace-nowrap">
+                        Sacado
+                      </th>
+                    )}
+                    {tipoVisualizacao === 'cedentes' && (
+                      <th className="px-2 py-1.5 text-left border-r border-gray-300 font-semibold text-gray-700 whitespace-nowrap">
                         Fundo
                       </th>
                     )}
@@ -612,6 +617,21 @@ export default function RelatorioVencidosPage() {
                             <span className="text-gray-400 text-xs italic">↳ {grupo.nome}</span>
                           )}
                         </td>
+                        
+                        {/* Sacado (apenas quando visualizando por cedentes) */}
+                        {tipoVisualizacao === 'cedentes' && (
+                          <td className="px-2 py-1 border-r border-gray-200">
+                            <Link
+                              href={`/sacados/${demanda.sacado_cnpj}`}
+                              className="text-blue-600 hover:underline font-medium"
+                            >
+                              {demanda.sacado_nome_fantasia || demanda.sacado_razao_social}
+                            </Link>
+                            <div className="text-gray-500 text-xs mt-0.5">
+                              {formatCpfCnpj(demanda.sacado_cnpj)}
+                            </div>
+                          </td>
+                        )}
                         
                         {/* Fundo (apenas para cedentes) */}
                         {tipoVisualizacao === 'cedentes' && (
