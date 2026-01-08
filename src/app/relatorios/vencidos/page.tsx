@@ -22,7 +22,7 @@ type TituloVencido = {
   cedente_id: string;
   cedente_nome: string;
   cedente_razao_social: string | null;
-  cedente_fundo: string | null;
+  fundo: string | null; // Fundo do título
   sacado_cnpj: string;
   sacado_razao_social: string;
   sacado_nome_fantasia: string | null;
@@ -52,7 +52,7 @@ type Demanda = {
   cedente_id: string;
   cedente_nome: string;
   cedente_razao_social: string | null;
-  cedente_fundo: string | null;
+  fundo: string | null; // Fundo do título
   sacado_cnpj: string;
   sacado_razao_social: string;
   sacado_nome_fantasia: string | null;
@@ -108,16 +108,16 @@ export default function RelatorioVencidosPage() {
         return;
       }
 
-      // Carregar fundos únicos
-      const { data: cedentesData } = await supabase
-        .from('cedentes')
+      // Carregar fundos únicos dos títulos
+      const { data: titulosFundosData } = await supabase
+        .from('titulos_negociados')
         .select('fundo')
         .not('fundo', 'is', null)
         .neq('fundo', '')
         .eq('ativo', true);
 
       const fundosUnicos = Array.from(
-        new Set((cedentesData || []).map((c: any) => c.fundo).filter(Boolean))
+        new Set((titulosFundosData || []).map((t: any) => t.fundo).filter(Boolean))
       ).sort() as string[];
       setFundos(fundosUnicos);
 
@@ -138,11 +138,11 @@ export default function RelatorioVencidosPage() {
           data_vencimento_original,
           status,
           critica,
+          fundo,
           cedentes!titulos_negociados_cedente_id_fkey (
             id,
             nome,
-            razao_social,
-            fundo
+            razao_social
           ),
           sacados!titulos_negociados_sacado_cnpj_fkey (
             cnpj,
@@ -175,7 +175,7 @@ export default function RelatorioVencidosPage() {
             cedente_id: t.cedente_id || '',
             cedente_nome: cedente?.nome || 'Sem cedente',
             cedente_razao_social: cedente?.razao_social || null,
-            cedente_fundo: cedente?.fundo || null,
+            fundo: t.fundo || null,
             sacado_cnpj: t.sacado_cnpj,
             sacado_razao_social: sacado?.razao_social || '',
             sacado_nome_fantasia: sacado?.nome_fantasia || null,
@@ -195,7 +195,7 @@ export default function RelatorioVencidosPage() {
           }
           
           // Filtrar por fundo
-          if (filtroFundo !== 'all' && t.cedente_fundo !== filtroFundo) {
+          if (filtroFundo !== 'all' && t.fundo !== filtroFundo) {
             return false;
           }
           
@@ -218,7 +218,7 @@ export default function RelatorioVencidosPage() {
         cedente_id: t.cedente_id,
         cedente_nome: t.cedente_nome,
         cedente_razao_social: t.cedente_razao_social,
-        cedente_fundo: t.cedente_fundo,
+        fundo: t.fundo,
         sacado_cnpj: t.sacado_cnpj,
         sacado_razao_social: t.sacado_razao_social,
         sacado_nome_fantasia: t.sacado_nome_fantasia,
@@ -335,7 +335,7 @@ export default function RelatorioVencidosPage() {
       nome: tipoVisualizacao === 'cedentes'
         ? items[0].cedente_razao_social || items[0].cedente_nome
         : items[0].sacado_nome_fantasia || items[0].sacado_razao_social,
-      fundo: tipoVisualizacao === 'cedentes' ? items[0].cedente_fundo : null
+      fundo: items[0].fundo || null
     }));
   }, [demandasFiltradas, tipoVisualizacao]);
 
@@ -637,9 +637,9 @@ export default function RelatorioVencidosPage() {
                         {tipoVisualizacao === 'cedentes' && (
                           <td className="px-2 py-1 border-r border-gray-200">
                             {index === 0 ? (
-                              demanda.cedente_fundo ? (
+                              demanda.fundo ? (
                                 <Badge variant="info" size="sm" className="text-xs">
-                                  {demanda.cedente_fundo}
+                                  {demanda.fundo}
                                 </Badge>
                               ) : (
                                 <span className="text-gray-400 text-xs">-</span>

@@ -25,6 +25,7 @@ type TituloNegociado = {
   critica: string | null;
   checagem: string | null;
   vadu: string | null;
+  fundo: string | null;
   quantidade_atividades?: number;
   sacado?: {
     razao_social: string;
@@ -73,6 +74,13 @@ type Critica = {
   ordem: number;
 };
 
+type Fundo = {
+  id: string;
+  nome: string;
+  descricao: string | null;
+  ativo: boolean;
+};
+
 interface TitulosNegociadosManagerProps {
   cedenteId: string;
 }
@@ -83,8 +91,11 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
   const [parcelamentos, setParcelamentos] = useState<Parcelamento[]>([]);
   const [sacados, setSacados] = useState<Sacado[]>([]);
   const [criticas, setCriticas] = useState<Critica[]>([]);
+  const [fundos, setFundos] = useState<Fundo[]>([]);
   const [showAddCritica, setShowAddCritica] = useState(false);
   const [novaCriticaNome, setNovaCriticaNome] = useState('');
+  const [showAddFundo, setShowAddFundo] = useState(false);
+  const [novoFundoNome, setNovoFundoNome] = useState('');
   const [loading, setLoading] = useState(true);
   const [showAddTitulo, setShowAddTitulo] = useState(false);
   const [showEditTitulo, setShowEditTitulo] = useState(false);
@@ -97,6 +108,7 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
   const [importando, setImportando] = useState(false);
   const [dadosImportados, setDadosImportados] = useState<any[]>([]);
   const [consultarAPIsImportacao, setConsultarAPIsImportacao] = useState(false);
+  const [fundoImportacao, setFundoImportacao] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [tituloSelecionadoParaAtividades, setTituloSelecionadoParaAtividades] = useState<TituloNegociado | null>(null);
 
@@ -112,6 +124,7 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
     critica: '',
     checagem: '',
     vadu: '',
+    fundo: '',
   });
 
   // Formulário de parcelamento
@@ -139,6 +152,7 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
       loadParcelamentos(),
       loadSacados(),
       loadCriticas(),
+      loadFundos(),
     ]);
     setLoading(false);
   }
@@ -263,6 +277,51 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
     }
   }
 
+  async function loadFundos() {
+    try {
+      const { data, error } = await supabase
+        .from('fundos')
+        .select('*')
+        .eq('ativo', true)
+        .order('nome', { ascending: true });
+
+      if (error) throw error;
+      setFundos(data || []);
+    } catch (error) {
+      console.error('Erro ao carregar fundos:', error);
+    }
+  }
+
+  async function handleAddFundo() {
+    if (!novoFundoNome.trim()) {
+      showToast('Informe o nome do fundo', 'error');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('fundos')
+        .insert({
+          nome: novoFundoNome.trim(),
+          ativo: true,
+        });
+
+      if (error) throw error;
+
+      showToast('Fundo adicionado com sucesso', 'success');
+      setNovoFundoNome('');
+      setShowAddFundo(false);
+      loadFundos();
+    } catch (error: any) {
+      console.error('Erro ao adicionar fundo:', error);
+      if (error.code === '23505') {
+        showToast('Este fundo já existe', 'error');
+      } else {
+        showToast('Erro ao adicionar fundo', 'error');
+      }
+    }
+  }
+
   async function handleAddCritica() {
     if (!novaCriticaNome.trim()) {
       showToast('Informe o nome da crítica', 'error');
@@ -325,6 +384,7 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
           critica: formTitulo.critica || null,
           checagem: formTitulo.checagem || null,
           vadu: formTitulo.vadu || null,
+          fundo: formTitulo.fundo || null,
           status: 'titulo_original',
         });
 
@@ -343,6 +403,7 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
         critica: '',
         checagem: '',
         vadu: '',
+        fundo: '',
       });
       loadTitulos();
     } catch (error: any) {
@@ -377,6 +438,7 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
           critica: formTitulo.critica || null,
           checagem: formTitulo.checagem || null,
           vadu: formTitulo.vadu || null,
+          fundo: formTitulo.fundo || null,
         })
         .eq('id', tituloEditando.id);
 
@@ -396,6 +458,7 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
         critica: '',
         checagem: '',
         vadu: '',
+        fundo: '',
       });
       loadTitulos();
     } catch (error: any) {
@@ -1106,6 +1169,7 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
               critica: item.critica && item.critica.trim() !== '' ? item.critica.trim() : null,
               checagem: item.checagem && item.checagem.trim() !== '' ? item.checagem.trim() : null,
               vadu: item.vadu && item.vadu.trim() !== '' ? item.vadu.trim() : null,
+              fundo: fundoImportacao || null,
               status: 'titulo_original',
             })
             .select();
@@ -1362,6 +1426,7 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
                             critica: titulo.critica || '',
                             checagem: titulo.checagem || '',
                             vadu: titulo.vadu || '',
+                            fundo: titulo.fundo || '',
                           });
                           setShowEditTitulo(true);
                         }}
@@ -1575,6 +1640,33 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
                     className="w-full px-3 py-2 border border-gray-300 text-sm"
                   />
                 </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Fundo
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setShowAddFundo(true)}
+                      className="text-xs text-[#0369a1] hover:underline"
+                    >
+                      + Novo fundo
+                    </button>
+                  </div>
+                  <select
+                    value={formTitulo.fundo}
+                    onChange={(e) => setFormTitulo({ ...formTitulo, fundo: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 text-sm"
+                  >
+                    <option value="">Selecione...</option>
+                    {fundos.map(f => (
+                      <option key={f.id} value={f.nome}>
+                        {f.nome}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div className="flex gap-2 mt-6">
@@ -1781,6 +1873,33 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
                     onChange={(e) => setFormTitulo({ ...formTitulo, vadu: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 text-sm"
                   />
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Fundo
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setShowAddFundo(true)}
+                      className="text-xs text-[#0369a1] hover:underline"
+                    >
+                      + Novo fundo
+                    </button>
+                  </div>
+                  <select
+                    value={formTitulo.fundo}
+                    onChange={(e) => setFormTitulo({ ...formTitulo, fundo: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 text-sm"
+                  >
+                    <option value="">Selecione...</option>
+                    {fundos.map(f => (
+                      <option key={f.id} value={f.nome}>
+                        {f.nome}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
@@ -2364,6 +2483,36 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
                   </div>
                 )}
 
+                {/* Seleção de Fundo */}
+                <div className="bg-white border border-gray-300 p-4 rounded">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Fundo para os títulos importados
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setShowAddFundo(true)}
+                      className="text-xs text-[#0369a1] hover:underline"
+                    >
+                      + Novo fundo
+                    </button>
+                  </div>
+                  <select
+                    value={fundoImportacao}
+                    onChange={(e) => setFundoImportacao(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 text-sm"
+                  >
+                    <option value="">Selecione um fundo...</option>
+                    {fundos.map(f => (
+                      <option key={f.id} value={f.nome}>
+                        {f.nome}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Todos os títulos importados serão associados a este fundo
+                  </p>
+                </div>
 
                 <div className="flex gap-2 mt-6">
                   <Button
@@ -2380,6 +2529,7 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
                       setShowImportar(false);
                       setDadosImportados([]);
                       setConsultarAPIsImportacao(false);
+                      setFundoImportacao('');
                     }}
                     className="flex-1"
                     disabled={importando}
@@ -2440,6 +2590,64 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
                   onClick={() => {
                     setShowAddCritica(false);
                     setNovaCriticaNome('');
+                  }}
+                  className="flex-1"
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Adicionar Novo Fundo */}
+      {showAddFundo && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">Novo Fundo</h3>
+                <button
+                  onClick={() => {
+                    setShowAddFundo(false);
+                    setNovoFundoNome('');
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Nome do Fundo <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={novoFundoNome}
+                    onChange={(e) => setNovoFundoNome(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 text-sm"
+                    placeholder="Ex: Fundo ABC"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-2 mt-6">
+                <Button
+                  variant="primary"
+                  onClick={handleAddFundo}
+                  className="flex-1"
+                >
+                  Adicionar
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setShowAddFundo(false);
+                    setNovoFundoNome('');
                   }}
                   className="flex-1"
                 >
