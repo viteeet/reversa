@@ -111,6 +111,7 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
   const [fundoImportacao, setFundoImportacao] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [tituloSelecionadoParaAtividades, setTituloSelecionadoParaAtividades] = useState<TituloNegociado | null>(null);
+  const [showHelp, setShowHelp] = useState(false);
 
   // Formulário de novo título
   const [formTitulo, setFormTitulo] = useState({
@@ -740,6 +741,74 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
     }
   }
 
+  // Gera e baixa modelo Excel
+  function downloadModeloExcel() {
+    const dados = [
+      {
+        'CNPJ': '12.345.678/0001-90',
+        'Razão Social': 'Empresa ABC LTDA',
+        'Nome Fantasia': 'ABC',
+        'Número do Título': '001',
+        'Valor Original': 1000.00,
+        'Valor Atualizado': 1200.00,
+        'Data Vencimento': '15/01/2024',
+        'Telefone': '(11) 99999-9999',
+        'Crítica': 'Protestado',
+        'Checagem': 'Confirmado',
+        'VADU': 'Autorizado'
+      },
+      {
+        'CNPJ': '12.345.678/0001-90',
+        'Razão Social': 'Empresa ABC LTDA',
+        'Nome Fantasia': 'ABC',
+        'Número do Título': '002',
+        'Valor Original': 2000.00,
+        'Valor Atualizado': 2400.00,
+        'Data Vencimento': '20/02/2024',
+        'Telefone': '(11) 99999-9999',
+        'Crítica': 'Enviado a Cartório',
+        'Checagem': 'Pendente',
+        'VADU': ''
+      },
+      {
+        'CNPJ': '98.765.432/0001-11',
+        'Razão Social': 'Empresa XYZ EIRELI',
+        'Nome Fantasia': 'XYZ',
+        'Número do Título': '003',
+        'Valor Original': 1500.00,
+        'Valor Atualizado': 1500.00,
+        'Data Vencimento': '10/03/2024',
+        'Telefone': '(21) 88888-8888',
+        'Crítica': '',
+        'Checagem': '',
+        'VADU': ''
+      }
+    ];
+
+    const ws = XLSX.utils.json_to_sheet(dados);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Títulos');
+    
+    // Ajusta largura das colunas
+    const colWidths = [
+      { wch: 20 }, // CNPJ
+      { wch: 25 }, // Razão Social
+      { wch: 15 }, // Nome Fantasia
+      { wch: 18 }, // Número do Título
+      { wch: 15 }, // Valor Original
+      { wch: 15 }, // Valor Atualizado
+      { wch: 18 }, // Data Vencimento
+      { wch: 18 }, // Telefone
+      { wch: 20 }, // Crítica
+      { wch: 15 }, // Checagem
+      { wch: 12 }  // VADU
+    ];
+    ws['!cols'] = colWidths;
+
+    XLSX.writeFile(wb, 'modelo_importacao_titulos.xlsx');
+    showToast('Modelo Excel baixado com sucesso!', 'success');
+  }
+
   // Processa arquivo Excel/CSV
   async function handleFileImport(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -1276,6 +1345,94 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
               Parcelar ({selectedTitulos.size})
             </Button>
           )}
+          <div className="relative">
+            <button
+              className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-gray-300 hover:bg-gray-50 text-[#0369a1] text-sm font-medium"
+              onClick={() => setShowHelp(!showHelp)}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Ajuda
+            </button>
+            {showHelp && (
+              <div className="absolute right-0 mt-2 w-96 bg-white rounded-xl shadow-lg border border-gray-200 p-4 z-50 max-h-[600px] overflow-y-auto">
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl">ℹ️</span>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-[#0369a1] mb-2">Modelo de Importação de Títulos</h3>
+                    
+                    <div className="text-sm text-[#64748b] space-y-3">
+                      <div className="bg-blue-50 p-2 rounded text-xs mb-3">
+                        <p className="font-semibold text-blue-800 mb-1">📥 Baixar Modelo Excel</p>
+                        <button
+                          onClick={downloadModeloExcel}
+                          className="mt-1 w-full px-4 py-2.5 bg-[#0369a1] !text-white text-sm font-bold rounded hover:bg-[#0284c7] transition-colors shadow-sm"
+                          style={{ color: '#ffffff' }}
+                        >
+                          ⬇️ Baixar modelo_importacao_titulos.xlsx
+                        </button>
+                      </div>
+
+                      <div>
+                        <p className="font-semibold text-gray-700 mb-1">Nomes das Colunas Obrigatórias:</p>
+                        <p className="text-xs text-gray-600 mb-2">A primeira linha do Excel deve conter os nomes das colunas. O sistema aceita qualquer um destes nomes:</p>
+                        <ul className="list-disc list-inside space-y-1 ml-2 text-xs">
+                          <li><strong>CNPJ do Sacado:</strong> "cnpj", "CNPJ", "cnpj_sacado", "CNPJ_Sacado", "cpf_cnpj", "documento"</li>
+                          <li><strong>Número do Título:</strong> "numero_titulo", "Número do Título", "Duplicata", "Nº Título", "numero"</li>
+                          <li><strong>Valor Original:</strong> "valor_original", "Valor Original", "valor", "Valor"</li>
+                          <li><strong>Data de Vencimento:</strong> "data_vencimento", "Data Vencimento", "vencimento", "Vencimento"</li>
+                        </ul>
+                      </div>
+
+                      <div>
+                        <p className="font-semibold text-gray-700 mb-1">Nomes das Colunas Opcionais:</p>
+                        <ul className="list-disc list-inside space-y-1 ml-2 text-xs">
+                          <li><strong>Valor Atualizado:</strong> "valor_atualizado", "Valor Atualizado", "valor_total"</li>
+                          <li><strong>Razão Social:</strong> "razao_social", "Razão Social", "sacado", "Sacado"</li>
+                          <li><strong>Nome Fantasia:</strong> "nome_fantasia", "Nome Fantasia"</li>
+                          <li><strong>Telefone:</strong> "telefone", "Telefone"</li>
+                          <li><strong>Crítica:</strong> "critica", "Crítica", "status"</li>
+                          <li><strong>Checagem:</strong> "checagem", "Checagem", "observacoes"</li>
+                          <li><strong>VADU:</strong> "vadu", "VADU"</li>
+                        </ul>
+                      </div>
+
+                      <div>
+                        <p className="font-semibold text-gray-700 mb-1">Formatos Aceitos:</p>
+                        <ul className="list-disc list-inside space-y-1 ml-2 text-xs">
+                          <li><strong>CNPJ:</strong> Com ou sem formatação (12.345.678/0001-90 ou 12345678000190)</li>
+                          <li><strong>Data:</strong> YYYY-MM-DD ou DD/MM/YYYY</li>
+                          <li><strong>Valor:</strong> Ponto ou vírgula como separador decimal (1000.50 ou 1000,50)</li>
+                        </ul>
+                      </div>
+
+                      <div className="bg-yellow-50 p-2 rounded text-xs">
+                        <p className="font-semibold text-yellow-800 mb-1">⚠️ Importante:</p>
+                        <p className="text-yellow-700">• A primeira linha deve conter os nomes das colunas (cabeçalhos)</p>
+                        <p className="text-yellow-700">• Títulos sem CNPJ válido não serão importados</p>
+                        <p className="text-yellow-700">• O sistema detecta automaticamente os nomes das colunas (case-insensitive)</p>
+                      </div>
+
+                      <div className="pt-2 border-t border-gray-200">
+                        <p className="text-xs text-gray-500">
+                          <strong>Dica:</strong> Use o modelo Excel acima como referência. Você pode usar qualquer variação dos nomes de colunas listados - o sistema detecta automaticamente.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowHelp(false)}
+                    className="text-[#64748b] hover:text-[#0369a1]"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
           <input
             ref={fileInputRef}
             type="file"
