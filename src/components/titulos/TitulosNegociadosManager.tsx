@@ -741,6 +741,100 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
     }
   }
 
+  // Converte número serial do Excel para data
+  function excelSerialToDate(serial: any): string {
+    // Se é um número (serial do Excel) - números grandes geralmente são datas
+    if (typeof serial === 'number') {
+      // Excel conta a partir de 01/01/1900
+      // 1 = 01/01/1900, mas Excel tem bug: considera 1900 como bissexto
+      // Então 1 = 31/12/1899, mas precisamos ajustar
+      if (serial > 0 && serial < 1000000) { // Números muito grandes provavelmente não são datas
+        // Excel epoch: 30 de dezembro de 1899
+        const excelEpoch = new Date(1899, 11, 30);
+        const date = new Date(excelEpoch.getTime() + (serial - 1) * 24 * 60 * 60 * 1000);
+        
+        // Ajuste para o bug do Excel (1900 foi considerado bissexto)
+        if (serial >= 60) {
+          date.setTime(date.getTime() - 24 * 60 * 60 * 1000);
+        }
+        
+        if (!isNaN(date.getTime())) {
+          return date.toISOString().split('T')[0];
+        }
+      }
+      return '';
+    }
+    
+    // Se é uma string
+    if (typeof serial === 'string' && serial.trim() !== '') {
+      const trimmed = serial.trim();
+      
+      // Se é um número como string (pode ser serial do Excel)
+      const numValue = parseFloat(trimmed);
+      if (!isNaN(numValue) && numValue > 0 && numValue < 1000000) {
+        const excelEpoch = new Date(1899, 11, 30);
+        const date = new Date(excelEpoch.getTime() + (numValue - 1) * 24 * 60 * 60 * 1000);
+        
+        if (numValue >= 60) {
+          date.setTime(date.getTime() - 24 * 60 * 60 * 1000);
+        }
+        
+        if (!isNaN(date.getTime())) {
+          return date.toISOString().split('T')[0];
+        }
+      }
+      
+      // Tenta formatos DD/MM/YYYY
+      if (/^\d{2}\/\d{2}\/\d{4}$/.test(trimmed)) {
+        const [day, month, year] = trimmed.split('/');
+        const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        if (!isNaN(date.getTime())) {
+          return date.toISOString().split('T')[0];
+        }
+      }
+      
+      // Tenta formato YYYY-MM-DD
+      if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+        return trimmed;
+      }
+      
+      // Tenta parsear como data ISO
+      const parsedDate = new Date(trimmed);
+      if (!isNaN(parsedDate.getTime())) {
+        return parsedDate.toISOString().split('T')[0];
+      }
+      
+      return trimmed; // Retorna como está se não conseguir parsear
+    }
+    
+    return '';
+  }
+
+  // Formata data para exibição DD/MM/YYYY
+  function formatarDataExibicao(dataStr: string): string {
+    if (!dataStr || dataStr.trim() === '') return '—';
+    
+    try {
+      // Se já está no formato DD/MM/YYYY, retorna
+      if (/^\d{2}\/\d{2}\/\d{4}$/.test(dataStr.trim())) {
+        return dataStr.trim();
+      }
+      
+      // Tenta parsear como ISO ou outro formato
+      const date = new Date(dataStr);
+      if (!isNaN(date.getTime())) {
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+      }
+      
+      return dataStr;
+    } catch (e) {
+      return dataStr;
+    }
+  }
+
   // Gera e baixa modelo Excel
   function downloadModeloExcel() {
     // Usando CNPJs válidos de exemplo (gerados corretamente)
@@ -821,9 +915,10 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
         reader.onload = (e) => {
           try {
             const data = e.target?.result;
-            const workbook = XLSX.read(data, { type: 'binary' });
+            const workbook = XLSX.read(data, { type: 'binary', cellDates: false });
             const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-            const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+            // Lê com raw: true para manter números serial do Excel para conversão manual
+            const jsonData = XLSX.utils.sheet_to_json(firstSheet, { raw: true, defval: null });
             resolve(jsonData);
           } catch (err) {
             reject(err);
@@ -935,7 +1030,9 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
           'data_venc', 'Data Venc', 'dt_vencimento', 'DT Vencimento', 'venc', 'Venc',
           'data_vencimento_original', 'Data Vencimento Original'
         ];
-        const dataVencimento = buscarColuna(row, dataVencimentoKeys);
+        const dataVencimentoRaw = buscarColuna(row, dataVencimentoKeys);
+        // Converte número serial do Excel para data ou mantém string
+        const dataVencimento = dataVencimentoRaw ? excelSerialToDate(dataVencimentoRaw) : '';
 
         const telefoneKeys = ['telefone', 'Telefone', 'TELEFONE', 'tel', 'Tel', 'fone', 'Fone'];
         const telefone = buscarColuna(row, telefoneKeys);
@@ -982,7 +1079,7 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
           numero_titulo: String(numeroTitulo).trim(),
           valor_original: valorOriginal,
           valor_atualizado: valorAtualizado || valorOriginal,
-          data_vencimento_original: dataVencimento.trim(),
+          data_vencimento_original: dataVencimento || '',
           telefone: String(telefone).trim(),
           critica: String(critica).trim(),
           checagem: String(checagem).trim(),
@@ -2617,7 +2714,7 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
                               R$ {item.valor_original.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                             </td>
                             <td className="px-2 py-2 border-r border-gray-300">
-                              {item.data_vencimento_original || '—'}
+                              {formatarDataExibicao(item.data_vencimento_original)}
                             </td>
                             <td className="px-2 py-2">
                               {!item.tem_cnpj && (
