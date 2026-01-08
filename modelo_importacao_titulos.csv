@@ -1,0 +1,5 @@
+CNPJ,Razão Social,Nome Fantasia,Número do Título,Valor Original,Valor Atualizado,Data Vencimento,Telefone,Crítica,Checagem,VADU
+12345678000190,Empresa ABC LTDA,ABC,001,1000.00,1200.00,2024-01-15,(11) 99999-9999,Protestado,Confirmado,Autorizado
+12345678000190,Empresa ABC LTDA,ABC,002,2000.00,2400.00,2024-02-20,(11) 99999-9999,Enviado a Cartório,Pendente,
+98765432000111,Empresa XYZ EIRELI,XYZ,003,1500.00,1500.00,2024-03-10,(21) 88888-8888,,,
+

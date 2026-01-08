@@ -100,6 +100,21 @@ export default function MenuOperacionalPage() {
                 </div>
               </div>
             </Link>
+
+            {/* Card Acordos Operacionais */}
+            <Link href="/operacional/acordos" className="p-4 hover:bg-yellow-50 transition-colors border-r border-b border-gray-300 last:border-r-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-yellow-100 flex items-center justify-center border border-gray-300">
+                  <svg className="w-5 h-5 text-yellow-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-base font-semibold text-[#0369a1]">Acordos</h2>
+                  <p className="text-xs text-gray-600">Visão geral de parcelas</p>
+                </div>
+              </div>
+            </Link>
           </div>
         </div>
       </div>

@@ -31,4 +31,49 @@ export function isValidEmail(value: string): boolean {
   return /\S+@\S+\.\S+/.test(value);
 }
 
+// Formata valor monetário para exibição (R$ 1.234,56)
+export function formatMoney(value: number | string): string {
+  const numValue = typeof value === 'string' ? parseFloat(value.replace(/[^\d,.-]/g, '').replace(',', '.')) : value;
+  if (isNaN(numValue)) return 'R$ 0,00';
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL'
+  }).format(numValue);
+}
+
+// Converte string formatada (R$ 1.234,56) para número
+export function parseMoney(value: string): number {
+  if (!value) return 0;
+  // Remove tudo exceto dígitos, vírgula e ponto
+  const cleaned = value.replace(/[^\d,.-]/g, '').replace(/\./g, '').replace(',', '.');
+  const parsed = parseFloat(cleaned);
+  return isNaN(parsed) ? 0 : parsed;
+}
+
+// Formata valor monetário para input (mantém formato durante digitação)
+export function formatMoneyInput(value: string): string {
+  if (!value) return '';
+  // Remove tudo exceto dígitos
+  const digits = value.replace(/\D+/g, '');
+  if (!digits) return '';
+  
+  // Converte para número e formata
+  const numValue = parseFloat(digits) / 100; // Divide por 100 para considerar centavos
+  // Formata sem o símbolo R$ para input (só números, vírgula e ponto)
+  return new Intl.NumberFormat('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(numValue);
+}
+
+// Converte valor formatado de input para número (para salvar no banco)
+export function parseMoneyInput(value: string): number {
+  if (!value) return 0;
+  // Remove tudo exceto dígitos
+  const digits = value.replace(/\D+/g, '');
+  if (!digits) return 0;
+  // Divide por 100 para converter centavos em reais
+  return parseFloat(digits) / 100;
+}
+
 

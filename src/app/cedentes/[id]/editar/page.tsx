@@ -1518,7 +1518,6 @@ export default function EditarCedentePage() {
                   setShowAddSacado(false);
                   setSacadoForm({ cnpj: '', razao_social: '', nome_fantasia: '' });
                   setConsultarAPIsSacado(false);
-                  setDadosAPIsSacado(null);
                 }}
                 className="px-2 py-1 text-gray-500 hover:text-gray-900 text-xl"
                 aria-label="Fechar"

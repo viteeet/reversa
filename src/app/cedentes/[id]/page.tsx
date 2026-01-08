@@ -8,6 +8,8 @@ import { formatCpfCnpj, formatCpf } from '@/lib/format';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import AtividadesManager from '@/components/atividades/AtividadesManager';
+import TitulosNegociadosManager from '@/components/titulos/TitulosNegociadosManager';
+import AcordosManager from '@/components/titulos/AcordosManager';
 import { categoriasCedentes } from '@/config/cedentesCategorias';
 
 type Cedente = {
@@ -48,7 +50,7 @@ export default function CedentePage() {
   const [cedente, setCedente] = useState<Cedente | null>(null);
   const [sacados, setSacados] = useState<Sacado[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'info' | 'sacados' | 'atividades'>('info');
+  const [activeTab, setActiveTab] = useState<'info' | 'sacados' | 'titulos' | 'acordos' | 'atividades'>('info');
   const [sacadosQuery, setSacadosQuery] = useState('');
   const [grupoInfo, setGrupoInfo] = useState<{ nome_grupo: string; id: string; cnpjs_count: number } | null>(null);
   
@@ -60,6 +62,15 @@ export default function CedentePage() {
 
   useEffect(() => {
     loadData();
+    
+    // Verifica se há tab na URL
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tab = urlParams.get('tab');
+      if (tab && ['info', 'sacados', 'titulos', 'acordos', 'atividades'].includes(tab)) {
+        setActiveTab(tab as 'info' | 'sacados' | 'titulos' | 'acordos' | 'atividades');
+      }
+    }
   }, [id]);
 
   async function loadData() {
@@ -318,6 +329,26 @@ export default function CedentePage() {
                 }`}
               >
                 Sacados ({sacados.length})
+              </button>
+              <button
+                onClick={() => setActiveTab('titulos')}
+                className={`px-4 py-2 text-sm font-medium border-r border-gray-300 ${
+                  activeTab === 'titulos'
+                    ? 'bg-white text-[#0369a1] border-b-2 border-[#0369a1] -mb-[2px]'
+                    : 'text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                Títulos
+              </button>
+              <button
+                onClick={() => setActiveTab('acordos')}
+                className={`px-4 py-2 text-sm font-medium border-r border-gray-300 ${
+                  activeTab === 'acordos'
+                    ? 'bg-white text-[#0369a1] border-b-2 border-[#0369a1] -mb-[2px]'
+                    : 'text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                Acordos
               </button>
               <button
                 onClick={() => setActiveTab('atividades')}
@@ -684,6 +715,10 @@ export default function CedentePage() {
                   </div>
                 )}
               </div>
+            ) : activeTab === 'titulos' ? (
+              <TitulosNegociadosManager cedenteId={id} />
+            ) : activeTab === 'acordos' ? (
+              <AcordosManager cedenteId={id} />
             ) : (
               <AtividadesManager 
                 tipo="cedente" 

@@ -1,14 +1,25 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
+import { formatCpfCnpj, formatCpf } from '@/lib/format';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import AtividadesManager from '@/components/atividades/AtividadesManager';
-import FoundDataManagerGeneric from '@/components/shared/FoundDataManagerGeneric';
+import { categoriasCedentes } from '@/config/cedentesCategorias';
+
+// Mapeamento de tabelas de cedentes para sacados
+const sacadoTableMapping: Record<string, string> = {
+  'cedentes_enderecos': 'sacados_enderecos',
+  'cedentes_telefones': 'sacados_telefones',
+  'cedentes_emails': 'sacados_emails',
+  'cedentes_qsa': 'sacados_qsa',
+  'cedentes_qsa_detalhes': 'sacados_qsa_detalhes',
+  'cedentes_processos': 'sacados_processos',
+};
 
 type Sacado = {
   cnpj: string;
@@ -20,6 +31,7 @@ type Sacado = {
   data_abertura: string | null;
   capital_social: number | null;
   atividade_principal_descricao: string | null;
+  atividades_secundarias: string | null;
   simples_nacional: boolean | null;
   endereco_receita: string | null;
   telefone_receita: string | null;
@@ -50,8 +62,12 @@ export default function SacadoDetailPage() {
   const [sacado, setSacado] = useState<Sacado | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'info' | 'atividades'>('info');
-  const [foundData, setFoundData] = useState<FoundDataItem[]>([]);
-  const [grupoInfo, setGrupoInfo] = useState<{ nome_grupo: string; id: string; cnpjs_count: number } | null>(null);
+  
+  // Dados complementares
+  const [categoriasData, setCategoriasData] = useState<Record<string, any[]>>({});
+  const [observacoesGerais, setObservacoesGerais] = useState<string>('');
+  const [processosTexto, setProcessosTexto] = useState<string>('');
+  const [qsaDetalhes, setQsaDetalhes] = useState<Record<string, string>>({});
 
   useEffect(() => {
     loadData();
@@ -84,27 +100,95 @@ export default function SacadoDetailPage() {
           .eq('grupo_id', grupoData.id)
           .eq('ativo', true);
         
-        setGrupoInfo({
-          nome_grupo: grupoData.nome_grupo,
-          id: grupoData.id,
-          cnpjs_count: count || 0
-        });
+        // setGrupoInfo({
+        //   nome_grupo: grupoData.nome_grupo,
+        //   id: grupoData.id,
+        //   cnpjs_count: count || 0
+        // });
       }
     }
     
-    await loadFoundData();
+    await loadDadosComplementares();
+    
     setLoading(false);
   }
 
-  async function loadFoundData() {
-    const { data } = await supabase
-      .from('sacados_dados_encontrados')
-      .select('*')
-      .eq('sacado_cnpj', cnpj)
-      .eq('ativo', true)
-      .order('created_at', { ascending: false });
+  async function loadDadosComplementares() {
+    if (!cnpj) return;
     
-    setFoundData(data || []);
+    try {
+      // Carrega todas as categorias
+      for (const categoria of categoriasCedentes) {
+        try {
+          const tableName = sacadoTableMapping[categoria.tableName] || categoria.tableName.replace('cedentes_', 'sacados_');
+          const { data } = await supabase
+            .from(tableName)
+            .select('*')
+            .eq('sacado_cnpj', cnpj)
+            .order('created_at', { ascending: false });
+
+          setCategoriasData(prev => ({
+            ...prev,
+            [categoria.id]: data || []
+          }));
+        } catch (error: any) {
+          // Ignora erros de tabelas que não existem
+          if (error.code !== 'PGRST116' && error.code !== '42P01') {
+            console.error(`Erro ao carregar ${categoria.id}:`, error);
+          }
+        }
+      }
+
+      // Carrega observações gerais
+      try {
+        const { data } = await supabase
+          .from('sacados')
+          .select('observacoes_gerais')
+          .eq('cnpj', cnpj)
+          .single();
+        setObservacoesGerais(data?.observacoes_gerais || '');
+      } catch (error: any) {
+        if (error.code !== 'PGRST116' && error.code !== '42P01') {
+          console.error('Erro ao carregar observações:', error);
+        }
+      }
+
+      // Carrega processos (texto simples)
+      try {
+        const processosData = categoriasData['processos'] || [];
+        if (processosData.length > 0) {
+          setProcessosTexto(processosData[0]?.processos_texto || '');
+        }
+      } catch (error) {
+        // Ignora
+      }
+
+      // Carrega detalhes do QSA
+      const qsaItems = categoriasData['qsa'] || [];
+      if (qsaItems.length > 0) {
+        const detalhesPromises = qsaItems.map(async (item) => {
+          try {
+            const { data } = await supabase
+              .from('sacados_qsa_detalhes')
+              .select('detalhes_completos')
+              .eq('qsa_id', item.id)
+              .single();
+            return { id: item.id, detalhes: data?.detalhes_completos || '' };
+          } catch {
+            return { id: item.id, detalhes: '' };
+          }
+        });
+
+        const detalhesResults = await Promise.all(detalhesPromises);
+        const detalhesMap: Record<string, string> = {};
+        detalhesResults.forEach(r => {
+          detalhesMap[r.id] = r.detalhes;
+        });
+        setQsaDetalhes(detalhesMap);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar dados complementares:', error);
+    }
   }
 
   if (loading) {
@@ -150,13 +234,6 @@ export default function SacadoDetailPage() {
               <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-slate-800 bg-clip-text text-transparent">
                 {sacado.razao_social}
               </h1>
-              {grupoInfo && (
-                <Link href={`/empresas-grupo/${grupoInfo.id}`}>
-                  <Badge variant="info" className="cursor-pointer hover:opacity-80">
-                    🏭 {grupoInfo.nome_grupo} ({grupoInfo.cnpjs_count} CNPJs)
-                  </Badge>
-                </Link>
-              )}
             </div>
             <p className="text-slate-600">{sacado.nome_fantasia}</p>
             <p className="text-sm text-slate-500 font-mono">{sacado.cnpj}</p>
@@ -202,86 +279,273 @@ export default function SacadoDetailPage() {
           <div className="p-6">
             {activeTab === 'info' ? (
               <div className="space-y-6">
-                {/* Dados da Receita (API) */}
-                <div className="bg-gradient-to-r from-[#f0f9ff] to-[#e0f2fe] rounded-lg p-4 border border-[#bae6fd]">
-                  <h2 className="text-lg font-semibold text-[#0369a1] mb-3 flex items-center gap-2">
-                    <span>🏛️</span> Dados da Receita Federal
-                  </h2>
-                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    <div className="bg-white rounded p-2">
-                      <label className="text-xs font-medium text-[#64748b]">Situação</label>
-                      <div className="mt-1">
-                        {sacado.situacao && (
-                          <Badge variant={sacado.situacao === 'ATIVA' ? 'success' : 'error'} size="sm">
-                            {sacado.situacao}
-                          </Badge>
+                {/* Informações Básicas */}
+                <div className="bg-white border border-gray-300">
+                  <div className="border-b border-gray-300 bg-gray-100 px-4 py-2">
+                    <h2 className="text-xs font-semibold text-gray-700 uppercase">Informações Básicas</h2>
+                  </div>
+                  <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase mb-1">Razão Social</p>
+                      <p className="text-sm font-medium text-gray-900">{sacado.razao_social}</p>
+                    </div>
+                    {sacado.nome_fantasia && (
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase mb-1">Nome Fantasia</p>
+                        <p className="text-sm font-medium text-gray-900">{sacado.nome_fantasia}</p>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase mb-1">CNPJ</p>
+                      <p className="text-sm font-mono text-gray-900">{formatCpfCnpj(sacado.cnpj)}</p>
+                    </div>
+                    {sacado.situacao && (
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase mb-1">Situação</p>
+                        <Badge variant={sacado.situacao === 'ATIVA' ? 'success' : 'error'} size="sm">
+                          {sacado.situacao}
+                        </Badge>
+                      </div>
+                    )}
+                    {sacado.porte && (
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase mb-1">Porte</p>
+                        <p className="text-sm text-gray-900">{sacado.porte}</p>
+                      </div>
+                    )}
+                    {sacado.natureza_juridica && (
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase mb-1">Natureza Jurídica</p>
+                        <p className="text-sm text-gray-900">{sacado.natureza_juridica}</p>
+                      </div>
+                    )}
+                    {sacado.data_abertura && (
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase mb-1">Data de Abertura</p>
+                        <p className="text-sm text-gray-900">
+                          {new Date(sacado.data_abertura).toLocaleDateString('pt-BR')}
+                        </p>
+                      </div>
+                    )}
+                    {sacado.capital_social !== null && (
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase mb-1">Capital Social</p>
+                        <p className="text-sm text-gray-900">
+                          R$ {sacado.capital_social.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                    )}
+                    {sacado.atividade_principal_descricao && (
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase mb-1">Atividade Principal</p>
+                        <p className="text-sm text-gray-900">{sacado.atividade_principal_descricao}</p>
+                      </div>
+                    )}
+                    {sacado.atividades_secundarias && (
+                      <div className="md:col-span-2 lg:col-span-3">
+                        <p className="text-xs text-gray-500 uppercase mb-1">Atividades Secundárias</p>
+                        <p className="text-sm text-gray-900">{sacado.atividades_secundarias}</p>
+                      </div>
+                    )}
+                    {sacado.simples_nacional !== null && (
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase mb-1">Simples Nacional</p>
+                        <Badge variant={sacado.simples_nacional ? 'success' : 'neutral'} size="sm">
+                          {sacado.simples_nacional ? 'Sim' : 'Não'}
+                        </Badge>
+                      </div>
+                    )}
+                    {sacado.endereco_receita && (
+                      <div className="md:col-span-2 lg:col-span-3">
+                        <p className="text-xs text-gray-500 uppercase mb-1">Endereço (Receita)</p>
+                        <p className="text-sm text-gray-900">{sacado.endereco_receita}</p>
+                      </div>
+                    )}
+                    {sacado.telefone_receita && (
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase mb-1">Telefone (Receita)</p>
+                        <p className="text-sm text-gray-900">{sacado.telefone_receita}</p>
+                      </div>
+                    )}
+                    {sacado.email_receita && (
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase mb-1">Email (Receita)</p>
+                        <p className="text-sm text-gray-900">{sacado.email_receita}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Dados Complementares - Organizados por Grupos */}
+                {(() => {
+                  const categoriasPorGrupo: Record<string, typeof categoriasCedentes> = {};
+                  categoriasCedentes
+                    .filter(cat => cat.id !== 'qsa') // QSA é renderizado separadamente
+                    .forEach(categoria => {
+                      const grupo = categoria.group || 'outros';
+                      if (!categoriasPorGrupo[grupo]) {
+                        categoriasPorGrupo[grupo] = [];
+                      }
+                      categoriasPorGrupo[grupo].push(categoria);
+                    });
+
+                  const grupoLabels: Record<string, string> = {
+                    'contatos': 'Informações de Contato',
+                    'relacionamentos': 'Relacionamentos',
+                    'outros': 'Outros'
+                  };
+
+                  return Object.entries(categoriasPorGrupo).map(([grupo, categorias]) => {
+                    const temDados = categorias.some(cat => (categoriasData[cat.id] || []).length > 0);
+                    if (!temDados) return null;
+
+                    return (
+                      <div key={grupo} className="space-y-4">
+                        {grupo !== 'outros' && (
+                          <h2 className="text-base font-semibold text-gray-700">
+                            {grupoLabels[grupo] || grupo}
+                          </h2>
                         )}
+                        {categorias.map(categoria => {
+                          const items = categoriasData[categoria.id] || [];
+                          if (items.length === 0) return null;
+
+                          return (
+                            <div key={categoria.id} className="bg-white border border-gray-300">
+                              <div className="border-b border-gray-300 bg-gray-100 px-4 py-2">
+                                <h3 className="text-xs font-semibold text-gray-700 uppercase">
+                                  {categoria.title || categoria.id}
+                                  {items.length > 0 && (
+                                    <span className="ml-2 text-gray-500">({items.length})</span>
+                                  )}
+                                </h3>
+                              </div>
+                              <div className="p-4">
+                                <div className="space-y-3">
+                                  {items.map((item: any, idx: number) => (
+                                    <div key={item.id || idx} className="border-b border-gray-200 pb-3 last:border-0">
+                                      {categoria.fields?.map(field => {
+                                        const value = item[field.key];
+                                        if (!value && field.key !== 'observacoes') return null;
+                                        return (
+                                          <div key={field.key} className="mb-2">
+                                            <p className="text-xs text-gray-500 uppercase mb-1">
+                                              {field.label}
+                                            </p>
+                                            <p className="text-sm text-gray-900">
+                                              {field.key === 'cpf' && value ? formatCpf(value) :
+                                               field.key === 'participacao' && value ? `${value}%` :
+                                               value || '—'}
+                                            </p>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  });
+                })()}
+
+                {/* QSA com Detalhes */}
+                {(() => {
+                  const categoriaQsa = categoriasCedentes.find(c => c.id === 'qsa');
+                  if (!categoriaQsa) return null;
+                  const qsaItems = categoriasData['qsa'] || [];
+                  if (qsaItems.length === 0) return null;
+
+                  return (
+                    <div className="bg-white border border-gray-300">
+                      <div className="border-b border-gray-300 bg-gray-100 px-4 py-2">
+                        <h2 className="text-xs font-semibold text-gray-700 uppercase">
+                          {categoriaQsa.title} ({qsaItems.length})
+                        </h2>
+                      </div>
+                      <div className="p-4">
+                        <div className="overflow-x-auto">
+                          <table className="w-full">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                {categoriaQsa.fields?.map(field => (
+                                  <th key={field.key} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-r border-gray-300">
+                                    {field.label}
+                                  </th>
+                                ))}
+                                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700">Detalhes</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-200">
+                              {qsaItems.map((item: any, idx: number) => {
+                                const detalhes = qsaDetalhes[item.id] || '';
+                                return (
+                                  <tr key={item.id || idx} className="hover:bg-gray-50">
+                                    {categoriaQsa.fields?.map(field => {
+                                      const value = item[field.key];
+                                      return (
+                                        <td key={field.key} className="px-3 py-2 text-gray-900 border-r border-gray-300">
+                                          {field.key === 'cpf' && value ? formatCpf(value) :
+                                           field.key === 'participacao' && value ? `${value}%` :
+                                           value || '—'}
+                                        </td>
+                                      );
+                                    })}
+                                    <td className="px-3 py-2">
+                                      {detalhes ? (
+                                        <details className="cursor-pointer">
+                                          <summary className="text-sm text-[#0369a1] hover:underline">
+                                            Ver detalhes
+                                          </summary>
+                                          <div className="mt-2 p-3 bg-gray-50 rounded text-sm text-gray-700 whitespace-pre-wrap">
+                                            {detalhes}
+                                          </div>
+                                        </details>
+                                      ) : (
+                                        <span className="text-gray-400">—</span>
+                                      )}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
                     </div>
-                    <div className="bg-white rounded p-2">
-                      <label className="text-xs font-medium text-[#64748b]">Porte</label>
-                      <p className="text-sm text-[#1e293b] mt-1">{sacado.porte || '—'}</p>
-                    </div>
-                    <div className="bg-white rounded p-2">
-                      <label className="text-xs font-medium text-[#64748b]">Simples Nacional</label>
-                      <p className="text-sm text-[#1e293b] mt-1">{sacado.simples_nacional ? 'Sim' : 'Não'}</p>
-                    </div>
-                    <div className="bg-white rounded p-2">
-                      <label className="text-xs font-medium text-[#64748b]">Data de Abertura</label>
-                      <p className="text-sm text-[#1e293b] mt-1">
-                        {sacado.data_abertura ? new Date(sacado.data_abertura).toLocaleDateString('pt-BR') : '—'}
-                      </p>
-                    </div>
-                    <div className="bg-white rounded p-2">
-                      <label className="text-xs font-medium text-[#64748b]">Capital Social</label>
-                      <p className="text-sm text-[#1e293b] mt-1">
-                        {sacado.capital_social ? sacado.capital_social.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '—'}
-                      </p>
-                    </div>
-                    <div className="bg-white rounded p-2">
-                      <label className="text-xs font-medium text-[#64748b]">Telefone</label>
-                      <p className="text-sm text-[#1e293b] mt-1">{sacado.telefone_receita || '—'}</p>
-                    </div>
-                    <div className="bg-white rounded p-2">
-                      <label className="text-xs font-medium text-[#64748b]">Email</label>
-                      <p className="text-sm text-[#1e293b] mt-1 truncate" title={sacado.email_receita || ''}>
-                        {sacado.email_receita || '—'}
-                      </p>
-                    </div>
-                    <div className="bg-white rounded p-2 sm:col-span-2 lg:col-span-1">
-                      <label className="text-xs font-medium text-[#64748b]">Natureza Jurídica</label>
-                      <p className="text-sm text-[#1e293b] mt-1">{sacado.natureza_juridica || '—'}</p>
-                    </div>
-                  </div>
-                  <div className="bg-white rounded p-2 mt-3">
-                    <label className="text-xs font-medium text-[#64748b]">Endereço</label>
-                    <p className="text-sm text-[#1e293b] mt-1">{sacado.endereco_receita || '—'}</p>
-                  </div>
-                  <div className="bg-white rounded p-2 mt-3">
-                    <label className="text-xs font-medium text-[#64748b]">Atividade Principal</label>
-                    <p className="text-sm text-[#1e293b] mt-1">{sacado.atividade_principal_descricao || '—'}</p>
-                  </div>
-                </div>
+                  );
+                })()}
 
-                {/* Dados Encontrados (Manual) */}
-                <div>
-                  <FoundDataManagerGeneric 
-                    entityId={cnpj}
-                    entityType="sacado"
-                    items={foundData}
-                    onRefresh={loadFoundData}
-                  />
-                </div>
+                {/* Processos Judiciais */}
+                {processosTexto && (
+                  <div className="bg-white border border-gray-300">
+                    <div className="border-b border-gray-300 bg-gray-100 px-4 py-2">
+                      <h2 className="text-xs font-semibold text-gray-700 uppercase">Processos Judiciais e Informações Relevantes</h2>
+                    </div>
+                    <div className="p-4">
+                      <div className="whitespace-pre-wrap text-sm text-gray-700">
+                        {processosTexto}
+                      </div>
+                    </div>
+                  </div>
+                )}
 
-                {/* Botão de Edição Completa */}
-                <div className="flex justify-center pt-2">
-                  <Button 
-                    variant="primary" 
-                    onClick={() => router.push(`/sacados/${encodeURIComponent(cnpj)}/editar`)}
-                  >
-                    Editar Dados Complementares (QSA, Processos, etc.)
-                  </Button>
-                </div>
+                {/* Observações Gerais */}
+                {observacoesGerais && (
+                  <div className="bg-white border border-gray-300">
+                    <div className="border-b border-gray-300 bg-gray-100 px-4 py-2">
+                      <h2 className="text-xs font-semibold text-gray-700 uppercase">Observações Gerais</h2>
+                    </div>
+                    <div className="p-4">
+                      <div className="whitespace-pre-wrap text-sm text-gray-700">
+                        {observacoesGerais}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <AtividadesManager 
