@@ -1712,6 +1712,7 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
                       critica: '',
                       checagem: '',
                       vadu: '',
+                      fundo: '',
                     });
                   }}
                   className="text-gray-400 hover:text-gray-600"
@@ -1927,6 +1928,7 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
                       critica: '',
                       checagem: '',
                       vadu: '',
+                      fundo: '',
                     });
                   }}
                   className="flex-1"

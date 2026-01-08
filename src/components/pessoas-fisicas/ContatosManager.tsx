@@ -758,8 +758,8 @@ export default function ContatosManager({
                         {item.principal && <Badge variant="success" size="sm" className="ml-2">Principal</Badge>}
                       </td>
                       <td 
-                        className="px-3 py-1.5 text-gray-700 border-r border-gray-200 cursor-pointer hover:bg-blue-50"
-                        onClick={() => {
+                        className="px-3 py-1.5 text-gray-700 border-r border-gray-200 cursor-pointer hover:bg-blue-50 group relative"
+                        onDoubleClick={() => {
                           setEditingCell({ id: item.id, field: 'tipo' });
                           setCellValue(item.tipo || '');
                         }}
@@ -778,7 +778,9 @@ export default function ContatosManager({
                             <option value="comercial">Comercial</option>
                           </select>
                         ) : (
-                          item.tipo || '—'
+                          <span className="group-hover:after:content-['_✏️'] after:text-[8px] after:text-blue-500">
+                            {item.tipo || '—'}
+                          </span>
                         )}
                       </td>
                       <td 
@@ -809,8 +811,8 @@ export default function ContatosManager({
                         )}
                       </td>
                       <td 
-                        className="px-3 py-1.5 border-r border-gray-200 cursor-pointer hover:bg-blue-50"
-                        onClick={() => {
+                        className="px-3 py-1.5 border-r border-gray-200 cursor-pointer hover:bg-blue-50 group relative"
+                        onDoubleClick={() => {
                           setEditingCell({ id: item.id, field: 'status' });
                           setCellValue(item.status || '');
                         }}
@@ -847,7 +849,9 @@ export default function ContatosManager({
                             />
                           </>
                         ) : (
-                          item.status ? <Badge variant="warning" size="sm">{item.status}</Badge> : '—'
+                          <span className="group-hover:after:content-['_✏️'] after:text-[8px] after:text-blue-500">
+                            {item.status ? <Badge variant="warning" size="sm">{item.status}</Badge> : '—'}
+                          </span>
                         )}
                       </td>
                       <td className="px-3 py-1.5">
@@ -877,8 +881,58 @@ export default function ContatosManager({
                         {item.email}
                         {item.principal && <Badge variant="success" size="sm" className="ml-2">Principal</Badge>}
                       </td>
-                      <td className="px-3 py-1.5 text-gray-700 border-r border-gray-200">{item.tipo || '—'}</td>
-                      <td className="px-3 py-1.5 text-gray-700">{item.nome_contato || '—'}</td>
+                      <td 
+                        className="px-3 py-1.5 text-gray-700 border-r border-gray-200 cursor-pointer hover:bg-blue-50 group relative"
+                        onDoubleClick={() => {
+                          setEditingCell({ id: item.id, field: 'tipo' });
+                          setCellValue(item.tipo || '');
+                        }}
+                      >
+                        {editingCell?.id === item.id && editingCell?.field === 'tipo' ? (
+                          <select
+                            className="w-full px-1 py-0.5 border border-blue-500 text-xs bg-white"
+                            value={cellValue}
+                            onChange={(e) => setCellValue(e.target.value)}
+                            onBlur={() => handleCellSave(item.id, 'tipo', cellValue)}
+                            autoFocus
+                          >
+                            <option value="">—</option>
+                            <option value="pessoal">Pessoal</option>
+                            <option value="comercial">Comercial</option>
+                            <option value="outro">Outro</option>
+                          </select>
+                        ) : (
+                          <span className="group-hover:after:content-['_✏️'] after:text-[8px] after:text-blue-500">
+                            {item.tipo || '—'}
+                          </span>
+                        )}
+                      </td>
+                      <td 
+                        className="px-3 py-1.5 text-gray-700 cursor-pointer hover:bg-blue-50 group relative"
+                        onDoubleClick={() => {
+                          setEditingCell({ id: item.id, field: 'nome_contato' });
+                          setCellValue(item.nome_contato || '');
+                        }}
+                      >
+                        {editingCell?.id === item.id && editingCell?.field === 'nome_contato' ? (
+                          <input
+                            type="text"
+                            className="w-full px-1 py-0.5 border border-blue-500 text-xs bg-white"
+                            value={cellValue}
+                            onChange={(e) => setCellValue(e.target.value)}
+                            onBlur={() => handleCellSave(item.id, 'nome_contato', cellValue)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleCellSave(item.id, 'nome_contato', cellValue);
+                              if (e.key === 'Escape') { setEditingCell(null); setCellValue(''); }
+                            }}
+                            autoFocus
+                          />
+                        ) : (
+                          <span className="group-hover:after:content-['_✏️'] after:text-[8px] after:text-blue-500">
+                            {item.nome_contato || '—'}
+                          </span>
+                        )}
+                      </td>
                       <td className="px-3 py-1.5">
                         <div className="flex gap-1">
                           <button
