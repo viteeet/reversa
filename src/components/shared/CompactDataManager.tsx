@@ -541,9 +541,11 @@ export default function CompactDataManager({
                       })}
                       <div className="flex items-baseline gap-1.5">
                         {item._from_pessoa_fisica ? (
-                          <Badge variant="success" size="sm" title="Vinculada de Pessoas Físicas">
-                            👤 Pessoa Física
-                          </Badge>
+                          <span title="Vinculada de Pessoas Físicas">
+                            <Badge variant="success" size="sm">
+                              👤 Pessoa Física
+                            </Badge>
+                          </span>
                         ) : item.origem === 'api' ? (
                           <Badge variant="info" size="sm">
                             API
