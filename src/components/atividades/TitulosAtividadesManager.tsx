@@ -393,65 +393,103 @@ export default function TitulosAtividadesManager({
   return (
     <div className="space-y-4">
       {/* Seção de Crítica */}
-      <div className="bg-blue-50 border border-blue-200 p-3">
-        <div className="flex items-center gap-2 mb-3">
-          <label className="text-xs font-medium text-gray-700 whitespace-nowrap">
-            Crítica:
-          </label>
-          <Select
-            value={criticaSelecionada}
-            onChange={(e) => setCriticaSelecionada(e.target.value)}
-            options={[
-              { value: '', label: 'Sem crítica' },
-              ...criticas.map(c => ({ value: c.nome, label: c.nome }))
-            ]}
-            className="flex-1 text-xs"
-          />
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={salvarCritica}
-            disabled={criticaSelecionada === (tituloInfo?.critica || '')}
-            className="text-xs px-2 py-1 !text-white"
-          >
-            Salvar
-          </Button>
+      <div className="space-y-2">
+        {/* Cabeçalho Compacto */}
+        <div className="flex items-center justify-between bg-gray-50 border border-gray-300 p-2">
+          <div className="flex items-center gap-3">
+            <h3 className="text-sm font-semibold text-gray-900">Crítica do Título</h3>
+          </div>
+          <div className="flex items-center gap-2">
+            <Select
+              value={criticaSelecionada}
+              onChange={(e) => setCriticaSelecionada(e.target.value)}
+              options={[
+                { value: '', label: 'Sem crítica' },
+                ...criticas.map(c => ({ value: c.nome, label: c.nome }))
+              ]}
+              className="text-xs"
+            />
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={salvarCritica}
+              disabled={criticaSelecionada === (tituloInfo?.critica || '')}
+              className="text-xs px-2 py-1 !text-white"
+            >
+              Salvar
+            </Button>
+          </div>
         </div>
 
-        {/* Histórico de Críticas */}
-        {historicoCriticas.length > 0 && (
-          <div className="mt-3 border-t border-blue-300 pt-3">
-            <h4 className="text-xs font-semibold text-gray-700 mb-2">Histórico de Críticas:</h4>
-            <div className="space-y-1 max-h-32 overflow-y-auto">
-              {historicoCriticas.map((item) => (
-                <div key={item.id} className="text-xs bg-white border border-blue-200 rounded px-2 py-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-gray-700 flex-1">
-                      <span className="font-medium">{item.critica_anterior || 'Sem crítica'}</span>
-                      {' → '}
-                      <span className="font-medium">{item.critica_nova || 'Sem crítica'}</span>
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-500 text-xs whitespace-nowrap">
-                        {item.usuario_nome || 'Usuário'} - {new Date(item.created_at).toLocaleString('pt-BR', {
-                          day: '2-digit',
-                          month: '2-digit',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </span>
-                      <button
-                        onClick={() => excluirCriticaHistorico(item.id)}
-                        className="px-1.5 py-0.5 text-xs border border-red-300 bg-white hover:bg-red-50 text-red-600 font-medium"
-                        title="Excluir"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
+        {/* Tabela Compacta Estilo Excel - Histórico de Críticas */}
+        {historicoCriticas.length === 0 ? (
+          <div className="text-center py-4 text-gray-500 text-sm border border-gray-200 bg-white">
+            Nenhuma alteração de crítica registrada ainda.
+          </div>
+        ) : (
+          <div className="border border-gray-300 bg-white">
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead className="bg-gray-50 border-b border-gray-300 sticky top-0">
+                  <tr>
+                    <th className="px-2 py-1.5 text-left border-r border-gray-300 font-semibold text-gray-700 whitespace-nowrap">
+                      Data/Hora
+                    </th>
+                    <th className="px-2 py-1.5 text-left border-r border-gray-300 font-semibold text-gray-700 whitespace-nowrap">
+                      Usuário
+                    </th>
+                    <th className="px-2 py-1.5 text-left border-r border-gray-300 font-semibold text-gray-700 whitespace-nowrap">
+                      Crítica Anterior
+                    </th>
+                    <th className="px-2 py-1.5 text-left border-r border-gray-300 font-semibold text-gray-700 whitespace-nowrap">
+                      Crítica Nova
+                    </th>
+                    <th className="px-2 py-1.5 text-center font-semibold text-gray-700 whitespace-nowrap">
+                      Ações
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {historicoCriticas.map((item) => (
+                    <tr key={item.id} className="hover:bg-blue-50 border-b border-gray-200">
+                      <td className="px-2 py-1 border-r border-gray-200">
+                        <div className="text-xs">
+                          <div className="font-medium text-gray-900">
+                            {new Date(item.created_at).toLocaleDateString('pt-BR')}
+                          </div>
+                          <div className="text-gray-500">
+                            {new Date(item.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-2 py-1 border-r border-gray-200">
+                        <span className="text-xs text-gray-600 font-medium">
+                          {item.usuario_nome || 'Usuário'}
+                        </span>
+                      </td>
+                      <td className="px-2 py-1 border-r border-gray-200">
+                        <Badge variant="neutral" size="sm" className="text-xs">
+                          {item.critica_anterior || 'Sem crítica'}
+                        </Badge>
+                      </td>
+                      <td className="px-2 py-1 border-r border-gray-200">
+                        <Badge variant="warning" size="sm" className="text-xs">
+                          {item.critica_nova || 'Sem crítica'}
+                        </Badge>
+                      </td>
+                      <td className="px-2 py-1 text-center">
+                        <button
+                          onClick={() => excluirCriticaHistorico(item.id)}
+                          className="px-1.5 py-0.5 text-xs border border-red-300 bg-white hover:bg-red-50 text-red-600 font-medium"
+                          title="Excluir"
+                        >
+                          ×
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
