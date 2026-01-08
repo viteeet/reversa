@@ -54,6 +54,8 @@ export default function ContatosManager({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState<any>({});
+  const [editingCell, setEditingCell] = useState<{id: string, field: string} | null>(null);
+  const [cellValue, setCellValue] = useState('');
   const { showToast } = useToast();
 
   const tableName = 
@@ -212,6 +214,30 @@ export default function ContatosManager({
     } catch (error: any) {
       console.error('Erro ao remover:', error);
       showToast(`Erro ao remover ${tipo}`, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCellSave = async (id: string, field: string, value: string) => {
+    if (editingCell?.id !== id || editingCell?.field !== field) return;
+    
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from(tableName)
+        .update({ [field]: value || null })
+        .eq('id', id);
+      
+      if (error) throw error;
+      
+      setEditingCell(null);
+      setCellValue('');
+      onRefresh();
+      showToast(`${field === 'status' ? 'Status' : 'Tipo'} atualizado!`, 'success');
+    } catch (error: any) {
+      console.error('Erro ao salvar:', error);
+      showToast(`Erro ao atualizar ${field}`, 'error');
     } finally {
       setLoading(false);
     }
@@ -506,99 +532,272 @@ export default function ContatosManager({
         </div>
       )}
 
-      <div className="p-4">
+      <div className="overflow-x-auto">
         {items.length === 0 ? (
-          <p className="text-sm text-gray-500 text-center py-4">
-            Nenhum {tipo === 'enderecos' ? 'endereço' : tipo === 'telefones' ? 'telefone' : 'email'} cadastrado
-          </p>
-        ) : (
-          <div className="space-y-2">
-            {items.map((item: any) => (
-              <div
-                key={item.id}
-                className="flex items-start justify-between p-3 border border-gray-200 rounded hover:bg-gray-50"
-              >
-                <div className="flex-1">
-                  {tipo === 'enderecos' ? (
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-sm font-medium text-gray-900">{item.endereco}</span>
-                        {item.principal && (
-                          <Badge variant="success" size="sm">Principal</Badge>
-                        )}
-                        {item.tipo && (
-                          <Badge variant="info" size="sm">{item.tipo}</Badge>
-                        )}
-                      </div>
-                      {(item.cep || item.cidade || item.estado) && (
-                        <p className="text-xs text-gray-600">
-                          {[item.cep, item.cidade, item.estado].filter(Boolean).join(' - ')}
-                        </p>
-                      )}
-                      {item.status && (
-                        <p className="text-xs mt-1">
-                          <span className="font-medium text-gray-700">Status: </span>
-                          <Badge variant="warning" size="sm">{item.status}</Badge>
-                        </p>
-                      )}
-                    </div>
-                  ) : tipo === 'telefones' ? (
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-sm font-medium text-gray-900">{item.telefone}</span>
-                        {item.principal && (
-                          <Badge variant="success" size="sm">Principal</Badge>
-                        )}
-                        {item.tipo && (
-                          <Badge variant="info" size="sm">{item.tipo}</Badge>
-                        )}
-                      </div>
-                      {item.nome_contato && (
-                        <p className="text-xs text-gray-600">Contato: {item.nome_contato}</p>
-                      )}
-                      {item.status && (
-                        <p className="text-xs mt-1">
-                          <span className="font-medium text-gray-700">Status: </span>
-                          <Badge variant="warning" size="sm">{item.status}</Badge>
-                        </p>
-                      )}
-                    </div>
-                  ) : (
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-sm font-medium text-gray-900">{item.email}</span>
-                        {item.principal && (
-                          <Badge variant="success" size="sm">Principal</Badge>
-                        )}
-                        {item.tipo && (
-                          <Badge variant="info" size="sm">{item.tipo}</Badge>
-                        )}
-                      </div>
-                      {item.nome_contato && (
-                        <p className="text-xs text-gray-600">Contato: {item.nome_contato}</p>
-                      )}
-                    </div>
-                  )}
-                </div>
-                <div className="flex gap-1">
-                  <button
-                    onClick={() => handleEdit(item)}
-                    className="px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 rounded"
-                    disabled={loading}
-                  >
-                    Editar
-                  </button>
-                  <button
-                    onClick={() => handleDelete(item.id)}
-                    className="px-2 py-1 text-xs text-red-600 hover:bg-red-50 rounded"
-                    disabled={loading}
-                  >
-                    Remover
-                  </button>
-                </div>
-              </div>
-            ))}
+          <div className="p-4 text-center">
+            <p className="text-sm text-gray-500">
+              Nenhum {tipo === 'enderecos' ? 'endereço' : tipo === 'telefones' ? 'telefone' : 'email'} cadastrado
+            </p>
           </div>
+        ) : (
+          <table className="w-full border-collapse text-xs">
+            <thead>
+              <tr className="bg-gray-50 border-b-2 border-gray-300">
+                {tipo === 'enderecos' ? (
+                  <>
+                    <th className="px-3 py-1.5 text-left font-semibold text-gray-700 border-r border-gray-200">Endereço</th>
+                    <th className="px-3 py-1.5 text-left font-semibold text-gray-700 border-r border-gray-200 w-24">Tipo</th>
+                    <th className="px-3 py-1.5 text-left font-semibold text-gray-700 border-r border-gray-200 w-28">CEP</th>
+                    <th className="px-3 py-1.5 text-left font-semibold text-gray-700 border-r border-gray-200 w-32">Cidade</th>
+                    <th className="px-3 py-1.5 text-left font-semibold text-gray-700 border-r border-gray-200 w-16">UF</th>
+                    <th className="px-3 py-1.5 text-left font-semibold text-gray-700 w-32">Status</th>
+                    <th className="px-3 py-1.5 text-left font-semibold text-gray-700 w-20">Ações</th>
+                  </>
+                ) : tipo === 'telefones' ? (
+                  <>
+                    <th className="px-3 py-1.5 text-left font-semibold text-gray-700 border-r border-gray-200">Telefone</th>
+                    <th className="px-3 py-1.5 text-left font-semibold text-gray-700 border-r border-gray-200 w-24">Tipo</th>
+                    <th className="px-3 py-1.5 text-left font-semibold text-gray-700 border-r border-gray-200 w-40">Contato</th>
+                    <th className="px-3 py-1.5 text-left font-semibold text-gray-700 w-32">Status</th>
+                    <th className="px-3 py-1.5 text-left font-semibold text-gray-700 w-20">Ações</th>
+                  </>
+                ) : (
+                  <>
+                    <th className="px-3 py-1.5 text-left font-semibold text-gray-700 border-r border-gray-200">Email</th>
+                    <th className="px-3 py-1.5 text-left font-semibold text-gray-700 border-r border-gray-200 w-24">Tipo</th>
+                    <th className="px-3 py-1.5 text-left font-semibold text-gray-700 w-40">Contato</th>
+                    <th className="px-3 py-1.5 text-left font-semibold text-gray-700 w-20">Ações</th>
+                  </>
+                )}
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item: any) => (
+                <tr key={item.id} className="border-b border-gray-200 hover:bg-gray-50">
+                  {tipo === 'enderecos' ? (
+                    <>
+                      <td className="px-3 py-1.5 text-gray-900 border-r border-gray-200">
+                        {item.endereco}
+                        {item.principal && <Badge variant="success" size="sm" className="ml-2">Principal</Badge>}
+                      </td>
+                      <td 
+                        className="px-3 py-1.5 text-gray-700 border-r border-gray-200 cursor-pointer hover:bg-blue-50"
+                        onClick={() => {
+                          setEditingCell({ id: item.id, field: 'tipo' });
+                          setCellValue(item.tipo || '');
+                        }}
+                      >
+                        {editingCell?.id === item.id && editingCell?.field === 'tipo' ? (
+                          <select
+                            className="w-full px-1 py-0.5 border border-blue-500 text-xs bg-white"
+                            value={cellValue}
+                            onChange={(e) => setCellValue(e.target.value)}
+                            onBlur={() => handleCellSave(item.id, 'tipo', cellValue)}
+                            autoFocus
+                          >
+                            <option value="">—</option>
+                            <option value="residencial">Residencial</option>
+                            <option value="comercial">Comercial</option>
+                            <option value="correspondencia">Correspondência</option>
+                          </select>
+                        ) : (
+                          item.tipo || '—'
+                        )}
+                      </td>
+                      <td className="px-3 py-1.5 text-gray-700 border-r border-gray-200">{item.cep || '—'}</td>
+                      <td className="px-3 py-1.5 text-gray-700 border-r border-gray-200">{item.cidade || '—'}</td>
+                      <td className="px-3 py-1.5 text-gray-700 border-r border-gray-200">{item.estado || '—'}</td>
+                      <td 
+                        className="px-3 py-1.5 border-r border-gray-200 cursor-pointer hover:bg-blue-50"
+                        onClick={() => {
+                          setEditingCell({ id: item.id, field: 'status' });
+                          setCellValue(item.status || '');
+                        }}
+                      >
+                        {editingCell?.id === item.id && editingCell?.field === 'status' ? (
+                          <>
+                            <select
+                              className="w-full px-1 py-0.5 border border-blue-500 text-xs bg-white mb-1"
+                              value={cellValue}
+                              onChange={(e) => setCellValue(e.target.value)}
+                              onBlur={() => handleCellSave(item.id, 'status', cellValue)}
+                              autoFocus
+                            >
+                              <option value="">—</option>
+                              <option value="visitado">Visitado</option>
+                              <option value="não visitado">Não visitado</option>
+                              <option value="não existe">Não existe</option>
+                              <option value="incorreto">Incorreto</option>
+                              <option value="desatualizado">Desatualizado</option>
+                              <option value="confirmado">Confirmado</option>
+                            </select>
+                            <input
+                              type="text"
+                              className="w-full px-1 py-0.5 border border-blue-500 text-xs bg-white"
+                              placeholder="Ou digite..."
+                              value={cellValue && !['visitado', 'não visitado', 'não existe', 'incorreto', 'desatualizado', 'confirmado'].includes(cellValue) ? cellValue : ''}
+                              onChange={(e) => setCellValue(e.target.value)}
+                              onBlur={() => handleCellSave(item.id, 'status', cellValue)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  handleCellSave(item.id, 'status', cellValue);
+                                }
+                              }}
+                            />
+                          </>
+                        ) : (
+                          item.status ? <Badge variant="warning" size="sm">{item.status}</Badge> : '—'
+                        )}
+                      </td>
+                      <td className="px-3 py-1.5">
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => handleEdit(item)}
+                            className="px-1.5 py-0.5 text-xs text-blue-600 hover:bg-blue-50 rounded"
+                            disabled={loading}
+                            title="Editar completo"
+                          >
+                            ✏️
+                          </button>
+                          <button
+                            onClick={() => handleDelete(item.id)}
+                            className="px-1.5 py-0.5 text-xs text-red-600 hover:bg-red-50 rounded"
+                            disabled={loading}
+                            title="Remover"
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      </td>
+                    </>
+                  ) : tipo === 'telefones' ? (
+                    <>
+                      <td className="px-3 py-1.5 text-gray-900 border-r border-gray-200">
+                        {item.telefone}
+                        {item.principal && <Badge variant="success" size="sm" className="ml-2">Principal</Badge>}
+                      </td>
+                      <td 
+                        className="px-3 py-1.5 text-gray-700 border-r border-gray-200 cursor-pointer hover:bg-blue-50"
+                        onClick={() => {
+                          setEditingCell({ id: item.id, field: 'tipo' });
+                          setCellValue(item.tipo || '');
+                        }}
+                      >
+                        {editingCell?.id === item.id && editingCell?.field === 'tipo' ? (
+                          <select
+                            className="w-full px-1 py-0.5 border border-blue-500 text-xs bg-white"
+                            value={cellValue}
+                            onChange={(e) => setCellValue(e.target.value)}
+                            onBlur={() => handleCellSave(item.id, 'tipo', cellValue)}
+                            autoFocus
+                          >
+                            <option value="">—</option>
+                            <option value="celular">Celular</option>
+                            <option value="fixo">Fixo</option>
+                            <option value="comercial">Comercial</option>
+                          </select>
+                        ) : (
+                          item.tipo || '—'
+                        )}
+                      </td>
+                      <td className="px-3 py-1.5 text-gray-700 border-r border-gray-200">{item.nome_contato || '—'}</td>
+                      <td 
+                        className="px-3 py-1.5 border-r border-gray-200 cursor-pointer hover:bg-blue-50"
+                        onClick={() => {
+                          setEditingCell({ id: item.id, field: 'status' });
+                          setCellValue(item.status || '');
+                        }}
+                      >
+                        {editingCell?.id === item.id && editingCell?.field === 'status' ? (
+                          <>
+                            <select
+                              className="w-full px-1 py-0.5 border border-blue-500 text-xs bg-white mb-1"
+                              value={cellValue}
+                              onChange={(e) => setCellValue(e.target.value)}
+                              onBlur={() => handleCellSave(item.id, 'status', cellValue)}
+                              autoFocus
+                            >
+                              <option value="">—</option>
+                              <option value="tem whatsapp">Tem WhatsApp</option>
+                              <option value="não pertence">Não pertence</option>
+                              <option value="está errado">Está errado</option>
+                              <option value="não existe">Não existe</option>
+                              <option value="desligado">Desligado</option>
+                              <option value="confirmado">Confirmado</option>
+                            </select>
+                            <input
+                              type="text"
+                              className="w-full px-1 py-0.5 border border-blue-500 text-xs bg-white"
+                              placeholder="Ou digite..."
+                              value={cellValue && !['tem whatsapp', 'não pertence', 'está errado', 'não existe', 'desligado', 'confirmado'].includes(cellValue) ? cellValue : ''}
+                              onChange={(e) => setCellValue(e.target.value)}
+                              onBlur={() => handleCellSave(item.id, 'status', cellValue)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  handleCellSave(item.id, 'status', cellValue);
+                                }
+                              }}
+                            />
+                          </>
+                        ) : (
+                          item.status ? <Badge variant="warning" size="sm">{item.status}</Badge> : '—'
+                        )}
+                      </td>
+                      <td className="px-3 py-1.5">
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => handleEdit(item)}
+                            className="px-1.5 py-0.5 text-xs text-blue-600 hover:bg-blue-50 rounded"
+                            disabled={loading}
+                            title="Editar completo"
+                          >
+                            ✏️
+                          </button>
+                          <button
+                            onClick={() => handleDelete(item.id)}
+                            className="px-1.5 py-0.5 text-xs text-red-600 hover:bg-red-50 rounded"
+                            disabled={loading}
+                            title="Remover"
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      </td>
+                    </>
+                  ) : (
+                    <>
+                      <td className="px-3 py-1.5 text-gray-900 border-r border-gray-200">
+                        {item.email}
+                        {item.principal && <Badge variant="success" size="sm" className="ml-2">Principal</Badge>}
+                      </td>
+                      <td className="px-3 py-1.5 text-gray-700 border-r border-gray-200">{item.tipo || '—'}</td>
+                      <td className="px-3 py-1.5 text-gray-700">{item.nome_contato || '—'}</td>
+                      <td className="px-3 py-1.5">
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => handleEdit(item)}
+                            className="px-1.5 py-0.5 text-xs text-blue-600 hover:bg-blue-50 rounded"
+                            disabled={loading}
+                            title="Editar completo"
+                          >
+                            ✏️
+                          </button>
+                          <button
+                            onClick={() => handleDelete(item.id)}
+                            className="px-1.5 py-0.5 text-xs text-red-600 hover:bg-red-50 rounded"
+                            disabled={loading}
+                            title="Remover"
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      </td>
+                    </>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
       </div>
     </div>

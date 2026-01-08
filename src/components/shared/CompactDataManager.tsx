@@ -58,6 +58,8 @@ export default function CompactDataManager({
   const [fetchingAPI, setFetchingAPI] = useState(false);
   const [showDetailsId, setShowDetailsId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [editingCell, setEditingCell] = useState<{id: string, field: string} | null>(null);
+  const [cellValue, setCellValue] = useState('');
   const { showToast } = useToast();
 
   const resetNewForm = () => {
@@ -243,6 +245,121 @@ export default function CompactDataManager({
       // Apenas erros são mostrados, sucesso é silencioso
     } finally {
       setFetchingAPI(false);
+    }
+  };
+
+  const handleCellSave = async (id: string, field: string, value: any) => {
+    if (editingCell?.id !== id || editingCell?.field !== field) return;
+    
+    setLoading(true);
+    try {
+      const fieldConfig = fields.find(f => f.key === field);
+      let processedValue = value;
+      
+      // Processar valor conforme tipo do campo
+      if (fieldConfig?.type === 'number') {
+        processedValue = value === '' || value === null || value === undefined ? null : Number(String(value).replace(/,/g, '.'));
+      } else if (fieldConfig?.type === 'date') {
+        processedValue = value ? value : null;
+      } else {
+        processedValue = value?.trim() || null;
+      }
+      
+      const { error } = await supabase
+        .from(tableName)
+        .update({ [field]: processedValue })
+        .eq('id', id);
+      
+      if (error) throw error;
+      
+      setEditingCell(null);
+      setCellValue('');
+      await onRefresh();
+      showToast(`${fieldConfig?.label || field} atualizado!`, 'success');
+    } catch (error: any) {
+      console.error('Erro ao salvar:', error);
+      showToast(`Erro ao atualizar ${field}`, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const isEditableField = (fieldKey: string): boolean => {
+    // Campos simples que podem ser editados inline
+    const editableFields = ['tipo', 'status', 'qualificacao', 'participacao', 'nome_contato'];
+    return editableFields.includes(fieldKey);
+  };
+
+  const renderEditableCell = (item: DataItem, fieldKey: string, fieldConfig: any) => {
+    const isEditing = editingCell?.id === item.id && editingCell?.field === fieldKey;
+    const value = item[fieldKey] || '';
+    
+    if (!isEditing) {
+      return (
+        <span 
+          className="cursor-pointer hover:bg-blue-50 px-1 py-0.5 rounded text-sm text-gray-900"
+          onClick={() => {
+            setEditingCell({ id: item.id!, field: fieldKey });
+            setCellValue(value);
+          }}
+        >
+          {value || '—'}
+        </span>
+      );
+    }
+    
+    // Renderizar campo editável
+    if (fieldConfig?.type === 'select' && fieldConfig.options) {
+      return (
+        <select
+          className="w-full px-1 py-0.5 border border-blue-500 text-xs bg-white"
+          value={cellValue}
+          onChange={(e) => setCellValue(e.target.value)}
+          onBlur={() => handleCellSave(item.id!, fieldKey, cellValue)}
+          autoFocus
+        >
+          <option value="">—</option>
+          {fieldConfig.options.map((opt: string) => (
+            <option key={opt} value={opt}>{opt}</option>
+          ))}
+        </select>
+      );
+    } else if (fieldConfig?.type === 'number') {
+      return (
+        <input
+          type="number"
+          className="w-full px-1 py-0.5 border border-blue-500 text-xs bg-white"
+          value={cellValue}
+          onChange={(e) => setCellValue(e.target.value)}
+          onBlur={() => handleCellSave(item.id!, fieldKey, cellValue)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              handleCellSave(item.id!, fieldKey, cellValue);
+            }
+          }}
+          autoFocus
+        />
+      );
+    } else {
+      return (
+        <input
+          type="text"
+          className="w-full px-1 py-0.5 border border-blue-500 text-xs bg-white"
+          value={cellValue}
+          onChange={(e) => setCellValue(e.target.value)}
+          onBlur={() => handleCellSave(item.id!, fieldKey, cellValue)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              handleCellSave(item.id!, fieldKey, cellValue);
+            }
+            if (e.key === 'Escape') {
+              setEditingCell(null);
+              setCellValue('');
+            }
+          }}
+          autoFocus
+        />
+      );
     }
   };
 
@@ -532,10 +649,17 @@ export default function CompactDataManager({
                     <div className="flex-1 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-1.5">
                       {displayFields.map(field => {
                         const fieldConfig = fields.find(f => f.key === field);
+                        const isEditable = isEditableField(field);
                         return (
                           <div key={field} className="flex items-baseline gap-1.5 min-w-0">
                             <span className="text-xs font-medium text-gray-500 shrink-0">{fieldConfig?.label}:</span>
-                            <span className="text-sm text-gray-900 truncate">{item[field] || '—'}</span>
+                            {isEditable ? (
+                              <div className="flex-1 min-w-0">
+                                {renderEditableCell(item, field, fieldConfig)}
+                              </div>
+                            ) : (
+                              <span className="text-sm text-gray-900 truncate">{item[field] || '—'}</span>
+                            )}
                           </div>
                         );
                       })}
