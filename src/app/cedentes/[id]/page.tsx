@@ -4,11 +4,13 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
-import { formatCpfCnpj, formatCpf } from '@/lib/format';
+import { formatCpfCnpj, formatCpf, formatMoney } from '@/lib/format';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
+import Modal from '@/components/ui/Modal';
 import AtividadesManager from '@/components/atividades/AtividadesManager';
 import TitulosNegociadosManager from '@/components/titulos/TitulosNegociadosManager';
+import TitulosAtividadesManager from '@/components/atividades/TitulosAtividadesManager';
 import AcordosManager from '@/components/titulos/AcordosManager';
 import { categoriasCedentes } from '@/config/cedentesCategorias';
 
@@ -53,6 +55,9 @@ export default function CedentePage() {
   const [activeTab, setActiveTab] = useState<'info' | 'sacados' | 'titulos' | 'acordos' | 'atividades'>('info');
   const [sacadosQuery, setSacadosQuery] = useState('');
   const [grupoInfo, setGrupoInfo] = useState<{ nome_grupo: string; id: string; cnpjs_count: number } | null>(null);
+  const [showCobrancaModal, setShowCobrancaModal] = useState(false);
+  const [titulosCedente, setTitulosCedente] = useState<any[]>([]);
+  const [tituloSelecionadoCobranca, setTituloSelecionadoCobranca] = useState<{ id: string; numero_titulo: string; sacado_nome: string } | null>(null);
   
   // Dados complementares
   const [categoriasData, setCategoriasData] = useState<Record<string, any[]>>({});
@@ -72,6 +77,12 @@ export default function CedentePage() {
       }
     }
   }, [id]);
+
+  useEffect(() => {
+    if (showCobrancaModal) {
+      loadTitulosCedente();
+    }
+  }, [showCobrancaModal, id]);
 
   async function loadData() {
     setLoading(true);
@@ -120,6 +131,48 @@ export default function CedentePage() {
     await loadDadosComplementares();
     
     setLoading(false);
+  }
+
+  async function loadTitulosCedente() {
+    try {
+      const { data, error } = await supabase
+        .from('titulos_negociados')
+        .select(`
+          id,
+          numero_titulo,
+          valor_atualizado,
+          data_vencimento_original,
+          status,
+          sacado_cnpj,
+          sacados!titulos_negociados_sacado_cnpj_fkey (
+            razao_social,
+            nome_fantasia
+          )
+        `)
+        .eq('cedente_id', id)
+        .eq('ativo', true)
+        .order('data_vencimento_original', { ascending: false });
+
+      if (error) throw error;
+
+      const titulosComSacado = (data || []).map((titulo: any) => {
+        const sacado = Array.isArray(titulo.sacados) ? titulo.sacados[0] : titulo.sacados;
+        return {
+          id: titulo.id,
+          numero_titulo: titulo.numero_titulo,
+          valor_atualizado: titulo.valor_atualizado,
+          data_vencimento_original: titulo.data_vencimento_original,
+          status: titulo.status,
+          sacado_nome: sacado?.nome_fantasia || sacado?.razao_social || 'Sem sacado',
+          sacado_cnpj: titulo.sacado_cnpj
+        };
+      });
+
+      setTitulosCedente(titulosComSacado);
+    } catch (error) {
+      console.error('Erro ao carregar títulos:', error);
+      setTitulosCedente([]);
+    }
   }
 
   async function loadDadosComplementares() {
@@ -297,12 +350,20 @@ export default function CedentePage() {
               {cedente.razao_social && <p className="text-sm text-gray-600">{cedente.razao_social}</p>}
               {cedente.cnpj && <p className="text-xs text-gray-500 font-mono">{formatCpfCnpj(cedente.cnpj)}</p>}
             </div>
-            <button
-              className="px-3 py-1.5 border border-[#0369a1] bg-[#0369a1] text-white text-sm font-medium hover:bg-[#075985]"
-              onClick={() => router.push(`/cedentes/${cedente.id}/editar`)}
-            >
-              Editar
-            </button>
+            <div className="flex gap-2">
+              <button
+                className="px-3 py-1.5 border border-[#0369a1] bg-white text-[#0369a1] text-sm font-medium hover:bg-blue-50"
+                onClick={() => setShowCobrancaModal(true)}
+              >
+                Cobrança
+              </button>
+              <button
+                className="px-3 py-1.5 border border-[#0369a1] bg-[#0369a1] text-white text-sm font-medium hover:bg-[#075985]"
+                onClick={() => router.push(`/cedentes/${cedente.id}/editar`)}
+              >
+                Editar
+              </button>
+            </div>
           </div>
         </header>
 
@@ -735,6 +796,99 @@ export default function CedentePage() {
               Última atualização: {new Date(cedente.ultima_atualizacao).toLocaleString('pt-BR')}
             </p>
           </div>
+        )}
+
+        {/* Modal de Cobrança - Seleção de Título */}
+        {showCobrancaModal && !tituloSelecionadoCobranca && (
+          <Modal
+            isOpen={showCobrancaModal}
+            onClose={() => {
+              setShowCobrancaModal(false);
+              setTitulosCedente([]);
+            }}
+            title={`Cobrança - ${cedente.nome}`}
+            size="2xl"
+          >
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600">
+                Selecione um título para registrar a cobrança:
+              </p>
+              
+              {titulosCedente.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  Carregando títulos...
+                </div>
+              ) : (
+                <div className="border border-gray-300 rounded">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead className="bg-gray-50 border-b border-gray-300">
+                        <tr>
+                          <th className="px-2 py-1.5 text-left border-r border-gray-300 font-semibold text-gray-700">Nº Título</th>
+                          <th className="px-2 py-1.5 text-left border-r border-gray-300 font-semibold text-gray-700">Sacado</th>
+                          <th className="px-2 py-1.5 text-left border-r border-gray-300 font-semibold text-gray-700">Vencimento</th>
+                          <th className="px-2 py-1.5 text-right border-r border-gray-300 font-semibold text-gray-700">Valor</th>
+                          <th className="px-2 py-1.5 text-center font-semibold text-gray-700">Ações</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {titulosCedente.map((titulo) => (
+                          <tr key={titulo.id} className="hover:bg-blue-50">
+                            <td className="px-2 py-1 border-r border-gray-200 font-medium">
+                              #{titulo.numero_titulo}
+                            </td>
+                            <td className="px-2 py-1 border-r border-gray-200">
+                              {titulo.sacado_nome}
+                            </td>
+                            <td className="px-2 py-1 border-r border-gray-200">
+                              {new Date(titulo.data_vencimento_original).toLocaleDateString('pt-BR')}
+                            </td>
+                            <td className="px-2 py-1 border-r border-gray-200 text-right font-semibold">
+                              {formatMoney(titulo.valor_atualizado)}
+                            </td>
+                            <td className="px-2 py-1 text-center">
+                              <button
+                                onClick={() => {
+                                  setTituloSelecionadoCobranca({
+                                    id: titulo.id,
+                                    numero_titulo: titulo.numero_titulo,
+                                    sacado_nome: titulo.sacado_nome
+                                  });
+                                }}
+                                className="px-2 py-1 text-xs border border-blue-300 bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium"
+                              >
+                                Cobrança
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          </Modal>
+        )}
+
+        {/* Modal de Cobrança - Título Selecionado */}
+        {showCobrancaModal && tituloSelecionadoCobranca && (
+          <Modal
+            isOpen={showCobrancaModal}
+            onClose={() => {
+              setShowCobrancaModal(false);
+              setTituloSelecionadoCobranca(null);
+              setTitulosCedente([]);
+            }}
+            title={`Histórico de Cobrança - Título #${tituloSelecionadoCobranca.numero_titulo}`}
+            size="2xl"
+          >
+            <TitulosAtividadesManager
+              tituloId={tituloSelecionadoCobranca.id}
+              numeroTitulo={tituloSelecionadoCobranca.numero_titulo}
+              sacadoNome={tituloSelecionadoCobranca.sacado_nome}
+            />
+          </Modal>
         )}
 
       </div>

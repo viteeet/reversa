@@ -11,6 +11,7 @@ import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/ToastContainer';
 import TitulosAtividadesManager from '@/components/atividades/TitulosAtividadesManager';
+import AtividadesManager from '@/components/atividades/AtividadesManager';
 import CobrancaBulkForm from '@/components/atividades/CobrancaBulkForm';
 import CriticaBulkForm from '@/components/atividades/CriticaBulkForm';
 
@@ -82,6 +83,8 @@ export default function RelatorioVencidosPage() {
   const [demandas, setDemandas] = useState<Demanda[]>([]);
   const [showCobrancaModal, setShowCobrancaModal] = useState(false);
   const [tituloSelecionado, setTituloSelecionado] = useState<Demanda | null>(null);
+  const [showCobrancaCedenteModal, setShowCobrancaCedenteModal] = useState(false);
+  const [cedenteSelecionado, setCedenteSelecionado] = useState<{ id: string; nome: string } | null>(null);
   const [titulosSelecionados, setTitulosSelecionados] = useState<Set<string>>(new Set());
   const [showCobrancaBulkModal, setShowCobrancaBulkModal] = useState(false);
   const [showCriticaBulkModal, setShowCriticaBulkModal] = useState(false);
@@ -596,7 +599,7 @@ export default function RelatorioVencidosPage() {
                         {/* Cedente/Sacado */}
                         <td className="px-2 py-1 border-r border-gray-200">
                           {index === 0 ? (
-                            <div>
+                            <div className="flex items-center gap-2">
                               <Link
                                 href={
                                   tipoVisualizacao === 'cedentes'
@@ -607,6 +610,18 @@ export default function RelatorioVencidosPage() {
                               >
                                 {grupo.nome}
                               </Link>
+                              {tipoVisualizacao === 'cedentes' && (
+                                <button
+                                  onClick={() => {
+                                    setCedenteSelecionado({ id: grupo.key, nome: grupo.nome });
+                                    setShowCobrancaCedenteModal(true);
+                                  }}
+                                  className="px-1.5 py-0.5 text-xs border border-blue-300 bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium"
+                                  title="Cobrança do Cedente"
+                                >
+                                  💬
+                                </button>
+                              )}
                               {tipoVisualizacao === 'sacados' && (
                                 <div className="text-gray-500 text-xs mt-0.5">
                                   {formatCpfCnpj(demanda.sacado_cnpj)}
@@ -761,6 +776,26 @@ export default function RelatorioVencidosPage() {
               tituloId={tituloSelecionado.titulo_id}
               numeroTitulo={tituloSelecionado.numero_titulo}
               sacadoNome={tituloSelecionado.sacado_razao_social || tituloSelecionado.sacado_nome_fantasia || tituloSelecionado.sacado_cnpj}
+            />
+          </Modal>
+        )}
+
+        {/* Modal de Cobrança - Cedente */}
+        {showCobrancaCedenteModal && cedenteSelecionado && (
+          <Modal
+            isOpen={showCobrancaCedenteModal}
+            onClose={() => {
+              setShowCobrancaCedenteModal(false);
+              setCedenteSelecionado(null);
+              loadData();
+            }}
+            title={`Cobrança - ${cedenteSelecionado.nome}`}
+            size="2xl"
+          >
+            <AtividadesManager
+              tipo="cedente"
+              id={cedenteSelecionado.id}
+              nome={cedenteSelecionado.nome}
             />
           </Modal>
         )}

@@ -65,13 +65,16 @@ export default function TitulosAtividadesManager({
   const [criticaSelecionada, setCriticaSelecionada] = useState<string>('');
   const [historicoCriticas, setHistoricoCriticas] = useState<CriticaHistorico[]>([]);
   const [usuarioAtualEmail, setUsuarioAtualEmail] = useState<string>('');
+  const [cedenteNome, setCedenteNome] = useState<string>('');
+  const [sacadoNomeCompleto, setSacadoNomeCompleto] = useState<string>('');
   const [form, setForm] = useState({
     tipo: 'ligacao' as Atividade['tipo'],
     descricao: '',
     status: 'concluida' as 'pendente' | 'concluida' | 'cancelada',
     proxima_acao: '',
     data_lembrete: '',
-    observacoes: ''
+    observacoes: '',
+    direcionado_a: '' as 'cedente' | 'sacado' | ''
   });
 
   const tiposAtividade = [
@@ -139,13 +142,35 @@ export default function TitulosAtividadesManager({
     try {
       const { data, error } = await supabase
         .from('titulos_negociados')
-        .select('id, critica')
+        .select('id, critica, cedente_id, sacado_cnpj')
         .eq('id', tituloId)
         .single();
       
       if (!error && data) {
         setTituloInfo(data);
         setCriticaSelecionada(data.critica || '');
+        
+        // Buscar nome do cedente
+        if (data.cedente_id) {
+          const { data: cedenteData } = await supabase
+            .from('cedentes')
+            .select('nome')
+            .eq('id', data.cedente_id)
+            .single();
+          
+          setCedenteNome(cedenteData?.nome || 'Cedente');
+        }
+        
+        // Buscar nome do sacado
+        if (data.sacado_cnpj) {
+          const { data: sacadoData } = await supabase
+            .from('sacados')
+            .select('razao_social, nome_fantasia')
+            .eq('cnpj', data.sacado_cnpj)
+            .single();
+          
+          setSacadoNomeCompleto(sacadoData?.nome_fantasia || sacadoData?.razao_social || sacadoNome || 'Sacado');
+        }
       }
     } catch (err) {
       console.error('Erro ao carregar informações do título:', err);
@@ -290,7 +315,16 @@ export default function TitulosAtividadesManager({
         minute: '2-digit'
       });
       
-      const descricaoComTimestamp = `${form.descricao.trim()} [${usuarioEmail} - ${timestamp}]`;
+      // Adicionar informação de direcionamento da cobrança
+      let descricaoCompleta = form.descricao.trim();
+      if (form.direcionado_a) {
+        const direcionado = form.direcionado_a === 'cedente' 
+          ? `Cobrança direcionada ao CEDENTE (${cedenteNome})`
+          : `Cobrança direcionada ao SACADO (${sacadoNomeCompleto})`;
+        descricaoCompleta = `${descricaoCompleta} | ${direcionado}`;
+      }
+      
+      const descricaoComTimestamp = `${descricaoCompleta} [${usuarioEmail} - ${timestamp}]`;
 
       const atividadeData: any = {
         titulo_id: tituloId,
@@ -360,24 +394,47 @@ export default function TitulosAtividadesManager({
       status: 'concluida',
       proxima_acao: '',
       data_lembrete: '',
-      observacoes: ''
+      observacoes: '',
+      direcionado_a: ''
     });
     setEditingId(null);
   }
 
   function limparDescricao(descricao: string): string {
     // Remove padrões como [usuario - DD/MM/AAAA, HH:MM] ou [usuario - data]
-    return descricao.replace(/\s*\[[^\]]*\]\s*$/, '').trim();
+    // Mas mantém a informação de direcionamento (antes do |)
+    let descricaoLimpa = descricao.replace(/\s*\[[^\]]*\]\s*$/, '').trim();
+    
+    // Se tiver informação de direcionamento (| Cobrança direcionada...), separa
+    const partes = descricaoLimpa.split(' | ');
+    if (partes.length > 1) {
+      // Retorna apenas a descrição principal (sem a parte de direcionamento)
+      return partes[0].trim();
+    }
+    
+    return descricaoLimpa;
+  }
+
+  function extrairDirecionamento(descricao: string): 'cedente' | 'sacado' | '' {
+    // Extrai informação de direcionamento da descrição
+    if (descricao.includes('Cobrança direcionada ao CEDENTE')) {
+      return 'cedente';
+    } else if (descricao.includes('Cobrança direcionada ao SACADO')) {
+      return 'sacado';
+    }
+    return '';
   }
 
   function editarAtividade(atividade: Atividade) {
+    const direcionado = extrairDirecionamento(atividade.descricao);
     setForm({
       tipo: atividade.tipo,
-      descricao: limparDescricao(atividade.descricao), // Limpa timestamp ao editar
+      descricao: limparDescricao(atividade.descricao), // Limpa timestamp e direcionamento ao editar
       status: atividade.status,
       proxima_acao: atividade.proxima_acao || '',
-      data_lembrete: atividade.data_lembrete ? new Date(atividade.data_lembrete).toISOString().split('T')[0] : '',
-      observacoes: atividade.observacoes || ''
+      data_lembrete: atividade.data_lembrete ? new Date(atividade.data_lembrete).toISOString().slice(0, 16) : '',
+      observacoes: atividade.observacoes || '',
+      direcionado_a: direcionado
     });
     setEditingId(atividade.id);
     setShowForm(true);
@@ -626,8 +683,20 @@ export default function TitulosAtividadesManager({
                         </Badge>
                       </td>
                       <td className="px-2 py-1 border-r border-gray-200">
-                        <div className="text-xs text-gray-700 max-w-xs truncate" title={limparDescricao(atividade.descricao)}>
-                          {limparDescricao(atividade.descricao)}
+                        <div className="text-xs text-gray-700 max-w-xs">
+                          <div className="truncate" title={limparDescricao(atividade.descricao)}>
+                            {limparDescricao(atividade.descricao)}
+                          </div>
+                          {atividade.descricao.includes('Cobrança direcionada ao CEDENTE') && (
+                            <div className="text-xs text-blue-600 font-medium mt-0.5">
+                              → Cedente
+                            </div>
+                          )}
+                          {atividade.descricao.includes('Cobrança direcionada ao SACADO') && (
+                            <div className="text-xs text-green-600 font-medium mt-0.5">
+                              → Sacado
+                            </div>
+                          )}
                         </div>
                         {atividade.observacoes && (
                           <div className="text-xs text-gray-500 italic mt-0.5 truncate" title={atividade.observacoes}>
@@ -714,6 +783,17 @@ export default function TitulosAtividadesManager({
               required
             />
           </div>
+
+          <Select
+            label="Cobrança direcionada a"
+            value={form.direcionado_a}
+            onChange={(e) => setForm({ ...form, direcionado_a: e.target.value as 'cedente' | 'sacado' | '' })}
+            options={[
+              { value: '', label: 'Não especificado' },
+              { value: 'cedente', label: `Cedente (${cedenteNome})` },
+              { value: 'sacado', label: `Sacado (${sacadoNomeCompleto})` }
+            ]}
+          />
 
           <Select
             label="Status"

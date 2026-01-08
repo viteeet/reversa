@@ -23,6 +23,12 @@ type PessoaFisica = {
   origem_tipo?: string; // 'Cadastro Direto', 'QSA Cedente', 'QSA Sacado'
   origem_nome?: string; // Nome do cedente ou sacado
   created_at: string;
+  // Contadores
+  quantidade_familiares?: number;
+  quantidade_cedentes_vinculados?: number;
+  quantidade_sacados_vinculados?: number;
+  quantidade_qsa_cedentes?: number;
+  quantidade_qsa_sacados?: number;
 };
 
 type ViewMode = 'table' | 'grid';
@@ -163,6 +169,66 @@ export default function PessoasFisicasPage() {
       // Combinar todas as pessoas (físicas + QSA)
       const pessoasMap = new Map<string, PessoaFisica>();
 
+      // Buscar contadores para pessoas físicas cadastradas
+      const pessoasIds = (pessoasFisicas || []).map((pf: any) => pf.id);
+      
+      const familiaresMap = new Map<string, number>();
+      const cedentesVinculadosMap = new Map<string, number>();
+      const sacadosVinculadosMap = new Map<string, number>();
+
+      if (pessoasIds.length > 0) {
+        // Buscar familiares
+        const { data: familiaresData } = await supabase
+          .from('pessoas_fisicas_familiares')
+          .select('pessoa_id')
+          .in('pessoa_id', pessoasIds)
+          .eq('ativo', true);
+        
+        (familiaresData || []).forEach((f: any) => {
+          familiaresMap.set(f.pessoa_id, (familiaresMap.get(f.pessoa_id) || 0) + 1);
+        });
+
+        // Buscar vinculações com cedentes
+        const { data: cedentesVinculadosData } = await supabase
+          .from('pessoas_fisicas_cedentes')
+          .select('pessoa_id')
+          .in('pessoa_id', pessoasIds)
+          .eq('ativo', true);
+        
+        (cedentesVinculadosData || []).forEach((v: any) => {
+          cedentesVinculadosMap.set(v.pessoa_id, (cedentesVinculadosMap.get(v.pessoa_id) || 0) + 1);
+        });
+
+        // Buscar vinculações com sacados
+        const { data: sacadosVinculadosData } = await supabase
+          .from('pessoas_fisicas_sacados')
+          .select('pessoa_id')
+          .in('pessoa_id', pessoasIds)
+          .eq('ativo', true);
+        
+        (sacadosVinculadosData || []).forEach((v: any) => {
+          sacadosVinculadosMap.set(v.pessoa_id, (sacadosVinculadosMap.get(v.pessoa_id) || 0) + 1);
+        });
+      }
+
+      // Contar QSA por CPF
+      const qsaCedentesPorCpf = new Map<string, number>();
+      const qsaSacadosPorCpf = new Map<string, number>();
+      
+      (qsaCedentes || []).forEach((qsa: any) => {
+        const cpfLimpo = qsa.cpf?.replace(/\D+/g, '');
+        if (cpfLimpo && cpfLimpo.length === 11) {
+          qsaCedentesPorCpf.set(cpfLimpo, (qsaCedentesPorCpf.get(cpfLimpo) || 0) + 1);
+        }
+      });
+
+      (qsaSacados || []).forEach((qsa: any) => {
+        const cpfLimpo = qsa.cpf?.replace(/\D+/g, '');
+        if (cpfLimpo && cpfLimpo.length === 11) {
+          qsaSacadosPorCpf.set(cpfLimpo, (qsaSacadosPorCpf.get(cpfLimpo) || 0) + 1);
+        }
+      });
+
       // Adicionar pessoas físicas cadastradas
       (pessoasFisicas || []).forEach((pf: PessoaFisica) => {
         const cpfLimpo = pf.cpf.replace(/\D+/g, '');
@@ -170,7 +236,12 @@ export default function PessoasFisicasPage() {
           pessoasMap.set(cpfLimpo, {
             ...pf,
             origem_tipo: 'Cadastro Direto',
-            origem_nome: null
+            origem_nome: null,
+            quantidade_familiares: familiaresMap.get(pf.id) || 0,
+            quantidade_cedentes_vinculados: cedentesVinculadosMap.get(pf.id) || 0,
+            quantidade_sacados_vinculados: sacadosVinculadosMap.get(pf.id) || 0,
+            quantidade_qsa_cedentes: qsaCedentesPorCpf.get(cpfLimpo) || 0,
+            quantidade_qsa_sacados: qsaSacadosPorCpf.get(cpfLimpo) || 0
           });
         }
       });
@@ -246,7 +317,12 @@ export default function PessoasFisicasPage() {
             origem: 'qsa',
             origem_tipo: origemTipo,
             origem_nome: origemNome || null,
-            created_at: new Date().toISOString()
+            created_at: new Date().toISOString(),
+            quantidade_familiares: 0,
+            quantidade_cedentes_vinculados: 0,
+            quantidade_sacados_vinculados: 0,
+            quantidade_qsa_cedentes: qsaCedentesPorCpf.get(cpfLimpo) || 0,
+            quantidade_qsa_sacados: qsaSacadosPorCpf.get(cpfLimpo) || 0
           });
         }
       });
@@ -775,6 +851,9 @@ export default function PessoasFisicasPage() {
                     </th>
                     <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Origem</th>
                     <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Cedente/Sacado</th>
+                    <th className="px-4 py-2 text-center text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Familiares</th>
+                    <th className="px-4 py-2 text-center text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Vinculações</th>
+                    <th className="px-4 py-2 text-center text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">QSA</th>
                     <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">
                       <button onClick={() => { setSortBy('situacao'); setSortDir(sortBy === 'situacao' && sortDir === 'asc' ? 'desc' : 'asc'); }}>
                         Situação {sortBy === 'situacao' && (sortDir === 'asc' ? '↑' : '↓')}
@@ -807,6 +886,41 @@ export default function PessoasFisicasPage() {
                       </td>
                       <td className="px-4 py-2 text-sm text-gray-700 border-r border-gray-300">
                         {item.origem_nome || '—'}
+                      </td>
+                      <td className="px-4 py-2 text-center border-r border-gray-300">
+                        {item.quantidade_familiares && item.quantidade_familiares > 0 ? (
+                          <Badge variant="info" size="sm">{item.quantidade_familiares}</Badge>
+                        ) : (
+                          <span className="text-xs text-gray-400">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-2 text-center border-r border-gray-300">
+                        {(item.quantidade_cedentes_vinculados || 0) + (item.quantidade_sacados_vinculados || 0) > 0 ? (
+                          <div className="flex flex-col gap-1 items-center">
+                            {item.quantidade_cedentes_vinculados > 0 && (
+                              <Badge variant="info" size="sm">C: {item.quantidade_cedentes_vinculados}</Badge>
+                            )}
+                            {item.quantidade_sacados_vinculados > 0 && (
+                              <Badge variant="warning" size="sm">S: {item.quantidade_sacados_vinculados}</Badge>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-gray-400">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-2 text-center border-r border-gray-300">
+                        {(item.quantidade_qsa_cedentes || 0) + (item.quantidade_qsa_sacados || 0) > 0 ? (
+                          <div className="flex flex-col gap-1 items-center">
+                            {item.quantidade_qsa_cedentes > 0 && (
+                              <Badge variant="success" size="sm">C: {item.quantidade_qsa_cedentes}</Badge>
+                            )}
+                            {item.quantidade_qsa_sacados > 0 && (
+                              <Badge variant="success" size="sm">S: {item.quantidade_qsa_sacados}</Badge>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-gray-400">—</span>
+                        )}
                       </td>
                       <td className="px-4 py-2 border-r border-gray-300">
                         <Badge variant={item.situacao === 'ativa' ? 'success' : item.situacao === 'falecida' ? 'error' : 'warning'}>
@@ -856,6 +970,21 @@ export default function PessoasFisicasPage() {
                       <p><strong>CPF:</strong> {formatCpfCnpj(item.cpf)}</p>
                       <p><strong>Origem:</strong> {item.origem_tipo || (item.origem === 'manual' ? 'Cadastro Direto' : item.origem || '—')}</p>
                       {item.origem_nome && <p><strong>Cedente/Sacado:</strong> {item.origem_nome}</p>}
+                      <div className="flex gap-2 mt-2">
+                        {item.quantidade_familiares > 0 && (
+                          <Badge variant="info" size="sm">Familiares: {item.quantidade_familiares}</Badge>
+                        )}
+                        {(item.quantidade_cedentes_vinculados || 0) + (item.quantidade_sacados_vinculados || 0) > 0 && (
+                          <Badge variant="warning" size="sm">
+                            Vinculações: {(item.quantidade_cedentes_vinculados || 0) + (item.quantidade_sacados_vinculados || 0)}
+                          </Badge>
+                        )}
+                        {(item.quantidade_qsa_cedentes || 0) + (item.quantidade_qsa_sacados || 0) > 0 && (
+                          <Badge variant="success" size="sm">
+                            QSA: {(item.quantidade_qsa_cedentes || 0) + (item.quantidade_qsa_sacados || 0)}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                     <div className="mt-3 flex gap-2">
                       {item.id.startsWith('qsa_') ? (

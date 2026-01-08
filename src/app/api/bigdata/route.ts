@@ -6,13 +6,13 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const cnpj = searchParams.get('cnpj');
-  const cpf = searchParams.get('cpf'); // Para buscar processos por CPF
-  const tipo = searchParams.get('tipo'); // 'completo', 'qsa', 'enderecos', 'telefones', 'emails', 'processos'
+  const cpf = searchParams.get('cpf'); // Para buscar processos por CPF ou dados de pessoa física
+  const tipo = searchParams.get('tipo'); // 'completo', 'qsa', 'enderecos', 'telefones', 'emails', 'processos', 'pessoa_fisica'
 
-  // Processos precisam de CPF, outros dados precisam de CNPJ
-  if (tipo === 'processos') {
+  // Processos e pessoa_fisica precisam de CPF, outros dados precisam de CNPJ
+  if (tipo === 'processos' || tipo === 'pessoa_fisica') {
     if (!cpf) {
-      return NextResponse.json({ error: 'CPF não fornecido para buscar processos' }, { status: 400 });
+      return NextResponse.json({ error: 'CPF não fornecido' }, { status: 400 });
     }
   } else {
     if (!cnpj) {
@@ -32,9 +32,22 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    // Busca dados de pessoa física por CPF
+    if (tipo === 'pessoa_fisica') {
+      const cpfLimpo = cpf!.replace(/\D/g, '');
+      const pessoaData = await fetchBigDataPessoaFisica(cpfLimpo, accessToken, tokenId);
+      
+      if (!pessoaData) {
+        throw new Error('Dados da pessoa física não encontrados');
+      }
+
+      const converted = convertPessoaFisicaToOurFormat(pessoaData);
+      return NextResponse.json(converted);
+    }
+    
     // Busca processos por CPF
     if (tipo === 'processos') {
-      const cpfLimpo = cpf.replace(/\D/g, '');
+      const cpfLimpo = cpf!.replace(/\D/g, '');
       const processosData = await fetchBigDataProcessos(cpfLimpo, accessToken, tokenId);
       
       if (!processosData) {
@@ -468,6 +481,155 @@ async function fetchBigDataProcessos(cpf: string, accessToken: string, tokenId: 
     console.error('❌ Erro ao chamar BigData Processos:', error);
     return null;
   }
+}
+
+async function fetchBigDataPessoaFisica(cpf: string, accessToken: string, tokenId: string) {
+  const url = 'https://plataforma.bigdatacorp.com.br/pessoas';
+  
+  const requestBody = {
+    Datasets: 'registration_data',
+    q: `doc{${cpf}}`,
+    Limit: 1
+  };
+
+  console.log('👤 Buscando dados da pessoa física (CPF):', cpf);
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'accept': 'application/json',
+        'content-type': 'application/json',
+        'AccessToken': accessToken,
+        'TokenId': tokenId
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    console.log('📊 Resposta BigData (pessoa física):', response.status);
+
+    if (!response.ok) {
+      console.error('❌ Erro HTTP:', response.status);
+      return null;
+    }
+
+    const data = await response.json();
+    
+    if (data.Status?.registration_data?.[0]?.Code === 0 && data.Result?.[0]) {
+      console.log('✅ Dados da pessoa física recebidos');
+      return data.Result[0];
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('❌ Erro ao chamar BigData Pessoa Física:', error);
+    return null;
+  }
+}
+
+function convertPessoaFisicaToOurFormat(pessoaResult: any) {
+  const registrationData = pessoaResult.RegistrationData;
+  const basicData = registrationData?.BasicData;
+  
+  if (!basicData) {
+    return {
+      dados_basicos: null,
+      enderecos: [],
+      telefones: [],
+      emails: []
+    };
+  }
+
+  // Extrai dados básicos
+  const dadosBasicos = {
+    nome: basicData.Name || '',
+    nome_mae: basicData.MotherName || '',
+    data_nascimento: basicData.BirthDate 
+      ? new Date(basicData.BirthDate).toISOString().split('T')[0]
+      : '',
+    genero: basicData.Gender || '',
+    cpf_status: basicData.TaxIdStatus || '',
+    cpf_status_date: basicData.TaxIdStatusDate 
+      ? new Date(basicData.TaxIdStatusDate).toISOString().split('T')[0]
+      : ''
+  };
+
+  // Extrai endereços
+  const enderecos = [];
+  if (registrationData?.Addresses?.Primary) {
+    const addr = registrationData.Addresses.Primary;
+    enderecos.push({
+      endereco: `${addr.Typology || ''} ${addr.AddressMain || ''}, ${addr.Number || ''}, ${addr.Complement || ''}, ${addr.Neighborhood || ''}`.trim().replace(/^,\s*/, ''),
+      tipo: addr.Type === 'HOME' ? 'residencial' : 'comercial',
+      cep: addr.ZipCode?.replace(/(\d{5})(\d{3})/, '$1-$2') || '',
+      cidade: addr.City || '',
+      estado: addr.State || '',
+      principal: true
+    });
+  }
+
+  if (registrationData?.Addresses?.Secondary) {
+    const addr = registrationData.Addresses.Secondary;
+    enderecos.push({
+      endereco: `${addr.Typology || ''} ${addr.AddressMain || ''}, ${addr.Number || ''}, ${addr.Complement || ''}, ${addr.Neighborhood || ''}`.trim().replace(/^,\s*/, ''),
+      tipo: addr.Type === 'HOME' ? 'residencial' : 'comercial',
+      cep: addr.ZipCode?.replace(/(\d{5})(\d{3})/, '$1-$2') || '',
+      cidade: addr.City || '',
+      estado: addr.State || '',
+      principal: false
+    });
+  }
+
+  // Extrai telefones
+  const telefones = [];
+  if (registrationData?.Phones?.Primary && registrationData.Phones.Primary.AreaCode) {
+    const phone = registrationData.Phones.Primary;
+    telefones.push({
+      telefone: `(${phone.AreaCode}) ${phone.Number}`,
+      tipo: phone.Type === 'MOBILE' ? 'celular' : phone.Type === 'WORK' ? 'comercial' : 'fixo',
+      nome_contato: '',
+      principal: true
+    });
+  }
+
+  if (registrationData?.Phones?.Secondary && registrationData.Phones.Secondary.AreaCode) {
+    const phone = registrationData.Phones.Secondary;
+    telefones.push({
+      telefone: `(${phone.AreaCode}) ${phone.Number}`,
+      tipo: phone.Type === 'MOBILE' ? 'celular' : phone.Type === 'WORK' ? 'comercial' : 'fixo',
+      nome_contato: '',
+      principal: false
+    });
+  }
+
+  // Extrai emails
+  const emails = [];
+  if (registrationData?.Emails?.Primary?.EmailAddress) {
+    const email = registrationData.Emails.Primary;
+    emails.push({
+      email: email.EmailAddress,
+      tipo: email.Type === 'corporate' ? 'comercial' : 'pessoal',
+      nome_contato: '',
+      principal: true
+    });
+  }
+
+  if (registrationData?.Emails?.Secondary?.EmailAddress) {
+    const email = registrationData.Emails.Secondary;
+    emails.push({
+      email: email.EmailAddress,
+      tipo: email.Type === 'corporate' ? 'comercial' : 'pessoal',
+      nome_contato: '',
+      principal: false
+    });
+  }
+
+  return {
+    dados_basicos: dadosBasicos,
+    enderecos,
+    telefones,
+    emails
+  };
 }
 
 function convertProcessosToOurFormat(processosResult: any) {

@@ -764,6 +764,14 @@ export default function EditarCedentePage() {
   }
 
   async function openQsaDetails(item: any) {
+    // Se tem CPF, redireciona para a página completa da pessoa física
+    if (item.cpf) {
+      const cpfLimpo = item.cpf.replace(/\D+/g, '');
+      router.push(`/pessoas-fisicas/${cpfLimpo}`);
+      return;
+    }
+    
+    // Se não tem CPF, abre o modal de detalhes antigo
     setSelectedQsa(item);
     
     // Carrega detalhes existentes
@@ -1371,6 +1379,7 @@ export default function EditarCedentePage() {
                             displayFields={categoria.displayFields}
                             showDetailsButton={categoria.showDetailsButton}
                             isLoading={loadingCategorias[categoria.id]}
+                            onOpenDetails={categoria.id === 'pessoas_ligadas' ? openQsaDetails : undefined}
                           />
                         </div>
                       </div>
@@ -1725,9 +1734,18 @@ export default function EditarCedentePage() {
                 </div>
               </div>
 
-              {/* Botão para buscar processos */}
+              {/* Botões de ação */}
               {selectedQsa.cpf && (
                 <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      const cpfLimpo = selectedQsa.cpf.replace(/\D+/g, '');
+                      router.push(`/pessoas-fisicas/${cpfLimpo}`);
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-white bg-[#0369a1] rounded hover:bg-[#075985] transition-colors"
+                  >
+                    👤 Ver Perfil Completo da Pessoa Física
+                  </button>
                   <button
                     onClick={async () => {
                       await buscarProcessosPorCPF(selectedQsa.cpf, selectedQsa.nome);

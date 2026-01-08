@@ -87,55 +87,66 @@ export default function AtividadesManager({ tipo, id, nome }: AtividadesManagerP
         })) || [];
       }
 
-      // Se for cedente, também buscar atividades de títulos relacionados
-      if (tipo === 'cedente') {
-        try {
+      // Buscar atividades de títulos relacionados (tanto para cedente quanto para sacado)
+      try {
+        let titulosIds: string[] = [];
+        
+        if (tipo === 'cedente') {
           // Buscar IDs dos títulos do cedente
           const { data: titulosData } = await supabase
             .from('titulos_negociados')
             .select('id')
             .eq('cedente_id', id)
             .eq('ativo', true);
-
-          if (titulosData && titulosData.length > 0) {
-            const titulosIds = titulosData.map(t => t.id);
-            
-            // Buscar atividades dos títulos
-            const { data: titulosAtividadesData, error: titulosError } = await supabase
-              .from('titulos_atividades')
-              .select('*')
-              .in('titulo_id', titulosIds)
-              .order('data_hora', { ascending: false });
-
-            if (!titulosError && titulosAtividadesData) {
-              // Buscar informações dos títulos para exibir número
-              const { data: titulosInfo } = await supabase
-                .from('titulos_negociados')
-                .select('id, numero_titulo')
-                .in('id', titulosIds);
-
-              const titulosMap = new Map((titulosInfo || []).map((t: any) => [t.id, t.numero_titulo]));
-
-              const atividadesTitulos = titulosAtividadesData.map(item => ({
-                ...item,
-                usuario_nome: 'Usuário',
-                origem: 'titulo',
-                titulo_numero: titulosMap.get(item.titulo_id) || 'N/A'
-              }));
-
-              // Combinar atividades do cedente com atividades de títulos
-              atividadesProcessadas = [...atividadesProcessadas, ...atividadesTitulos];
-              
-              // Ordenar por data_hora (mais recente primeiro)
-              atividadesProcessadas.sort((a, b) => 
-                new Date(b.data_hora).getTime() - new Date(a.data_hora).getTime()
-              );
-            }
-          }
-        } catch (titulosErr) {
-          // Erro ao buscar atividades de títulos não é crítico
-          console.warn('Erro ao carregar atividades de títulos:', titulosErr);
+          
+          titulosIds = titulosData?.map(t => t.id) || [];
+        } else if (tipo === 'sacado') {
+          // Buscar IDs dos títulos do sacado
+          const { data: titulosData } = await supabase
+            .from('titulos_negociados')
+            .select('id')
+            .eq('sacado_cnpj', id)
+            .eq('ativo', true);
+          
+          titulosIds = titulosData?.map(t => t.id) || [];
         }
+
+        if (titulosIds.length > 0) {
+          // Buscar atividades dos títulos
+          const { data: titulosAtividadesData, error: titulosError } = await supabase
+            .from('titulos_atividades')
+            .select('*')
+            .in('titulo_id', titulosIds)
+            .order('data_hora', { ascending: false });
+
+          if (!titulosError && titulosAtividadesData) {
+            // Buscar informações dos títulos para exibir número
+            const { data: titulosInfo } = await supabase
+              .from('titulos_negociados')
+              .select('id, numero_titulo')
+              .in('id', titulosIds);
+
+            const titulosMap = new Map((titulosInfo || []).map((t: any) => [t.id, t.numero_titulo]));
+
+            const atividadesTitulos = titulosAtividadesData.map(item => ({
+              ...item,
+              usuario_nome: 'Usuário',
+              origem: 'titulo',
+              titulo_numero: titulosMap.get(item.titulo_id) || 'N/A'
+            }));
+
+            // Combinar atividades com atividades de títulos
+            atividadesProcessadas = [...atividadesProcessadas, ...atividadesTitulos];
+            
+            // Ordenar por data_hora (mais recente primeiro)
+            atividadesProcessadas.sort((a, b) => 
+              new Date(b.data_hora).getTime() - new Date(a.data_hora).getTime()
+            );
+          }
+        }
+      } catch (titulosErr) {
+        // Erro ao buscar atividades de títulos não é crítico
+        console.warn('Erro ao carregar atividades de títulos:', titulosErr);
       }
 
       setAtividades(atividadesProcessadas);
@@ -300,7 +311,27 @@ export default function AtividadesManager({ tipo, id, nome }: AtividadesManagerP
 
   function limparDescricao(descricao: string): string {
     // Remove padrões como [usuario - DD/MM/AAAA, HH:MM] ou [usuario - data]
-    return descricao.replace(/\s*\[[^\]]*\]\s*$/, '').trim();
+    // Mas mantém a informação de direcionamento (antes do |)
+    let descricaoLimpa = descricao.replace(/\s*\[[^\]]*\]\s*$/, '').trim();
+    
+    // Se tiver informação de direcionamento (| Cobrança direcionada...), separa
+    const partes = descricaoLimpa.split(' | ');
+    if (partes.length > 1) {
+      // Retorna apenas a descrição principal (sem a parte de direcionamento)
+      return partes[0].trim();
+    }
+    
+    return descricaoLimpa;
+  }
+
+  function extrairDirecionamento(descricao: string): 'cedente' | 'sacado' | null {
+    // Extrai informação de direcionamento da descrição
+    if (descricao.includes('Cobrança direcionada ao CEDENTE')) {
+      return 'cedente';
+    } else if (descricao.includes('Cobrança direcionada ao SACADO')) {
+      return 'sacado';
+    }
+    return null;
   }
 
   function isLembreteVencido(dataLembrete?: string) {
@@ -688,8 +719,19 @@ export default function AtividadesManager({ tipo, id, nome }: AtividadesManagerP
                         )}
                       </td>
                       <td className="px-2 py-1 border-r border-gray-200">
-                        <div className="text-xs text-gray-700 max-w-xs truncate" title={limparDescricao(atividade.descricao)}>
-                          {limparDescricao(atividade.descricao)}
+                        <div className="text-xs text-gray-700 max-w-xs">
+                          <div className="truncate" title={limparDescricao(atividade.descricao)}>
+                            {limparDescricao(atividade.descricao)}
+                          </div>
+                          {atividade.origem === 'titulo' && extrairDirecionamento(atividade.descricao) && (
+                            <div className={`text-xs font-medium mt-0.5 ${
+                              extrairDirecionamento(atividade.descricao) === 'cedente' 
+                                ? 'text-blue-600' 
+                                : 'text-green-600'
+                            }`}>
+                              → {extrairDirecionamento(atividade.descricao) === 'cedente' ? 'Cedente' : 'Sacado'}
+                            </div>
+                          )}
                         </div>
                         {atividade.observacoes && (
                           <div className="text-xs text-gray-500 italic mt-0.5 truncate" title={atividade.observacoes}>
