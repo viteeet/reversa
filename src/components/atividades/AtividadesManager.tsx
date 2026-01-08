@@ -19,6 +19,8 @@ type Atividade = {
   data_lembrete?: string;
   observacoes?: string;
   created_at: string;
+  origem?: 'cedente' | 'sacado' | 'titulo';
+  titulo_numero?: string;
 };
 
 type AtividadesManagerProps = {
@@ -62,26 +64,81 @@ export default function AtividadesManager({ tipo, id, nome }: AtividadesManagerP
     const campoId = tipo === 'sacado' ? 'sacado_cnpj' : 'cedente_id';
     
     try {
+      // Buscar atividades do cedente/sacado
       const { data, error } = await supabase
         .from(tabela)
         .select('*')
         .eq(campoId, id)
         .order('data_hora', { ascending: false });
       
+      let atividadesProcessadas: Atividade[] = [];
+      
       if (error) {
         // Não loga erro se a tabela não existir - apenas define array vazio
         if (error.code !== 'PGRST116' && error.code !== '42P01') {
           console.error('Erro ao carregar atividades:', error);
         }
-        setAtividades([]);
       } else {
         // Processa dados sem fazer join com usuário para evitar erros
-        const atividadesProcessadas = data?.map(item => ({
+        atividadesProcessadas = data?.map(item => ({
           ...item,
-          usuario_nome: 'Usuário'
+          usuario_nome: 'Usuário',
+          origem: tipo === 'cedente' ? 'cedente' : 'sacado'
         })) || [];
-        setAtividades(atividadesProcessadas);
       }
+
+      // Se for cedente, também buscar atividades de títulos relacionados
+      if (tipo === 'cedente') {
+        try {
+          // Buscar IDs dos títulos do cedente
+          const { data: titulosData } = await supabase
+            .from('titulos_negociados')
+            .select('id')
+            .eq('cedente_id', id)
+            .eq('ativo', true);
+
+          if (titulosData && titulosData.length > 0) {
+            const titulosIds = titulosData.map(t => t.id);
+            
+            // Buscar atividades dos títulos
+            const { data: titulosAtividadesData, error: titulosError } = await supabase
+              .from('titulos_atividades')
+              .select('*')
+              .in('titulo_id', titulosIds)
+              .order('data_hora', { ascending: false });
+
+            if (!titulosError && titulosAtividadesData) {
+              // Buscar informações dos títulos para exibir número
+              const { data: titulosInfo } = await supabase
+                .from('titulos_negociados')
+                .select('id, numero_titulo')
+                .in('id', titulosIds);
+
+              const titulosMap = new Map((titulosInfo || []).map((t: any) => [t.id, t.numero_titulo]));
+
+              const atividadesTitulos = titulosAtividadesData.map(item => ({
+                ...item,
+                usuario_nome: 'Usuário',
+                origem: 'titulo',
+                titulo_numero: titulosMap.get(item.titulo_id) || 'N/A'
+              }));
+
+              // Combinar atividades do cedente com atividades de títulos
+              atividadesProcessadas = [...atividadesProcessadas, ...atividadesTitulos];
+              
+              // Ordenar por data_hora (mais recente primeiro)
+              atividadesProcessadas.sort((a, b) => 
+                new Date(b.data_hora).getTime() - new Date(a.data_hora).getTime()
+              );
+            }
+          }
+        } catch (titulosErr) {
+          // Erro ao buscar atividades de títulos não é crítico
+          console.warn('Erro ao carregar atividades de títulos:', titulosErr);
+        }
+      }
+
+      setAtividades(atividadesProcessadas);
     } catch (err) {
       // Silenciosamente trata erros - tabela pode não existir ainda
       setAtividades([]);
@@ -209,7 +266,7 @@ export default function AtividadesManager({ tipo, id, nome }: AtividadesManagerP
   function abrirEdicao(atividade: Atividade) {
     setForm({
       tipo: atividade.tipo,
-      descricao: atividade.descricao,
+      descricao: limparDescricao(atividade.descricao), // Limpa timestamp ao editar
       status: atividade.status,
       proxima_acao: atividade.proxima_acao || '',
       data_lembrete: atividade.data_lembrete ? new Date(atividade.data_lembrete).toISOString().slice(0, 16) : '',
@@ -239,6 +296,11 @@ export default function AtividadesManager({ tipo, id, nome }: AtividadesManagerP
       hour: '2-digit',
       minute: '2-digit'
     });
+  }
+
+  function limparDescricao(descricao: string): string {
+    // Remove padrões como [usuario - DD/MM/AAAA, HH:MM] ou [usuario - data]
+    return descricao.replace(/\s*\[[^\]]*\]\s*$/, '').trim();
   }
 
   function isLembreteVencido(dataLembrete?: string) {
@@ -537,82 +599,146 @@ export default function AtividadesManager({ tipo, id, nome }: AtividadesManagerP
         </Modal>
       )}
 
-      {/* Lista de Atividades */}
-      <Card>
-        <div className="p-3">
-          {atividadesFiltradas.length === 0 ? (
-            <div className="text-center py-6 text-[#64748b] text-sm">
-              <p>
-                {atividades.length === 0 
-                  ? 'Nenhuma atividade registrada ainda.'
-                  : `Nenhuma atividade ${filtroStatus === 'pendente' ? 'pendente' : filtroStatus === 'concluida' ? 'realizada' : ''} encontrada.`
-                }
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {atividadesFiltradas.map(atividade => {
-                const tipoInfo = tiposAtividade.find(t => t.value === atividade.tipo);
-                return (
-                  <div 
-                    key={atividade.id} 
-                    className="border-l-2 pl-3 py-2 hover:bg-[#f8fafc] transition-colors"
-                    style={{ borderLeftColor: tipoInfo?.cor }}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-xs font-medium text-[#1e293b]">{tipoInfo?.label}</span>
-                          <Badge 
-                            variant={atividade.status === 'concluida' ? 'success' : 'warning'} 
-                            size="sm"
-                          >
-                            {atividade.status === 'concluida' ? 'Realizada' : 'Pendente'}
+      {/* Tabela Compacta Estilo Excel */}
+      <div className="border border-gray-300 bg-white">
+        {atividadesFiltradas.length === 0 ? (
+          <div className="text-center py-8 text-gray-500 text-sm border border-gray-200 bg-white">
+            {atividades.length === 0 
+              ? 'Nenhuma atividade registrada ainda.'
+              : `Nenhuma atividade ${filtroStatus === 'pendente' ? 'pendente' : filtroStatus === 'concluida' ? 'realizada' : ''} encontrada.`
+            }
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead className="bg-gray-50 border-b border-gray-300 sticky top-0">
+                <tr>
+                  <th className="px-2 py-1.5 text-left border-r border-gray-300 font-semibold text-gray-700 whitespace-nowrap">
+                    Data/Hora
+                  </th>
+                  <th className="px-2 py-1.5 text-left border-r border-gray-300 font-semibold text-gray-700 whitespace-nowrap">
+                    Tipo
+                  </th>
+                  <th className="px-2 py-1.5 text-left border-r border-gray-300 font-semibold text-gray-700 whitespace-nowrap">
+                    Status
+                  </th>
+                  <th className="px-2 py-1.5 text-left border-r border-gray-300 font-semibold text-gray-700 whitespace-nowrap">
+                    Título
+                  </th>
+                  <th className="px-2 py-1.5 text-left border-r border-gray-300 font-semibold text-gray-700 whitespace-nowrap">
+                    Descrição
+                  </th>
+                  <th className="px-2 py-1.5 text-left border-r border-gray-300 font-semibold text-gray-700 whitespace-nowrap">
+                    Próxima Ação
+                  </th>
+                  <th className="px-2 py-1.5 text-center font-semibold text-gray-700 whitespace-nowrap">
+                    Ações
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {atividadesFiltradas.map(atividade => {
+                  const tipoInfo = tiposAtividade.find(t => t.value === atividade.tipo);
+                  return (
+                    <tr key={atividade.id} className="hover:bg-blue-50 border-b border-gray-200">
+                      <td className="px-2 py-1 border-r border-gray-200">
+                        <div className="text-xs">
+                          <div className="font-medium text-gray-900">
+                            {new Date(atividade.data_hora).toLocaleDateString('pt-BR')}
+                          </div>
+                          <div className="text-gray-500">
+                            {new Date(atividade.data_hora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-2 py-1 border-r border-gray-200">
+                        <Badge
+                          variant={
+                            atividade.tipo === 'ligacao' ? 'info' :
+                            atividade.tipo === 'email' ? 'success' :
+                            atividade.tipo === 'negociacao' ? 'warning' :
+                            'neutral'
+                          }
+                          size="sm"
+                          className="text-xs"
+                        >
+                          {tipoInfo?.label || atividade.tipo}
+                        </Badge>
+                      </td>
+                      <td className="px-2 py-1 border-r border-gray-200">
+                        <Badge
+                          variant={
+                            atividade.status === 'pendente' ? 'warning' :
+                            atividade.status === 'concluida' ? 'success' :
+                            'error'
+                          }
+                          size="sm"
+                          className="text-xs"
+                        >
+                          {atividade.status === 'concluida' ? 'Realizada' : 'Pendente'}
+                        </Badge>
+                      </td>
+                      <td className="px-2 py-1 border-r border-gray-200">
+                        {atividade.origem === 'titulo' && atividade.titulo_numero ? (
+                          <Badge variant="info" size="sm" className="text-xs">
+                            #{atividade.titulo_numero}
                           </Badge>
-                        </div>
-                        <p className="text-sm text-[#1e293b] mb-1">{atividade.descricao}</p>
-                        {atividade.proxima_acao && (
-                          <p className="text-xs text-[#64748b] mb-1">
-                            <strong>Próxima ação:</strong> {atividade.proxima_acao}
-                          </p>
+                        ) : (
+                          <span className="text-gray-400">—</span>
                         )}
-                        <div className="flex items-center gap-3 text-xs text-[#64748b]">
-                          <span>{formatarData(atividade.data_hora)}</span>
+                      </td>
+                      <td className="px-2 py-1 border-r border-gray-200">
+                        <div className="text-xs text-gray-700 max-w-xs truncate" title={limparDescricao(atividade.descricao)}>
+                          {limparDescricao(atividade.descricao)}
                         </div>
-                      </div>
-                      <div className="flex gap-1 shrink-0">
-                        {atividade.status === 'pendente' && (
+                        {atividade.observacoes && (
+                          <div className="text-xs text-gray-500 italic mt-0.5 truncate" title={atividade.observacoes}>
+                            {atividade.observacoes}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-2 py-1 border-r border-gray-200">
+                        {atividade.proxima_acao ? (
+                          <span className="text-xs text-gray-700">{atividade.proxima_acao}</span>
+                        ) : (
+                          <span className="text-gray-400">—</span>
+                        )}
+                      </td>
+                      <td className="px-2 py-1">
+                        <div className="flex gap-1 justify-center">
+                          {atividade.status === 'pendente' && (
+                            <button
+                              onClick={() => atualizarStatus(atividade.id, 'concluida')}
+                              className="px-2 py-0.5 text-xs border border-green-300 bg-white hover:bg-green-50 text-green-600 font-medium"
+                              title="Marcar como realizada"
+                            >
+                              ✓
+                            </button>
+                          )}
                           <button
-                            onClick={() => atualizarStatus(atividade.id, 'concluida')}
-                            className="px-2 py-1 text-xs font-medium text-green-600 bg-green-50 border border-green-300 rounded hover:bg-green-100"
-                            title="Marcar como realizada"
+                            onClick={() => abrirEdicao(atividade)}
+                            className="px-2 py-0.5 text-xs border border-blue-300 bg-white hover:bg-blue-50 text-blue-600 font-medium"
+                            title="Editar"
                           >
-                            ✓
+                            Editar
                           </button>
-                        )}
-                        <button
-                          onClick={() => abrirEdicao(atividade)}
-                          className="px-2 py-1 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded hover:bg-gray-50"
-                          title="Editar"
-                        >
-                          ✏️
-                        </button>
-                        <button
-                          onClick={() => excluirAtividade(atividade.id)}
-                          className="px-2 py-1 text-xs font-medium text-red-600 bg-white border border-red-300 rounded hover:bg-red-50"
-                          title="Excluir"
-                        >
-                          🗑️
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </Card>
+                          <button
+                            onClick={() => excluirAtividade(atividade.id)}
+                            className="px-2 py-0.5 text-xs border border-red-300 bg-white hover:bg-red-50 text-red-600 font-medium"
+                            title="Excluir"
+                          >
+                            Excluir
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

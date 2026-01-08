@@ -302,6 +302,16 @@ export default function Dashboard() {
                   </div>
                 </Link>
 
+                <Link href="/pessoas-fisicas" className="flex items-center gap-3 p-3 border border-gray-300 hover:bg-teal-50 hover:border-[#0369a1] transition-colors">
+                  <div className="w-8 h-8 bg-teal-100 flex items-center justify-center border border-gray-300">
+                    <span className="text-sm">👤</span>
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-[#0369a1]">Pessoas Físicas</p>
+                    <p className="text-xs text-gray-600">Cadastro de pessoas físicas</p>
+                  </div>
+                </Link>
+
                 <Link href="/empresas-grupo" className="flex items-center gap-3 p-3 border border-gray-300 hover:bg-green-50 hover:border-[#0369a1] transition-colors">
                   <div className="w-8 h-8 bg-green-100 flex items-center justify-center border border-gray-300">
                     <span className="text-sm">🏭</span>
@@ -329,6 +339,16 @@ export default function Dashboard() {
                   <div>
                     <p className="text-sm font-semibold text-[#0369a1]">Acordos</p>
                     <p className="text-xs text-gray-600">Visão geral de parcelas</p>
+                  </div>
+                </Link>
+
+                <Link href="/relatorios/vencidos" className="flex items-center gap-3 p-3 border border-gray-300 hover:bg-red-50 hover:border-[#0369a1] transition-colors">
+                  <div className="w-8 h-8 bg-red-100 flex items-center justify-center border border-gray-300">
+                    <span className="text-sm">📊</span>
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-[#0369a1]">Relatório de Vencidos</p>
+                    <p className="text-xs text-gray-600">Títulos e acordos vencidos</p>
                   </div>
                 </Link>
               </div>
@@ -375,6 +395,36 @@ export default function Dashboard() {
                   <div>
                     <p className="text-sm font-semibold text-[#0369a1]">Fluxo de Caixa</p>
                     <p className="text-xs text-gray-600">Visão financeira</p>
+                  </div>
+                </Link>
+
+                <Link href="/contas-pagar" className="flex items-center gap-3 p-3 border border-gray-300 hover:bg-indigo-50 hover:border-[#0369a1] transition-colors">
+                  <div className="w-8 h-8 bg-indigo-100 flex items-center justify-center border border-gray-300">
+                    <span className="text-sm">📋</span>
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-[#0369a1]">Todos os Lançamentos</p>
+                    <p className="text-xs text-gray-600">Receitas e despesas</p>
+                  </div>
+                </Link>
+
+                <Link href="/financeiro/calendario" className="flex items-center gap-3 p-3 border border-gray-300 hover:bg-purple-50 hover:border-[#0369a1] transition-colors">
+                  <div className="w-8 h-8 bg-purple-100 flex items-center justify-center border border-gray-300">
+                    <span className="text-sm">📅</span>
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-[#0369a1]">Calendário</p>
+                    <p className="text-xs text-gray-600">Visualização mensal</p>
+                  </div>
+                </Link>
+
+                <Link href="/financeiro/top-receitas-despesas" className="flex items-center gap-3 p-3 border border-gray-300 hover:bg-yellow-50 hover:border-[#0369a1] transition-colors">
+                  <div className="w-8 h-8 bg-yellow-100 flex items-center justify-center border border-gray-300">
+                    <span className="text-sm">📊</span>
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-[#0369a1]">Top Receitas/Despesas</p>
+                    <p className="text-xs text-gray-600">Ranking dos maiores valores</p>
                   </div>
                 </Link>
               </div>

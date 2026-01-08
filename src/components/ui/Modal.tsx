@@ -8,7 +8,7 @@ interface ModalProps {
   onClose: () => void;
   title: string;
   children: ReactNode;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'full';
 }
 
 const Modal = ({ isOpen, onClose, title, children, size = 'md' }: ModalProps) => {
@@ -35,6 +35,8 @@ const Modal = ({ isOpen, onClose, title, children, size = 'md' }: ModalProps) =>
     md: 'max-w-lg',
     lg: 'max-w-2xl',
     xl: 'max-w-4xl',
+    '2xl': 'max-w-6xl',
+    'full': 'max-w-[95vw]',
   };
 
   return (
@@ -44,8 +46,8 @@ const Modal = ({ isOpen, onClose, title, children, size = 'md' }: ModalProps) =>
           className="fixed inset-0 bg-black bg-opacity-50 transition-opacity backdrop-blur-sm"
           onClick={onClose}
         />
-        <div className={`relative w-full ${sizes[size]} transform rounded-lg bg-white shadow-lg transition-all`}>
-          <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 bg-white">
+        <div className={`relative w-full ${sizes[size]} transform rounded-lg bg-white shadow-lg transition-all max-h-[95vh] flex flex-col`}>
+          <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 bg-white flex-shrink-0">
             <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
             <button
               onClick={onClose}
@@ -56,7 +58,7 @@ const Modal = ({ isOpen, onClose, title, children, size = 'md' }: ModalProps) =>
               </svg>
             </button>
           </div>
-          <div className="px-6 py-6">
+          <div className="px-6 py-6 overflow-y-auto flex-1">
             {children}
           </div>
         </div>

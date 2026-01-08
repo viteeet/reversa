@@ -71,6 +71,21 @@ export default function MenuOperacionalPage() {
               </div>
             </Link>
 
+            {/* Card Pessoas Físicas */}
+            <Link href="/pessoas-fisicas" className="p-4 hover:bg-teal-50 transition-colors border-r border-b border-gray-300 last:border-r-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-teal-100 flex items-center justify-center border border-gray-300">
+                  <svg className="w-5 h-5 text-teal-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-base font-semibold text-[#0369a1]">Pessoas Físicas</h2>
+                  <p className="text-xs text-gray-600">Cadastro de pessoas físicas</p>
+                </div>
+              </div>
+            </Link>
+
             {/* Card Grupos de Empresas */}
             <Link href="/empresas-grupo" className="p-4 hover:bg-green-50 transition-colors border-r border-b border-gray-300 last:border-r-0">
               <div className="flex items-center gap-3">
@@ -112,6 +127,21 @@ export default function MenuOperacionalPage() {
                 <div>
                   <h2 className="text-base font-semibold text-[#0369a1]">Acordos</h2>
                   <p className="text-xs text-gray-600">Visão geral de parcelas</p>
+                </div>
+              </div>
+            </Link>
+
+            {/* Card Relatório de Vencidos */}
+            <Link href="/relatorios/vencidos" className="p-4 hover:bg-red-50 transition-colors border-r border-b border-gray-300 last:border-r-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-red-100 flex items-center justify-center border border-gray-300">
+                  <svg className="w-5 h-5 text-red-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-base font-semibold text-[#0369a1]">Relatório de Vencidos</h2>
+                  <p className="text-xs text-gray-600">Títulos e acordos vencidos</p>
                 </div>
               </div>
             </Link>

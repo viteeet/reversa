@@ -30,6 +30,7 @@ type Cedente = {
   atividade_principal_descricao: string | null;
   atividades_secundarias: string | null;
   simples_nacional: boolean | null;
+  fundo: string | null;
 };
 
 type Sacado = {
@@ -66,6 +67,7 @@ export default function EditarCedentePage() {
     atividade_principal_descricao: '',
     atividades_secundarias: '',
     simples_nacional: false,
+    fundo: '',
   });
   const [savingInfoBasicas, setSavingInfoBasicas] = useState(false);
   const [infoBasicasCollapsed, setInfoBasicasCollapsed] = useState(true);
@@ -181,7 +183,7 @@ export default function EditarCedentePage() {
     // Carrega dados do cedente
     const { data: cedenteData } = await supabase
       .from('cedentes')
-      .select('id, nome, razao_social, cnpj, telefone, email, endereco, situacao, porte, natureza_juridica, data_abertura, capital_social, atividade_principal_codigo, atividade_principal_descricao, atividades_secundarias, simples_nacional')
+      .select('id, nome, razao_social, cnpj, telefone, email, endereco, situacao, porte, natureza_juridica, data_abertura, capital_social, atividade_principal_codigo, atividade_principal_descricao, atividades_secundarias, simples_nacional, fundo')
       .eq('id', id)
       .single();
     
@@ -206,6 +208,7 @@ export default function EditarCedentePage() {
         atividade_principal_descricao: cedenteData.atividade_principal_descricao || '',
         atividades_secundarias: cedenteData.atividades_secundarias || '',
         simples_nacional: cedenteData.simples_nacional ?? false,
+        fundo: cedenteData.fundo || '',
       });
     }
 
@@ -488,16 +491,76 @@ export default function EditarCedentePage() {
 
       const { data, error } = await query;
       
+      let items = [];
       if (error) {
         // Ignora erros de tabela não existente
         if (!error.message.includes('does not exist') && !error.message.includes('relation')) {
           console.error(`Erro ao carregar ${categoriaId}:`, error);
         }
-        setCategoriasData(prev => ({ ...prev, [categoriaId]: [] }));
-        return;
+        items = [];
+      } else {
+        items = data || [];
       }
 
-      setCategoriasData(prev => ({ ...prev, [categoriaId]: data || [] }));
+      // Se for QSA, também buscar pessoas físicas vinculadas como sócios/administradores
+      if (categoriaId === 'qsa' && tableName === 'cedentes_qsa') {
+        try {
+          const { data: pessoasVinculadas } = await supabase
+            .from('pessoas_fisicas_cedentes')
+            .select(`
+              id,
+              tipo_relacionamento,
+              cargo,
+              data_inicio,
+              pessoas_fisicas (
+                id,
+                cpf,
+                nome
+              )
+            `)
+            .eq('cedente_id', id)
+            .eq('ativo', true)
+            .in('tipo_relacionamento', ['socio', 'administrador']);
+
+          if (pessoasVinculadas && pessoasVinculadas.length > 0) {
+            // Transformar pessoas físicas vinculadas em formato QSA
+            const qsaFromPessoas = pessoasVinculadas
+              .filter((pv: any) => pv.pessoas_fisicas) // Garantir que tem pessoa física
+              .map((pv: any) => {
+                const pf = pv.pessoas_fisicas;
+                // Verificar se já existe no QSA (por CPF)
+                const jaExiste = items.some((item: any) => 
+                  item.cpf && pf.cpf && item.cpf.replace(/\D+/g, '') === pf.cpf.replace(/\D+/g, '')
+                );
+                
+                if (!jaExiste) {
+                  return {
+                    id: `pf_${pv.id}`, // ID temporário para identificar origem
+                    cedente_id: id,
+                    cpf: pf.cpf,
+                    nome: pf.nome,
+                    qualificacao: pv.cargo || pv.tipo_relacionamento,
+                    data_entrada: pv.data_inicio || null,
+                    origem: 'pessoa_fisica',
+                    ativo: true,
+                    _from_pessoa_fisica: true, // Flag para identificar origem
+                    _pessoa_fisica_id: pf.id
+                  };
+                }
+                return null;
+              })
+              .filter(Boolean); // Remove nulls
+
+            // Combinar QSA existente com pessoas físicas vinculadas
+            items = [...items, ...qsaFromPessoas];
+          }
+        } catch (err) {
+          // Ignora erros ao buscar pessoas físicas vinculadas
+          console.log('Erro ao buscar pessoas físicas vinculadas para QSA:', err);
+        }
+      }
+
+      setCategoriasData(prev => ({ ...prev, [categoriaId]: items }));
     } catch (error) {
       console.error(`Erro ao carregar categoria ${categoriaId}:`, error);
       setCategoriasData(prev => ({ ...prev, [categoriaId]: [] }));
@@ -602,6 +665,10 @@ export default function EditarCedentePage() {
       showToast('O nome é obrigatório', 'error');
       return false;
     }
+    if (!infoBasicas.fundo.trim()) {
+      showToast('O fundo é obrigatório', 'error');
+      return false;
+    }
 
     setSavingInfoBasicas(true);
     try {
@@ -627,6 +694,7 @@ export default function EditarCedentePage() {
           atividade_principal_descricao: infoBasicas.atividade_principal_descricao.trim() || null,
           atividades_secundarias: infoBasicas.atividades_secundarias.trim() || null,
           simples_nacional: infoBasicas.simples_nacional,
+          fundo: infoBasicas.fundo.trim() || null,
           ultima_atualizacao: new Date().toISOString(),
         })
         .eq('id', id);
@@ -1112,6 +1180,13 @@ export default function EditarCedentePage() {
                         { value: 'BAIXADA', label: 'BAIXADA' },
                         { value: 'INAPTA', label: 'INAPTA' },
                       ]}
+                    />
+                    <Input
+                      label="Fundo *"
+                      value={infoBasicas.fundo}
+                      onChange={(e) => setInfoBasicas({ ...infoBasicas, fundo: e.target.value })}
+                      placeholder="Nome do fundo responsável"
+                      required
                     />
                   </div>
                 </div>

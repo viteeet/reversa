@@ -383,11 +383,11 @@ export default function Header() {
               {/* Menu Dropdown de Apps */}
               {isAppsMenuOpen && (
                 <div 
-                  className="absolute top-full right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50"
+                  className="absolute top-full right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50"
                   style={{ animation: 'slideDown 0.2s ease-out' }}
                 >
-                  <div className="p-2">
-                    <div className="px-3 py-2 border-b border-gray-200">
+                  <div className="p-1">
+                    <div className="px-3 py-1.5 border-b border-gray-200">
                       <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Apps</div>
                     </div>
                     
@@ -396,18 +396,10 @@ export default function Header() {
                       target="_blank" 
                       rel="noopener noreferrer"
                       onClick={() => setIsAppsMenuOpen(false)}
-                      className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                      className="block px-3 py-2 rounded hover:bg-gray-50 transition-colors cursor-pointer"
                     >
-                      <div className="text-xl">🔗</div>
-                      <div className="flex-1">
-                        <div className="font-semibold text-gray-900">RedeCNPJ</div>
-                        <div className="text-sm text-gray-500">Mapa de relacionamentos</div>
-                      </div>
-                      <div className="text-gray-400">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                        </svg>
-                      </div>
+                      <div className="text-sm font-medium text-gray-900">RedeCNPJ</div>
+                      <div className="text-xs text-gray-500">Mapa de relacionamentos</div>
                     </a>
                   </div>
                 </div>
@@ -445,155 +437,119 @@ export default function Header() {
         {/* Menu Dropdown */}
         {isMenuOpen && (
           <div 
-            className="absolute top-16 right-4 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50"
+            className="absolute top-16 right-4 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-[calc(100vh-5rem)] overflow-y-auto"
             style={{ animation: 'slideDown 0.2s ease-out' }}
           >
-            <div className="p-2">
+            <div className="p-1">
               <Link href="/dashboard" onClick={() => setIsMenuOpen(false)}>
-                <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
-                  <div className="text-xl">🏠</div>
-                  <div>
-                    <div className="font-semibold text-gray-900">Início</div>
-                    <div className="text-sm text-gray-500">Dashboard principal</div>
-                  </div>
+                <div className="px-3 py-2 rounded hover:bg-gray-50 transition-colors cursor-pointer">
+                  <div className="text-sm font-medium text-gray-900">Dashboard</div>
                 </div>
               </Link>
               
               {/* Seção Operacional */}
-              <div className="px-3 py-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="text-lg">🏢</div>
-                  <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Operacional</div>
-                </div>
+              <div className="px-3 py-1.5 border-t border-gray-100 mt-1">
+                <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Operacional</div>
                 <Link href="/menu/operacional" onClick={() => setIsMenuOpen(false)}>
-                  <div className="flex items-center gap-2 px-2 py-2 rounded hover:bg-gray-50 transition-colors cursor-pointer">
-                    <div className="text-lg">📋</div>
-                    <div className="flex-1">
-                      <div className="text-sm font-medium text-gray-700">Menu Operacional</div>
-                      <div className="text-xs text-gray-500">Cedentes e Sacados</div>
-                    </div>
+                  <div className="px-2 py-1.5 rounded hover:bg-gray-50 transition-colors cursor-pointer">
+                    <div className="text-sm text-gray-700">Menu Operacional</div>
                   </div>
                 </Link>
                 <Link href="/cedentes" onClick={() => setIsMenuOpen(false)}>
-                  <div className="flex items-center gap-2 px-2 py-2 rounded hover:bg-gray-50 transition-colors cursor-pointer">
-                    <div className="text-lg">🏢</div>
-                    <div className="flex-1">
-                      <div className="text-sm font-medium text-gray-700">Cedentes</div>
-                      <div className="text-xs text-gray-500">Gerenciar cadastros</div>
-                    </div>
+                  <div className="px-2 py-1.5 rounded hover:bg-gray-50 transition-colors cursor-pointer">
+                    <div className="text-sm text-gray-700">Cedentes</div>
                   </div>
                 </Link>
                 <Link href="/sacados" onClick={() => setIsMenuOpen(false)}>
-                  <div className="flex items-center gap-2 px-2 py-2 rounded hover:bg-gray-50 transition-colors cursor-pointer">
-                    <div className="text-lg">👥</div>
-                    <div className="flex-1">
-                      <div className="text-sm font-medium text-gray-700">Sacados</div>
-                      <div className="text-xs text-gray-500">Visualizar todos</div>
-                    </div>
+                  <div className="px-2 py-1.5 rounded hover:bg-gray-50 transition-colors cursor-pointer">
+                    <div className="text-sm text-gray-700">Sacados</div>
+                  </div>
+                </Link>
+                <Link href="/pessoas-fisicas" onClick={() => setIsMenuOpen(false)}>
+                  <div className="px-2 py-1.5 rounded hover:bg-gray-50 transition-colors cursor-pointer">
+                    <div className="text-sm text-gray-700">Pessoas Físicas</div>
                   </div>
                 </Link>
                 <Link href="/empresas-grupo" onClick={() => setIsMenuOpen(false)}>
-                  <div className="flex items-center gap-2 px-2 py-2 rounded hover:bg-gray-50 transition-colors cursor-pointer">
-                    <div className="text-lg">🏭</div>
-                    <div className="flex-1">
-                      <div className="text-sm font-medium text-gray-700">Grupos de Empresas</div>
-                      <div className="text-xs text-gray-500">Múltiplos CNPJs</div>
-                    </div>
+                  <div className="px-2 py-1.5 rounded hover:bg-gray-50 transition-colors cursor-pointer">
+                    <div className="text-sm text-gray-700">Grupos de Empresas</div>
                   </div>
                 </Link>
                 <Link href="/atividades-agendadas" onClick={() => setIsMenuOpen(false)}>
-                  <div className="flex items-center gap-2 px-2 py-2 rounded hover:bg-gray-50 transition-colors cursor-pointer">
-                    <div className="text-lg">📅</div>
-                    <div className="flex-1">
-                      <div className="text-sm font-medium text-gray-700">Atividades</div>
-                      <div className="text-xs text-gray-500">Agendadas por data</div>
-                    </div>
+                  <div className="px-2 py-1.5 rounded hover:bg-gray-50 transition-colors cursor-pointer">
+                    <div className="text-sm text-gray-700">Atividades Agendadas</div>
+                  </div>
+                </Link>
+                <Link href="/relatorios/vencidos" onClick={() => setIsMenuOpen(false)}>
+                  <div className="px-2 py-1.5 rounded hover:bg-gray-50 transition-colors cursor-pointer">
+                    <div className="text-sm text-gray-700">Relatório de Vencidos</div>
                   </div>
                 </Link>
               </div>
               
               {/* Seção Financeiro */}
-              <div className="px-3 py-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="text-lg">💰</div>
-                  <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Financeiro</div>
-                </div>
+              <div className="px-3 py-1.5 border-t border-gray-100">
+                <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Financeiro</div>
                 <Link href="/menu/financeiro" onClick={() => setIsMenuOpen(false)}>
-                  <div className="flex items-center gap-2 px-2 py-2 rounded hover:bg-gray-50 transition-colors cursor-pointer">
-                    <div className="text-lg">💰</div>
-                    <div className="flex-1">
-                      <div className="text-sm font-medium text-gray-700">Menu Financeiro</div>
-                      <div className="text-xs text-gray-500">Contas e Relatórios</div>
-                    </div>
+                  <div className="px-2 py-1.5 rounded hover:bg-gray-50 transition-colors cursor-pointer">
+                    <div className="text-sm text-gray-700">Menu Financeiro</div>
                   </div>
                 </Link>
                 <Link href="/financeiro/a-receber" onClick={() => setIsMenuOpen(false)}>
-                  <div className="flex items-center gap-2 px-2 py-2 rounded hover:bg-gray-50 transition-colors cursor-pointer">
-                    <div className="text-lg">💰</div>
-                    <div className="flex-1">
-                      <div className="text-sm font-medium text-gray-700">A Receber</div>
-                      <div className="text-xs text-gray-500">Contas pendentes</div>
-                    </div>
+                  <div className="px-2 py-1.5 rounded hover:bg-gray-50 transition-colors cursor-pointer">
+                    <div className="text-sm text-gray-700">A Receber</div>
                   </div>
                 </Link>
                 <Link href="/contas-pagar" onClick={() => setIsMenuOpen(false)}>
-                  <div className="flex items-center gap-2 px-2 py-2 rounded hover:bg-gray-50 transition-colors cursor-pointer">
-                    <div className="text-lg">📤</div>
-                    <div className="flex-1">
-                      <div className="text-sm font-medium text-gray-700">A Pagar</div>
-                      <div className="text-xs text-gray-500">Contas pendentes</div>
-                    </div>
+                  <div className="px-2 py-1.5 rounded hover:bg-gray-50 transition-colors cursor-pointer">
+                    <div className="text-sm text-gray-700">A Pagar</div>
                   </div>
                 </Link>
                 <Link href="/financeiro/fluxo-caixa" onClick={() => setIsMenuOpen(false)}>
-                  <div className="flex items-center gap-2 px-2 py-2 rounded hover:bg-gray-50 transition-colors cursor-pointer">
-                    <div className="text-lg">💵</div>
-                    <div className="flex-1">
-                      <div className="text-sm font-medium text-gray-700">Fluxo de Caixa</div>
-                      <div className="text-xs text-gray-500">Visão financeira</div>
-                    </div>
+                  <div className="px-2 py-1.5 rounded hover:bg-gray-50 transition-colors cursor-pointer">
+                    <div className="text-sm text-gray-700">Fluxo de Caixa</div>
                   </div>
                 </Link>
               </div>
               
-              <Link href="/menu/configuracoes" onClick={() => setIsMenuOpen(false)}>
-                <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
-                  <div className="text-xl">⚙️</div>
-                  <div>
-                    <div className="font-semibold text-gray-900">Configurações</div>
-                    <div className="text-sm text-gray-500">Sistema e Parâmetros</div>
+              <div className="border-t border-gray-100 mt-1">
+                <Link href="/menu/configuracoes" onClick={() => setIsMenuOpen(false)}>
+                  <div className="px-3 py-2 rounded hover:bg-gray-50 transition-colors cursor-pointer">
+                    <div className="text-sm font-medium text-gray-900">Configurações</div>
                   </div>
+                </Link>
+              </div>
+
+              <div className="border-t border-gray-200 mt-1 pt-2">
+                <div className="px-3 py-1">
+                  <div className="text-xs text-gray-500 font-medium mb-1">Logado como:</div>
+                  <div className="text-xs text-gray-700 truncate">{email}</div>
                 </div>
-              </Link>
-
-                     <div className="border-t border-gray-200 my-2" />
-
-                     <div className="px-3 py-2">
-                       <div className="text-xs text-gray-500 font-medium">Logado como:</div>
-                       <div className="text-sm text-gray-700 mb-3">{email}</div>
-                       
-                       {/* Botão Sair */}
-                       <button
-                         onClick={signOut}
-                         className="w-full px-3 py-2 text-sm font-medium rounded-lg transition-colors shadow-sm border"
-                         style={{
-                           backgroundColor: '#ef4444',
-                           color: '#ffffff',
-                           borderColor: '#dc2626',
-                           fontWeight: '600'
-                         }}
-                         onMouseEnter={(e) => {
-                           e.currentTarget.style.backgroundColor = '#dc2626';
-                           e.currentTarget.style.borderColor = '#b91c1c';
-                         }}
-                         onMouseLeave={(e) => {
-                           e.currentTarget.style.backgroundColor = '#ef4444';
-                           e.currentTarget.style.borderColor = '#dc2626';
-                         }}
-                       >
-                         Sair
-                       </button>
-                     </div>
+                
+                {/* Botão Sair */}
+                <div className="px-3 pb-2 pt-1">
+                  <button
+                    onClick={signOut}
+                    className="w-full px-3 py-1.5 text-xs font-medium rounded-lg transition-colors shadow-sm border"
+                    style={{
+                      backgroundColor: '#ef4444',
+                      color: '#ffffff',
+                      borderColor: '#dc2626',
+                      fontWeight: '600'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#dc2626';
+                      e.currentTarget.style.borderColor = '#b91c1c';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = '#ef4444';
+                      e.currentTarget.style.borderColor = '#dc2626';
+                    }}
+                  >
+                    Sair
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}

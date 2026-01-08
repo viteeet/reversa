@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { formatCpfCnpj } from '@/lib/format';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import VinculacoesManager from '@/components/pessoas-fisicas/VinculacoesManager';
 
 type PessoaFisica = {
   id: string;
@@ -36,6 +37,10 @@ export default function EditarPessoaFisicaPage() {
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [cedentesVinculados, setCedentesVinculados] = useState<any[]>([]);
+  const [sacadosVinculados, setSacadosVinculados] = useState<any[]>([]);
+  const [cedentesList, setCedentesList] = useState<any[]>([]);
+  const [sacadosList, setSacadosList] = useState<any[]>([]);
 
   useEffect(() => {
     loadData();
@@ -90,12 +95,101 @@ export default function EditarPessoaFisicaPage() {
           situacao: data.situacao || 'ativa',
           observacoes_gerais: data.observacoes_gerais || '',
         });
+        
+        // Carregar vinculações
+        await loadVinculacoes(data.id);
+        // Carregar listas para seleção
+        await loadCedentesESacados();
       }
     } catch (err) {
       console.error('Erro:', err);
       setErr('Erro ao carregar dados');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function loadVinculacoes(pessoaId: string) {
+    try {
+      // Carregar cedentes vinculados
+      const { data: cedentesData } = await supabase
+        .from('pessoas_fisicas_cedentes')
+        .select('*')
+        .eq('pessoa_id', pessoaId)
+        .eq('ativo', true);
+      
+      // Buscar nomes dos cedentes
+      if (cedentesData && cedentesData.length > 0) {
+        const cedentesComNomes = await Promise.all(
+          cedentesData.map(async (vinc) => {
+            const { data: cedente } = await supabase
+              .from('cedentes')
+              .select('nome, razao_social')
+              .eq('id', vinc.cedente_id)
+              .single();
+            return {
+              ...vinc,
+              cedente_nome: cedente?.nome || cedente?.razao_social || vinc.cedente_id
+            };
+          })
+        );
+        setCedentesVinculados(cedentesComNomes);
+      } else {
+        setCedentesVinculados([]);
+      }
+
+      // Carregar sacados vinculados
+      const { data: sacadosData } = await supabase
+        .from('pessoas_fisicas_sacados')
+        .select('*')
+        .eq('pessoa_id', pessoaId)
+        .eq('ativo', true);
+      
+      // Buscar nomes dos sacados
+      if (sacadosData && sacadosData.length > 0) {
+        const sacadosComNomes = await Promise.all(
+          sacadosData.map(async (vinc) => {
+            const { data: sacado } = await supabase
+              .from('sacados')
+              .select('razao_social, nome_fantasia')
+              .eq('cnpj', vinc.sacado_cnpj)
+              .single();
+            return {
+              ...vinc,
+              sacado_nome: sacado?.razao_social || sacado?.nome_fantasia || vinc.sacado_cnpj
+            };
+          })
+        );
+        setSacadosVinculados(sacadosComNomes);
+      } else {
+        setSacadosVinculados([]);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar vinculações:', error);
+      setCedentesVinculados([]);
+      setSacadosVinculados([]);
+    }
+  }
+
+  async function loadCedentesESacados() {
+    // Carregar lista de cedentes
+    const { data: cedentes } = await supabase
+      .from('cedentes')
+      .select('id, nome, razao_social')
+      .order('nome');
+    setCedentesList(cedentes || []);
+
+    // Carregar lista de sacados
+    const { data: sacados } = await supabase
+      .from('sacados')
+      .select('cnpj, razao_social, nome_fantasia')
+      .order('razao_social');
+    setSacadosList(sacados || []);
+  }
+
+  async function refreshVinculacoes() {
+    if (form.id) {
+      await loadVinculacoes(form.id);
     }
   }
 
@@ -253,6 +347,28 @@ export default function EditarPessoaFisicaPage() {
             </div>
           </div>
         </div>
+
+        {/* Vinculações com Cedentes */}
+        {form.id && (
+          <VinculacoesManager
+            pessoaId={form.id}
+            tipo="cedentes"
+            items={cedentesVinculados}
+            onRefresh={refreshVinculacoes}
+            cedentesList={cedentesList}
+          />
+        )}
+
+        {/* Vinculações com Sacados */}
+        {form.id && (
+          <VinculacoesManager
+            pessoaId={form.id}
+            tipo="sacados"
+            items={sacadosVinculados}
+            onRefresh={refreshVinculacoes}
+            sacadosList={sacadosList}
+          />
+        )}
       </div>
     </main>
   );

@@ -29,7 +29,7 @@ export function useNotifications() {
       }
 
       // Buscar atividades pendentes
-      const [sacadosAtividades, cedentesAtividades, contasVencendo] = await Promise.all([
+      const [sacadosAtividades, cedentesAtividades, titulosAtividades, contasVencendo] = await Promise.all([
         Promise.resolve(
           supabase
             .from('sacados_atividades')
@@ -41,6 +41,13 @@ export function useNotifications() {
           supabase
             .from('cedentes_atividades')
             .select('id, tipo, descricao, data_hora, data_lembrete, cedente_id')
+            .eq('status', 'pendente')
+        ).then(result => ({ data: result.data, error: result.error }))
+        .catch(() => ({ data: null, error: null })),
+        Promise.resolve(
+          supabase
+            .from('titulos_atividades')
+            .select('id, tipo, descricao, data_hora, data_lembrete, titulo_id')
             .eq('status', 'pendente')
         ).then(result => ({ data: result.data, error: result.error }))
         .catch(() => ({ data: null, error: null })),
@@ -88,6 +95,34 @@ export function useNotifications() {
         });
       }
 
+      // Processar atividades pendentes de títulos
+      if (titulosAtividades.data && titulosAtividades.data.length > 0) {
+        // Buscar informações dos títulos para obter cedente_id e numero_titulo
+        const titulosIds = titulosAtividades.data.map((a: any) => a.titulo_id);
+        const { data: titulosInfo } = await supabase
+          .from('titulos_negociados')
+          .select('id, numero_titulo, cedente_id')
+          .in('id', titulosIds);
+
+        const titulosMap = new Map((titulosInfo || []).map((t: any) => [t.id, t]));
+
+        titulosAtividades.data.forEach((atividade: any) => {
+          const tituloInfo = titulosMap.get(atividade.titulo_id);
+          if (tituloInfo) {
+            notificationsList.push({
+              id: `titulo_${atividade.id}`,
+              tipo: 'atividade_pendente',
+              titulo: 'Atividade Pendente',
+              mensagem: `${atividade.descricao} (Título #${tituloInfo.numero_titulo})`,
+              link: `/cedentes/${tituloInfo.cedente_id}?titulo=${atividade.titulo_id}&tab=titulos`,
+              lida: false,
+              created_at: atividade.data_hora,
+              data_referencia: atividade.data_lembrete || undefined
+            });
+          }
+        });
+      }
+
       // Processar lembretes de vencimento
       if (cedentesAtividades.data) {
         cedentesAtividades.data.forEach((atividade: any) => {
@@ -99,7 +134,7 @@ export function useNotifications() {
             
             if (diasRestantes >= 0 && diasRestantes <= 7) {
               notificationsList.push({
-                id: `lembrete_${atividade.id}`,
+                id: `lembrete_cedente_${atividade.id}`,
                 tipo: diasRestantes === 0 ? 'lembrete_vencimento' : 'lembrete_vencimento',
                 titulo: diasRestantes === 0 ? 'Lembrete Vencido Hoje' : `Lembrete em ${diasRestantes} dia(s)`,
                 mensagem: atividade.descricao,
@@ -132,6 +167,42 @@ export function useNotifications() {
                 created_at: atividade.data_lembrete,
                 data_referencia: atividade.data_lembrete
               });
+            }
+          }
+        });
+      }
+
+      // Processar lembretes de atividades de títulos
+      if (titulosAtividades.data) {
+        const titulosIds = titulosAtividades.data.map((a: any) => a.titulo_id);
+        const { data: titulosInfo } = await supabase
+          .from('titulos_negociados')
+          .select('id, numero_titulo, cedente_id')
+          .in('id', titulosIds);
+
+        const titulosMap = new Map((titulosInfo || []).map((t: any) => [t.id, t]));
+
+        titulosAtividades.data.forEach((atividade: any) => {
+          if (atividade.data_lembrete) {
+            const tituloInfo = titulosMap.get(atividade.titulo_id);
+            if (tituloInfo) {
+              const dataLembrete = new Date(atividade.data_lembrete);
+              const hoje = new Date();
+              hoje.setHours(0, 0, 0, 0);
+              const diasRestantes = Math.ceil((dataLembrete.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
+              
+              if (diasRestantes >= 0 && diasRestantes <= 7) {
+                notificationsList.push({
+                  id: `lembrete_titulo_${atividade.id}`,
+                  tipo: diasRestantes === 0 ? 'lembrete_vencimento' : 'lembrete_vencimento',
+                  titulo: diasRestantes === 0 ? 'Lembrete Vencido Hoje' : `Lembrete em ${diasRestantes} dia(s)`,
+                  mensagem: `${atividade.descricao} (Título #${tituloInfo.numero_titulo})`,
+                  link: `/cedentes/${tituloInfo.cedente_id}?titulo=${atividade.titulo_id}&tab=titulos`,
+                  lida: false,
+                  created_at: atividade.data_lembrete,
+                  data_referencia: atividade.data_lembrete
+                });
+              }
             }
           }
         });

@@ -28,6 +28,8 @@ export default function PessoaFisicaPage() {
   
   const [pessoa, setPessoa] = useState<PessoaFisica | null>(null);
   const [loading, setLoading] = useState(true);
+  const [cedentesVinculados, setCedentesVinculados] = useState<any[]>([]);
+  const [sacadosVinculados, setSacadosVinculados] = useState<any[]>([]);
 
   useEffect(() => {
     loadData();
@@ -48,12 +50,73 @@ export default function PessoaFisicaPage() {
         setPessoa(null);
       } else {
         setPessoa(data);
+        if (data.id) {
+          await loadVinculacoes(data.id);
+        }
       }
     } catch (err) {
       console.error('Erro:', err);
       setPessoa(null);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function loadVinculacoes(pessoaId: string) {
+    try {
+      // Carregar cedentes vinculados
+      const { data: cedentesData } = await supabase
+        .from('pessoas_fisicas_cedentes')
+        .select('*')
+        .eq('pessoa_id', pessoaId)
+        .eq('ativo', true);
+      
+      if (cedentesData && cedentesData.length > 0) {
+        const cedentesComNomes = await Promise.all(
+          cedentesData.map(async (vinc) => {
+            const { data: cedente } = await supabase
+              .from('cedentes')
+              .select('nome, razao_social')
+              .eq('id', vinc.cedente_id)
+              .single();
+            return {
+              ...vinc,
+              cedente_nome: cedente?.nome || cedente?.razao_social || vinc.cedente_id
+            };
+          })
+        );
+        setCedentesVinculados(cedentesComNomes);
+      } else {
+        setCedentesVinculados([]);
+      }
+
+      // Carregar sacados vinculados
+      const { data: sacadosData } = await supabase
+        .from('pessoas_fisicas_sacados')
+        .select('*')
+        .eq('pessoa_id', pessoaId)
+        .eq('ativo', true);
+      
+      if (sacadosData && sacadosData.length > 0) {
+        const sacadosComNomes = await Promise.all(
+          sacadosData.map(async (vinc) => {
+            const { data: sacado } = await supabase
+              .from('sacados')
+              .select('razao_social, nome_fantasia')
+              .eq('cnpj', vinc.sacado_cnpj)
+              .single();
+            return {
+              ...vinc,
+              sacado_nome: sacado?.razao_social || sacado?.nome_fantasia || vinc.sacado_cnpj
+            };
+          })
+        );
+        setSacadosVinculados(sacadosComNomes);
+      } else {
+        setSacadosVinculados([]);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar vinculações:', error);
     }
   }
 
@@ -160,6 +223,72 @@ export default function PessoaFisicaPage() {
             )}
           </div>
         </div>
+
+        {/* Vinculações com Cedentes */}
+        {cedentesVinculados.length > 0 && (
+          <div className="bg-white border border-gray-300">
+            <div className="border-b border-gray-300 bg-gray-100 px-4 py-2">
+              <h2 className="text-sm font-semibold text-gray-700 uppercase">Cedentes Vinculados</h2>
+            </div>
+            <div className="p-4">
+              <div className="space-y-2">
+                {cedentesVinculados.map((vinc) => (
+                  <div key={vinc.id} className="p-3 border border-gray-200 rounded">
+                    <div className="flex items-center gap-2 mb-1">
+                      <a
+                        href={`/cedentes/${vinc.cedente_id}`}
+                        className="text-sm font-medium text-[#0369a1] hover:underline"
+                      >
+                        {vinc.cedente_nome}
+                      </a>
+                      {vinc.tipo_relacionamento && (
+                        <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded">
+                          {vinc.tipo_relacionamento}
+                        </span>
+                      )}
+                    </div>
+                    {vinc.cargo && (
+                      <p className="text-xs text-gray-600">Cargo: {vinc.cargo}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Vinculações com Sacados */}
+        {sacadosVinculados.length > 0 && (
+          <div className="bg-white border border-gray-300">
+            <div className="border-b border-gray-300 bg-gray-100 px-4 py-2">
+              <h2 className="text-sm font-semibold text-gray-700 uppercase">Sacados Vinculados</h2>
+            </div>
+            <div className="p-4">
+              <div className="space-y-2">
+                {sacadosVinculados.map((vinc) => (
+                  <div key={vinc.id} className="p-3 border border-gray-200 rounded">
+                    <div className="flex items-center gap-2 mb-1">
+                      <a
+                        href={`/sacados/${encodeURIComponent(vinc.sacado_cnpj)}`}
+                        className="text-sm font-medium text-[#0369a1] hover:underline"
+                      >
+                        {vinc.sacado_nome}
+                      </a>
+                      {vinc.tipo_relacionamento && (
+                        <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded">
+                          {vinc.tipo_relacionamento}
+                        </span>
+                      )}
+                    </div>
+                    {vinc.cargo && (
+                      <p className="text-xs text-gray-600">Cargo: {vinc.cargo}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </main>
   );

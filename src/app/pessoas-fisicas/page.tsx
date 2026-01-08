@@ -8,6 +8,7 @@ import { formatCpfCnpj } from '@/lib/format';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Badge from '@/components/ui/Badge';
+import { useToast } from '@/components/ui/ToastContainer';
 
 type PessoaFisica = {
   id: string;
@@ -19,6 +20,8 @@ type PessoaFisica = {
   situacao: string | null;
   observacoes_gerais: string | null;
   origem: string | null;
+  origem_tipo?: string; // 'Cadastro Direto', 'QSA Cedente', 'QSA Sacado'
+  origem_nome?: string; // Nome do cedente ou sacado
   created_at: string;
 };
 
@@ -26,6 +29,7 @@ type ViewMode = 'table' | 'grid';
 
 export default function PessoasFisicasPage() {
   const router = useRouter();
+  const { showToast } = useToast();
   const [items, setItems] = useState<PessoaFisica[]>([]);
   const [form, setForm] = useState({ 
     cpf: '', nome: '', nome_mae: '', data_nascimento: '', rg: '', situacao: 'ativa', observacoes_gerais: ''
@@ -38,6 +42,8 @@ export default function PessoasFisicasPage() {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [viewMode, setViewMode] = useState<ViewMode>('table');
   const [filterSituacao, setFilterSituacao] = useState<string>('all');
+  const [filterOrigem, setFilterOrigem] = useState<string>('all');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -73,13 +79,190 @@ export default function PessoasFisicasPage() {
   }
 
   async function load() {
-    const { data, error } = await supabase
-      .from('pessoas_fisicas')
-      .select('id, cpf, nome, nome_mae, data_nascimento, rg, situacao, observacoes_gerais, origem, created_at')
-      .eq('ativo', true)
-      .order('nome', { ascending: true });
-    if (error) setErr(error.message);
-    setItems((data as PessoaFisica[]) ?? []);
+    try {
+      // Buscar pessoas físicas cadastradas
+      const { data: pessoasFisicas, error: errorPF } = await supabase
+        .from('pessoas_fisicas')
+        .select('id, cpf, nome, nome_mae, data_nascimento, rg, situacao, observacoes_gerais, origem, created_at')
+        .eq('ativo', true)
+        .order('nome', { ascending: true });
+
+      if (errorPF && errorPF.code !== 'PGRST116' && errorPF.code !== '42P01') {
+        console.error('Erro ao carregar pessoas físicas:', errorPF);
+        if (errorPF.code === 'PGRST116' || errorPF.code === '42P01' || errorPF.message?.includes('does not exist')) {
+          setErr('Tabela de pessoas físicas não encontrada. Execute o script SQL de criação da tabela no Supabase.');
+        } else {
+          setErr(`Erro ao carregar: ${errorPF.message}`);
+        }
+        setItems([]);
+        return;
+      }
+
+      // Buscar pessoas do QSA de cedentes com nome do cedente
+      const { data: qsaCedentes } = await supabase
+        .from('cedentes_qsa')
+        .select(`
+          cpf, 
+          nome,
+          cedente_id,
+          cedentes (
+            id,
+            nome,
+            razao_social
+          )
+        `)
+        .not('cpf', 'is', null)
+        .neq('cpf', '')
+        .eq('ativo', true);
+
+      // Buscar pessoas do QSA de sacados com nome do sacado
+      const { data: qsaSacados } = await supabase
+        .from('sacados_qsa')
+        .select(`
+          cpf, 
+          nome,
+          sacado_cnpj,
+          sacados (
+            cnpj,
+            razao_social,
+            nome_fantasia
+          )
+        `)
+        .not('cpf', 'is', null)
+        .neq('cpf', '')
+        .eq('ativo', true);
+
+      // Criar mapas de CPF -> lista de cedentes/sacados
+      const qsaCedentesMap = new Map<string, string[]>();
+      const qsaSacadosMap = new Map<string, string[]>();
+
+      (qsaCedentes || []).forEach((qsa: any) => {
+        const cpfLimpo = qsa.cpf?.replace(/\D+/g, '');
+        if (cpfLimpo && cpfLimpo.length === 11) {
+          const cedente = Array.isArray(qsa.cedentes) ? qsa.cedentes[0] : qsa.cedentes;
+          const nomeCedente = cedente?.nome || cedente?.razao_social || 'Cedente';
+          if (!qsaCedentesMap.has(cpfLimpo)) {
+            qsaCedentesMap.set(cpfLimpo, []);
+          }
+          qsaCedentesMap.get(cpfLimpo)!.push(nomeCedente);
+        }
+      });
+
+      (qsaSacados || []).forEach((qsa: any) => {
+        const cpfLimpo = qsa.cpf?.replace(/\D+/g, '');
+        if (cpfLimpo && cpfLimpo.length === 11) {
+          const sacado = Array.isArray(qsa.sacados) ? qsa.sacados[0] : qsa.sacados;
+          const nomeSacado = sacado?.nome_fantasia || sacado?.razao_social || 'Sacado';
+          if (!qsaSacadosMap.has(cpfLimpo)) {
+            qsaSacadosMap.set(cpfLimpo, []);
+          }
+          qsaSacadosMap.get(cpfLimpo)!.push(nomeSacado);
+        }
+      });
+
+      // Combinar todas as pessoas (físicas + QSA)
+      const pessoasMap = new Map<string, PessoaFisica>();
+
+      // Adicionar pessoas físicas cadastradas
+      (pessoasFisicas || []).forEach((pf: PessoaFisica) => {
+        const cpfLimpo = pf.cpf.replace(/\D+/g, '');
+        if (cpfLimpo.length === 11) {
+          pessoasMap.set(cpfLimpo, {
+            ...pf,
+            origem_tipo: 'Cadastro Direto',
+            origem_nome: null
+          });
+        }
+      });
+
+      // Adicionar pessoas do QSA (apenas se não existirem já cadastradas)
+      // Processar todas as pessoas do QSA e agrupar por CPF
+      const qsaPessoasMap = new Map<string, { nome: string; cedentes: string[]; sacados: string[] }>();
+
+      (qsaCedentes || []).forEach((qsa: any) => {
+        const cpfLimpo = qsa.cpf?.replace(/\D+/g, '');
+        if (cpfLimpo && cpfLimpo.length === 11) {
+          if (!qsaPessoasMap.has(cpfLimpo)) {
+            qsaPessoasMap.set(cpfLimpo, {
+              nome: qsa.nome || '',
+              cedentes: [],
+              sacados: []
+            });
+          }
+          const cedentes = qsaCedentesMap.get(cpfLimpo) || [];
+          qsaPessoasMap.get(cpfLimpo)!.cedentes = [...new Set([...qsaPessoasMap.get(cpfLimpo)!.cedentes, ...cedentes])];
+        }
+      });
+
+      (qsaSacados || []).forEach((qsa: any) => {
+        const cpfLimpo = qsa.cpf?.replace(/\D+/g, '');
+        if (cpfLimpo && cpfLimpo.length === 11) {
+          if (!qsaPessoasMap.has(cpfLimpo)) {
+            qsaPessoasMap.set(cpfLimpo, {
+              nome: qsa.nome || '',
+              cedentes: [],
+              sacados: []
+            });
+          }
+          const sacados = qsaSacadosMap.get(cpfLimpo) || [];
+          qsaPessoasMap.get(cpfLimpo)!.sacados = [...new Set([...qsaPessoasMap.get(cpfLimpo)!.sacados, ...sacados])];
+          // Atualizar nome se for mais completo
+          if (qsa.nome && qsa.nome.length > qsaPessoasMap.get(cpfLimpo)!.nome.length) {
+            qsaPessoasMap.get(cpfLimpo)!.nome = qsa.nome;
+          }
+        }
+      });
+
+      // Adicionar pessoas do QSA ao mapa final
+      qsaPessoasMap.forEach((dados, cpfLimpo) => {
+        if (!pessoasMap.has(cpfLimpo)) {
+          // Determinar tipo de origem e nome
+          let origemTipo = '';
+          let origemNome = '';
+          
+          if (dados.cedentes.length > 0 && dados.sacados.length > 0) {
+            origemTipo = 'QSA Misto';
+            origemNome = `Cedentes: ${dados.cedentes.join(', ')} | Sacados: ${dados.sacados.join(', ')}`;
+          } else if (dados.cedentes.length > 0) {
+            origemTipo = 'QSA Cedente';
+            origemNome = dados.cedentes.join(', ');
+          } else if (dados.sacados.length > 0) {
+            origemTipo = 'QSA Sacado';
+            origemNome = dados.sacados.join(', ');
+          } else {
+            origemTipo = 'QSA';
+            origemNome = '';
+          }
+          
+          pessoasMap.set(cpfLimpo, {
+            id: `qsa_${cpfLimpo}`,
+            cpf: cpfLimpo,
+            nome: dados.nome,
+            nome_mae: null,
+            data_nascimento: null,
+            rg: null,
+            situacao: 'ativa',
+            observacoes_gerais: null,
+            origem: 'qsa',
+            origem_tipo: origemTipo,
+            origem_nome: origemNome || null,
+            created_at: new Date().toISOString()
+          });
+        }
+      });
+
+      const todasPessoas = Array.from(pessoasMap.values()).sort((a, b) => 
+        a.nome.localeCompare(b.nome)
+      );
+
+      setErr(null);
+      setItems(todasPessoas);
+      console.log(`Carregadas ${todasPessoas.length} pessoas (${pessoasFisicas?.length || 0} cadastradas + ${todasPessoas.length - (pessoasFisicas?.length || 0)} do QSA)`);
+    } catch (err: any) {
+      console.error('Erro ao carregar pessoas físicas:', err);
+      setErr(`Erro inesperado: ${err.message || 'Erro desconhecido'}`);
+      setItems([]);
+    }
   }
 
   async function add() {
@@ -130,10 +313,234 @@ export default function PessoasFisicasPage() {
   }
 
   async function remove(id: string) {
-    if (!confirm('Tem certeza que deseja excluir esta pessoa física?')) return;
-    const { error } = await supabase.from('pessoas_fisicas').update({ ativo: false }).eq('id', id);
-    if (error) alert(error.message);
-    await load();
+    // Se for pessoa do QSA (não cadastrada), não pode excluir
+    if (id.startsWith('qsa_')) {
+      showToast('Esta pessoa está apenas no QSA. Para excluir, remova do QSA do cedente/sacado.', 'warning');
+      return;
+    }
+
+    if (!confirm('Tem certeza que deseja excluir esta pessoa física?\n\nIsso também excluirá esta pessoa de todos os QSAs (cedentes e sacados) onde ela aparece.')) return;
+    
+    setPending(true);
+    try {
+      // Buscar CPF da pessoa antes de excluir
+      const { data: pessoa } = await supabase
+        .from('pessoas_fisicas')
+        .select('cpf')
+        .eq('id', id)
+        .single();
+
+      if (!pessoa) {
+        showToast('Pessoa física não encontrada', 'error');
+        setPending(false);
+        return;
+      }
+
+      const cpfLimpo = pessoa.cpf.replace(/\D+/g, '');
+
+      // Buscar e excluir do QSA de cedentes (CPF pode estar formatado ou não)
+      const { data: qsaCedentes } = await supabase
+        .from('cedentes_qsa')
+        .select('id, cpf')
+        .eq('ativo', true);
+      
+      if (qsaCedentes) {
+        const idsParaExcluir = qsaCedentes
+          .filter((qsa: any) => qsa.cpf && qsa.cpf.replace(/\D+/g, '') === cpfLimpo)
+          .map((qsa: any) => qsa.id);
+        
+        if (idsParaExcluir.length > 0) {
+          await supabase
+            .from('cedentes_qsa')
+            .update({ ativo: false })
+            .in('id', idsParaExcluir);
+        }
+      }
+
+      // Buscar e excluir do QSA de sacados (CPF pode estar formatado ou não)
+      const { data: qsaSacados } = await supabase
+        .from('sacados_qsa')
+        .select('id, cpf')
+        .eq('ativo', true);
+      
+      if (qsaSacados) {
+        const idsParaExcluir = qsaSacados
+          .filter((qsa: any) => qsa.cpf && qsa.cpf.replace(/\D+/g, '') === cpfLimpo)
+          .map((qsa: any) => qsa.id);
+        
+        if (idsParaExcluir.length > 0) {
+          await supabase
+            .from('sacados_qsa')
+            .update({ ativo: false })
+            .in('id', idsParaExcluir);
+        }
+      }
+
+      // Excluir vinculações diretas
+      await supabase
+        .from('pessoas_fisicas_cedentes')
+        .update({ ativo: false })
+        .eq('pessoa_id', id)
+        .eq('ativo', true);
+
+      await supabase
+        .from('pessoas_fisicas_sacados')
+        .update({ ativo: false })
+        .eq('pessoa_id', id)
+        .eq('ativo', true);
+
+      // Excluir a pessoa física
+      const { error } = await supabase
+        .from('pessoas_fisicas')
+        .update({ ativo: false })
+        .eq('id', id);
+
+      if (error) {
+        showToast(error.message, 'error');
+      } else {
+        showToast('Pessoa física e todas as suas vinculações foram excluídas com sucesso!', 'success');
+      }
+    } catch (error: any) {
+      console.error('Erro ao excluir pessoa física:', error);
+      showToast(`Erro ao excluir: ${error.message || 'Erro desconhecido'}`, 'error');
+    } finally {
+      setPending(false);
+      await load();
+      setSelectedIds(new Set());
+    }
+  }
+
+  async function removeSelected() {
+    if (selectedIds.size === 0) {
+      showToast('Selecione pelo menos uma pessoa física para excluir', 'warning');
+      return;
+    }
+
+    // Filtrar apenas IDs de pessoas cadastradas (não do QSA)
+    const idsArray = Array.from(selectedIds).filter(id => !id.startsWith('qsa_'));
+    const qsaIds = Array.from(selectedIds).filter(id => id.startsWith('qsa_'));
+
+    if (qsaIds.length > 0) {
+      showToast(`${qsaIds.length} pessoa(s) selecionada(s) estão apenas no QSA e não podem ser excluídas aqui. Remova-as do QSA do cedente/sacado.`, 'warning');
+    }
+
+    if (idsArray.length === 0) {
+      return;
+    }
+
+    const count = idsArray.length;
+    if (!confirm(`Tem certeza que deseja excluir ${count} pessoa(s) física(s) selecionada(s)?\n\nIsso também excluirá essas pessoas de todos os QSAs (cedentes e sacados) onde elas aparecem.`)) return;
+
+    setPending(true);
+    try {
+      // Buscar CPFs das pessoas antes de excluir
+      const { data: pessoas } = await supabase
+        .from('pessoas_fisicas')
+        .select('id, cpf')
+        .in('id', idsArray);
+
+      if (!pessoas || pessoas.length === 0) {
+        showToast('Nenhuma pessoa física encontrada', 'error');
+        setPending(false);
+        return;
+      }
+
+      const cpfsLimpos = pessoas.map(p => p.cpf.replace(/\D+/g, ''));
+
+      // Buscar e excluir do QSA de cedentes (CPF pode estar formatado ou não)
+      const { data: qsaCedentes } = await supabase
+        .from('cedentes_qsa')
+        .select('id, cpf')
+        .eq('ativo', true);
+      
+      if (qsaCedentes) {
+        const idsParaExcluir = qsaCedentes
+          .filter((qsa: any) => {
+            const cpfQsaLimpo = qsa.cpf?.replace(/\D+/g, '');
+            return cpfQsaLimpo && cpfsLimpos.includes(cpfQsaLimpo);
+          })
+          .map((qsa: any) => qsa.id);
+        
+        if (idsParaExcluir.length > 0) {
+          await supabase
+            .from('cedentes_qsa')
+            .update({ ativo: false })
+            .in('id', idsParaExcluir);
+        }
+      }
+
+      // Buscar e excluir do QSA de sacados (CPF pode estar formatado ou não)
+      const { data: qsaSacados } = await supabase
+        .from('sacados_qsa')
+        .select('id, cpf')
+        .eq('ativo', true);
+      
+      if (qsaSacados) {
+        const idsParaExcluir = qsaSacados
+          .filter((qsa: any) => {
+            const cpfQsaLimpo = qsa.cpf?.replace(/\D+/g, '');
+            return cpfQsaLimpo && cpfsLimpos.includes(cpfQsaLimpo);
+          })
+          .map((qsa: any) => qsa.id);
+        
+        if (idsParaExcluir.length > 0) {
+          await supabase
+            .from('sacados_qsa')
+            .update({ ativo: false })
+            .in('id', idsParaExcluir);
+        }
+      }
+
+      // Excluir vinculações diretas
+      await supabase
+        .from('pessoas_fisicas_cedentes')
+        .update({ ativo: false })
+        .in('pessoa_id', idsArray)
+        .eq('ativo', true);
+
+      await supabase
+        .from('pessoas_fisicas_sacados')
+        .update({ ativo: false })
+        .in('pessoa_id', idsArray)
+        .eq('ativo', true);
+
+      // Excluir as pessoas físicas
+      const { error } = await supabase
+        .from('pessoas_fisicas')
+        .update({ ativo: false })
+        .in('id', idsArray);
+
+      if (error) {
+        showToast(`Erro ao excluir: ${error.message}`, 'error');
+      } else {
+        showToast(`${count} pessoa(s) física(s) e todas as suas vinculações foram excluídas com sucesso!`, 'success');
+        await load();
+        setSelectedIds(new Set());
+      }
+    } catch (error: any) {
+      console.error('Erro ao excluir pessoas físicas:', error);
+      showToast(`Erro ao excluir: ${error.message || 'Erro desconhecido'}`, 'error');
+    } finally {
+      setPending(false);
+    }
+  }
+
+  function toggleSelect(id: string) {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedIds(newSelected);
+  }
+
+  function toggleSelectAll() {
+    if (selectedIds.size === filtered.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filtered.map(item => item.id)));
+    }
   }
 
   const filtered = useMemo(() => {
@@ -143,13 +550,26 @@ export default function PessoasFisicasPage() {
       result = result.filter(item => item.situacao === filterSituacao);
     }
     
+    if (filterOrigem !== 'all') {
+      result = result.filter(item => {
+        if (filterOrigem === 'cadastro_direto') {
+          return item.origem_tipo === 'Cadastro Direto';
+        } else if (filterOrigem === 'qsa_cedente') {
+          return item.origem_tipo === 'QSA Cedente' || item.origem_tipo === 'QSA Misto';
+        } else if (filterOrigem === 'qsa_sacado') {
+          return item.origem_tipo === 'QSA Sacado' || item.origem_tipo === 'QSA Misto';
+        }
+        return true;
+      });
+    }
+    
     if (q.trim()) {
       const query = q.trim().toLowerCase();
       result = result.filter(item => 
         item.nome.toLowerCase().includes(query) ||
-        item.cpf.replace(/\D+/g, '').includes(query) ||
-        (item.rg && item.rg.toLowerCase().includes(query)) ||
-        (item.nome_mae && item.nome_mae.toLowerCase().includes(query))
+        item.cpf.replace(/\D+/g, '').includes(query.replace(/\D+/g, '')) ||
+        (item.nome_mae && item.nome_mae.toLowerCase().includes(query)) ||
+        (item.origem_nome && item.origem_nome.toLowerCase().includes(query))
       );
     }
     
@@ -157,12 +577,12 @@ export default function PessoasFisicasPage() {
       const aVal = a[sortBy] || '';
       const bVal = b[sortBy] || '';
       if (sortDir === 'asc') {
-        return aVal > bVal ? 1 : -1;
+        return String(aVal).localeCompare(String(bVal));
       } else {
-        return aVal < bVal ? 1 : -1;
+        return String(bVal).localeCompare(String(aVal));
       }
     });
-  }, [items, q, sortBy, sortDir, filterSituacao]);
+  }, [items, q, sortBy, sortDir, filterSituacao, filterOrigem]);
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -192,78 +612,157 @@ export default function PessoasFisicasPage() {
 
         {/* Toolbar */}
         <div className="bg-white border border-gray-300">
-          <div className="border-b border-gray-300 bg-gray-100 px-4 py-2">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-gray-700 uppercase">Filtros e Ações</h2>
-              <Button variant="primary" onClick={() => setShowCreate(true)}>
-                + Nova Pessoa Física
-              </Button>
+          <div className="border-b border-gray-300 bg-gray-50 px-4 py-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <h2 className="text-sm font-semibold text-gray-700 uppercase mb-1">Filtros e Ações</h2>
+                <p className="text-xs text-gray-500">
+                  {filtered.length} de {items.length} pessoa(s) física(s)
+                  {filterOrigem !== 'all' || filterSituacao !== 'all' || q.trim() ? ' (filtradas)' : ''}
+                </p>
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                {selectedIds.size > 0 && (
+                  <Button 
+                    variant="error" 
+                    onClick={removeSelected}
+                    disabled={pending}
+                    className="text-xs"
+                  >
+                    Excluir Selecionadas ({selectedIds.size})
+                  </Button>
+                )}
+                <Button variant="primary" onClick={() => setShowCreate(true)} className="text-xs">
+                  + Nova Pessoa Física
+                </Button>
+              </div>
             </div>
           </div>
-          <div className="p-4 grid gap-4 sm:grid-cols-3">
-            <Input
-              label="Buscar"
-              placeholder="Nome, CPF, RG ou Nome da Mãe..."
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-            />
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Situação</label>
-              <select 
-                className="w-full px-3 py-2 border border-gray-300 text-sm"
-                value={filterSituacao}
-                onChange={(e) => setFilterSituacao(e.target.value)}
-              >
-                <option value="all">Todas</option>
-                <option value="ativa">Ativa</option>
-                <option value="inativa">Inativa</option>
-                <option value="falecida">Falecida</option>
-              </select>
+          <div className="p-4">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="sm:col-span-2">
+                <Input
+                  label="Buscar"
+                  placeholder="Nome, CPF ou Nome da Mãe..."
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Origem</label>
+                <select 
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  value={filterOrigem}
+                  onChange={(e) => setFilterOrigem(e.target.value)}
+                >
+                  <option value="all">Todas as origens</option>
+                  <option value="cadastro_direto">Cadastro Direto</option>
+                  <option value="qsa_cedente">QSA Cedente</option>
+                  <option value="qsa_sacado">QSA Sacado</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Situação</label>
+                <select 
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  value={filterSituacao}
+                  onChange={(e) => setFilterSituacao(e.target.value)}
+                >
+                  <option value="all">Todas</option>
+                  <option value="ativa">Ativa</option>
+                  <option value="inativa">Inativa</option>
+                  <option value="falecida">Falecida</option>
+                </select>
+              </div>
             </div>
-            <div className="flex items-end gap-2">
+            <div className="mt-4 flex items-center justify-between">
               <button
-                className="px-3 py-2 border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 text-sm font-medium"
+                className="px-4 py-2 border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 text-sm font-medium rounded-md transition-colors"
                 onClick={() => {
                   setQ('');
                   setFilterSituacao('all');
+                  setFilterOrigem('all');
                 }}
               >
-                Limpar
+                Limpar Filtros
               </button>
+              <div className="flex gap-1">
+                <button
+                  onClick={() => setViewMode('table')}
+                  className={`px-3 py-1.5 text-xs font-medium border border-gray-300 rounded-md transition-colors ${
+                    viewMode === 'table' 
+                      ? 'bg-blue-50 text-blue-700 border-blue-300' 
+                      : 'bg-white text-gray-700 hover:bg-gray-50'
+                  }`}
+                  title="Visualização em tabela"
+                >
+                  Tabela
+                </button>
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`px-3 py-1.5 text-xs font-medium border border-gray-300 rounded-md transition-colors ${
+                    viewMode === 'grid' 
+                      ? 'bg-blue-50 text-blue-700 border-blue-300' 
+                      : 'bg-white text-gray-700 hover:bg-gray-50'
+                  }`}
+                  title="Visualização em grade"
+                >
+                  Grade
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Tabela */}
         <div className="bg-white border border-gray-300">
-          <div className="border-b border-gray-300 bg-gray-100 px-4 py-2 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-gray-700 uppercase">
-              Lista de Pessoas Físicas ({filtered.length})
-            </h2>
-            <div className="flex items-center gap-2">
-              <button
-                className={`px-2 py-1 text-xs border border-gray-300 ${viewMode === 'table' ? 'bg-gray-200' : 'bg-white'}`}
-                onClick={() => setViewMode('table')}
-              >
-                Tabela
-              </button>
-              <button
-                className={`px-2 py-1 text-xs border border-gray-300 ${viewMode === 'grid' ? 'bg-gray-200' : 'bg-white'}`}
-                onClick={() => setViewMode('grid')}
-              >
-                Grade
-              </button>
+          <div className="border-b border-gray-300 bg-gray-50 px-4 py-2 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <h2 className="text-sm font-semibold text-gray-700 uppercase">
+                Lista de Pessoas Físicas
+              </h2>
+              {filtered.length > 0 && (
+                <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer hover:text-gray-800">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.size === filtered.length && filtered.length > 0}
+                    onChange={toggleSelectAll}
+                    className="w-4 h-4 text-[#0369a1] border-gray-300 rounded focus:ring-[#0369a1]"
+                  />
+                  <span>Selecionar todas</span>
+                </label>
+              )}
             </div>
           </div>
           <div className="overflow-x-auto">
-            {filtered.length === 0 ? (
-              <div className="p-8 text-center text-gray-600">
-                <p>Nenhuma pessoa física encontrada</p>
+            {err && (
+              <div className="p-4 bg-red-50 border-l-4 border-red-500 text-red-700">
+                <p className="font-medium">Erro:</p>
+                <p className="text-sm">{err}</p>
+                {err.includes('não encontrada') && (
+                  <p className="text-xs mt-2">
+                    Execute o script <code className="bg-red-100 px-1 rounded">database_schema_pessoas_fisicas.sql</code> no Supabase SQL Editor.
+                  </p>
+                )}
               </div>
-            ) : viewMode === 'table' ? (
+            )}
+            {filtered.length === 0 && !err ? (
+              <div className="p-8 text-center text-gray-600">
+                <p className="mb-2">Nenhuma pessoa física encontrada</p>
+                <p className="text-xs text-gray-500">Clique em "+ Nova Pessoa Física" para cadastrar</p>
+              </div>
+            ) : filtered.length === 0 && err ? null : viewMode === 'table' ? (
               <table className="w-full border-collapse">
                 <thead className="bg-gray-100 border-b-2 border-gray-300">
                   <tr>
+                    <th className="px-4 py-2 text-center text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 w-12">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.size === filtered.length && filtered.length > 0}
+                        onChange={toggleSelectAll}
+                        className="w-4 h-4 text-[#0369a1] border-gray-300 rounded focus:ring-[#0369a1]"
+                      />
+                    </th>
                     <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">
                       <button onClick={() => { setSortBy('nome'); setSortDir(sortBy === 'nome' && sortDir === 'asc' ? 'desc' : 'asc'); }}>
                         Nome {sortBy === 'nome' && (sortDir === 'asc' ? '↑' : '↓')}
@@ -274,8 +773,8 @@ export default function PessoasFisicasPage() {
                         CPF {sortBy === 'cpf' && (sortDir === 'asc' ? '↑' : '↓')}
                       </button>
                     </th>
-                    <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">RG</th>
-                    <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Data Nasc.</th>
+                    <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Origem</th>
+                    <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Cedente/Sacado</th>
                     <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">
                       <button onClick={() => { setSortBy('situacao'); setSortDir(sortBy === 'situacao' && sortDir === 'asc' ? 'desc' : 'asc'); }}>
                         Situação {sortBy === 'situacao' && (sortDir === 'asc' ? '↑' : '↓')}
@@ -286,7 +785,15 @@ export default function PessoasFisicasPage() {
                 </thead>
                 <tbody>
                   {filtered.map((item) => (
-                    <tr key={item.id} className="hover:bg-gray-50 border-b border-gray-300">
+                    <tr key={item.id} className={`hover:bg-gray-50 border-b border-gray-300 ${selectedIds.has(item.id) ? 'bg-blue-50' : ''}`}>
+                      <td className="px-4 py-2 text-center border-r border-gray-300">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(item.id)}
+                          onChange={() => toggleSelect(item.id)}
+                          className="w-4 h-4 text-[#0369a1] border-gray-300 rounded focus:ring-[#0369a1] cursor-pointer"
+                        />
+                      </td>
                       <td className="px-4 py-2 text-sm text-gray-900 border-r border-gray-300">
                         <Link href={`/pessoas-fisicas/${encodeURIComponent(item.cpf)}`} className="text-[#0369a1] hover:underline font-medium">
                           {item.nome}
@@ -296,10 +803,10 @@ export default function PessoasFisicasPage() {
                         {formatCpfCnpj(item.cpf)}
                       </td>
                       <td className="px-4 py-2 text-sm text-gray-600 border-r border-gray-300">
-                        {item.rg || '—'}
+                        {item.origem_tipo || (item.origem === 'manual' ? 'Cadastro Direto' : item.origem || '—')}
                       </td>
-                      <td className="px-4 py-2 text-sm text-gray-600 border-r border-gray-300">
-                        {item.data_nascimento ? new Date(item.data_nascimento).toLocaleDateString('pt-BR') : '—'}
+                      <td className="px-4 py-2 text-sm text-gray-700 border-r border-gray-300">
+                        {item.origem_nome || '—'}
                       </td>
                       <td className="px-4 py-2 border-r border-gray-300">
                         <Badge variant={item.situacao === 'ativa' ? 'success' : item.situacao === 'falecida' ? 'error' : 'warning'}>
@@ -328,32 +835,62 @@ export default function PessoasFisicasPage() {
             ) : (
               <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filtered.map((item) => (
-                  <div key={item.id} className="border border-gray-300 p-4 hover:bg-gray-50">
+                  <div key={item.id} className={`border border-gray-300 p-4 hover:bg-gray-50 ${selectedIds.has(item.id) ? 'bg-blue-50 border-blue-300' : ''}`}>
                     <div className="flex items-start justify-between mb-2">
-                      <Link href={`/pessoas-fisicas/${encodeURIComponent(item.cpf)}`} className="text-[#0369a1] hover:underline font-semibold">
-                        {item.nome}
-                      </Link>
+                      <div className="flex items-center gap-2 flex-1">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(item.id)}
+                          onChange={() => toggleSelect(item.id)}
+                          className="w-4 h-4 text-[#0369a1] border-gray-300 rounded focus:ring-[#0369a1] cursor-pointer"
+                        />
+                        <Link href={`/pessoas-fisicas/${encodeURIComponent(item.cpf)}`} className="text-[#0369a1] hover:underline font-semibold">
+                          {item.nome}
+                        </Link>
+                      </div>
                       <Badge variant={item.situacao === 'ativa' ? 'success' : item.situacao === 'falecida' ? 'error' : 'warning'}>
                         {item.situacao || 'ativa'}
                       </Badge>
                     </div>
                     <div className="text-xs text-gray-600 space-y-1">
                       <p><strong>CPF:</strong> {formatCpfCnpj(item.cpf)}</p>
-                      {item.rg && <p><strong>RG:</strong> {item.rg}</p>}
-                      {item.data_nascimento && <p><strong>Nascimento:</strong> {new Date(item.data_nascimento).toLocaleDateString('pt-BR')}</p>}
+                      <p><strong>Origem:</strong> {item.origem_tipo || (item.origem === 'manual' ? 'Cadastro Direto' : item.origem || '—')}</p>
+                      {item.origem_nome && <p><strong>Cedente/Sacado:</strong> {item.origem_nome}</p>}
                     </div>
                     <div className="mt-3 flex gap-2">
-                      <Link href={`/pessoas-fisicas/${encodeURIComponent(item.cpf)}/editar`} className="flex-1">
-                        <button className="w-full px-2 py-1 border border-gray-300 bg-white hover:bg-gray-50 text-[#0369a1] text-xs font-medium">
-                          Editar
-                        </button>
-                      </Link>
-                      <button 
-                        className="px-2 py-1 border border-gray-300 bg-white hover:bg-gray-50 text-red-600 text-xs font-medium"
-                        onClick={() => remove(item.id)}
-                      >
-                        Excluir
-                      </button>
+                      {item.id.startsWith('qsa_') ? (
+                        <>
+                          <Badge variant="info" size="sm" className="flex-1">Apenas QSA</Badge>
+                          <button 
+                            className="px-2 py-1 border border-gray-300 bg-gray-100 text-gray-400 text-xs font-medium cursor-not-allowed"
+                            disabled
+                            title="Esta pessoa está apenas no QSA"
+                          >
+                            Editar
+                          </button>
+                          <button 
+                            className="px-2 py-1 border border-gray-300 bg-gray-100 text-gray-400 text-xs font-medium cursor-not-allowed"
+                            disabled
+                            title="Esta pessoa está apenas no QSA"
+                          >
+                            Excluir
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <Link href={`/pessoas-fisicas/${encodeURIComponent(item.cpf)}/editar`} className="flex-1">
+                            <button className="w-full px-2 py-1 border border-gray-300 bg-white hover:bg-gray-50 text-[#0369a1] text-xs font-medium">
+                              Editar
+                            </button>
+                          </Link>
+                          <button 
+                            className="px-2 py-1 border border-gray-300 bg-white hover:bg-gray-50 text-red-600 text-xs font-medium"
+                            onClick={() => remove(item.id)}
+                          >
+                            Excluir
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                 ))}

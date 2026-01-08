@@ -13,12 +13,12 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     const baseClasses = 'inline-flex items-center justify-center font-medium rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
     
     const variants = {
-      primary: 'bg-[#0369a1] text-white hover:bg-[#075985] focus:ring-[#0369a1] border border-[#0369a1]',
+      primary: 'bg-[#0369a1] !text-white hover:bg-[#075985] focus:ring-[#0369a1] border border-[#0369a1]',
       secondary: 'bg-[#f1f5f9] text-[#1e293b] hover:bg-[#e2e8f0] focus:ring-[#64748b] border border-[#cbd5e1]',
-      success: 'bg-[#10b981] text-white hover:bg-[#059669] focus:ring-[#10b981] border border-[#10b981]',
-      warning: 'bg-[#f59e0b] text-white hover:bg-[#d97706] focus:ring-[#f59e0b] border border-[#f59e0b]',
-      error: 'bg-[#ef4444] text-white hover:bg-[#dc2626] focus:ring-[#ef4444] border border-[#ef4444]',
-      neutral: 'bg-[#64748b] text-white hover:bg-[#475569] focus:ring-[#64748b] border border-[#64748b]',
+      success: 'bg-[#10b981] !text-white hover:bg-[#059669] focus:ring-[#10b981] border border-[#10b981]',
+      warning: 'bg-[#f59e0b] !text-white hover:bg-[#d97706] focus:ring-[#f59e0b] border border-[#f59e0b]',
+      error: 'bg-[#ef4444] !text-white hover:bg-[#dc2626] focus:ring-[#ef4444] border border-[#ef4444]',
+      neutral: 'bg-[#64748b] !text-white hover:bg-[#475569] focus:ring-[#64748b] border border-[#64748b]',
       outline: 'border-2 border-[#0369a1] text-[#0369a1] hover:bg-[#f0f7ff] hover:border-[#075985] focus:ring-[#0369a1] bg-white',
     };
     

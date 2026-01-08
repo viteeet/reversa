@@ -9,6 +9,7 @@ import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import { useToast } from '@/components/ui/ToastContainer';
 import * as XLSX from 'xlsx';
+import TitulosAtividadesManager from '@/components/atividades/TitulosAtividadesManager';
 
 type TituloNegociado = {
   id: string;
@@ -24,6 +25,7 @@ type TituloNegociado = {
   critica: string | null;
   checagem: string | null;
   vadu: string | null;
+  quantidade_atividades?: number;
   sacado?: {
     razao_social: string;
     nome_fantasia: string | null;
@@ -96,6 +98,7 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
   const [dadosImportados, setDadosImportados] = useState<any[]>([]);
   const [consultarAPIsImportacao, setConsultarAPIsImportacao] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [tituloSelecionadoParaAtividades, setTituloSelecionadoParaAtividades] = useState<TituloNegociado | null>(null);
 
   // Formulário de novo título
   const [formTitulo, setFormTitulo] = useState({
@@ -151,18 +154,25 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
 
       if (error) throw error;
 
-      // Carrega informações dos sacados separadamente
+      // Carrega informações dos sacados e contagem de atividades separadamente
       const titulosComSacado = await Promise.all(
         (data || []).map(async (titulo: any) => {
-          const { data: sacadoData } = await supabase
-            .from('sacados')
-            .select('razao_social, nome_fantasia')
-            .eq('cnpj', titulo.sacado_cnpj)
-            .single();
+          const [sacadoResult, atividadesResult] = await Promise.all([
+            supabase
+              .from('sacados')
+              .select('razao_social, nome_fantasia')
+              .eq('cnpj', titulo.sacado_cnpj)
+              .single(),
+            supabase
+              .from('titulos_atividades')
+              .select('id', { count: 'exact', head: true })
+              .eq('titulo_id', titulo.id)
+          ]);
 
           return {
             ...titulo,
-            sacado: sacadoData || null,
+            sacado: sacadoResult.data || null,
+            quantidade_atividades: atividadesResult.count || 0,
           };
         })
       );
@@ -1262,13 +1272,14 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
               <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Vencimento</th>
               <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Status</th>
               <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Crítica</th>
+              <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Atividades</th>
               <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase">Ações</th>
             </tr>
           </thead>
           <tbody>
             {titulosFiltrados.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
+                <td colSpan={10} className="px-4 py-8 text-center text-gray-500">
                   Nenhum título encontrado
                 </td>
               </tr>
@@ -1317,8 +1328,26 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
                   <td className="px-4 py-2 text-sm text-gray-600 border-r border-gray-300">
                     {titulo.critica || '—'}
                   </td>
+                  <td className="px-4 py-2 text-center border-r border-gray-300">
+                    {titulo.quantidade_atividades !== undefined ? (
+                      <Badge variant="info" size="sm" className="text-xs">
+                        {titulo.quantidade_atividades}
+                      </Badge>
+                    ) : (
+                      <span className="text-gray-400">—</span>
+                    )}
+                  </td>
                   <td className="px-4 py-2">
                     <div className="flex gap-1">
+                      <button
+                        onClick={() => {
+                          setTituloSelecionadoParaAtividades(titulo);
+                        }}
+                        className="px-2 py-1 border border-blue-300 bg-white hover:bg-blue-50 text-blue-600 text-xs font-medium"
+                        title="Histórico de Cobrança"
+                      >
+                        Cobrança
+                      </button>
                       <button
                         onClick={() => {
                           setTituloEditando(titulo);
@@ -2513,6 +2542,36 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
                 )}
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Histórico de Cobrança do Título */}
+      {tituloSelecionadoParaAtividades && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-6xl w-full max-h-[95vh] flex flex-col">
+            <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 flex-shrink-0">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Histórico de Cobrança - Título #{tituloSelecionadoParaAtividades.numero_titulo}
+              </h3>
+              <button
+                onClick={() => {
+                  setTituloSelecionadoParaAtividades(null);
+                  // Recarregar títulos para atualizar contagem de atividades
+                  loadTitulos();
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto flex-1">
+              <TitulosAtividadesManager
+                tituloId={tituloSelecionadoParaAtividades.id}
+                numeroTitulo={tituloSelecionadoParaAtividades.numero_titulo}
+                sacadoNome={tituloSelecionadoParaAtividades.sacado?.razao_social || tituloSelecionadoParaAtividades.sacado?.nome_fantasia || tituloSelecionadoParaAtividades.sacado_cnpj}
+              />
+            </div>
           </div>
         </div>
       )}

@@ -112,12 +112,30 @@ export default function MenuConfiguracoesPage() {
                 </div>
               </div>
             </Link>
-            <Link href="/settings/finance/meios" className="p-4 hover:bg-gray-50 transition-colors">
+            <Link href="/settings/finance/meios" className="p-4 hover:bg-gray-50 transition-colors border-r-0 sm:border-r border-gray-300">
               <div className="flex items-center gap-3">
                 <div className="text-xl">💳</div>
                 <div>
                   <h3 className="text-sm font-semibold text-gray-900">Meios</h3>
                   <p className="text-xs text-gray-600">Meios de pagamento</p>
+                </div>
+              </div>
+            </Link>
+            <Link href="/settings/finance/recorrencias" className="p-4 hover:bg-gray-50 transition-colors border-r-0 sm:border-r border-gray-300">
+              <div className="flex items-center gap-3">
+                <div className="text-xl">🔄</div>
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900">Recorrências</h3>
+                  <p className="text-xs text-gray-600">Lançamentos recorrentes</p>
+                </div>
+              </div>
+            </Link>
+            <Link href="/settings/finance/elementos" className="p-4 hover:bg-gray-50 transition-colors border-r-0 sm:border-r border-gray-300">
+              <div className="flex items-center gap-3">
+                <div className="text-xl">📊</div>
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900">Elementos</h3>
+                  <p className="text-xs text-gray-600">Elementos financeiros</p>
                 </div>
               </div>
             </Link>

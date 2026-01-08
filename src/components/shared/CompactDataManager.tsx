@@ -7,6 +7,7 @@ import Tooltip from '@/components/ui/Tooltip';
 import Skeleton from '@/components/ui/Skeleton';
 import { useToast } from '@/components/ui/ToastContainer';
 import { supabase } from '@/lib/supabase';
+import PessoaLigadaSelector from './PessoaLigadaSelector';
 
 type DataItem = {
   id?: string;
@@ -245,8 +246,30 @@ export default function CompactDataManager({
     }
   };
 
-  const renderField = (field: any, value: any, onChange: (val: any) => void) => {
+  const renderField = (field: any, value: any, onChange: (val: any) => void, formState?: any) => {
     const baseClass = `w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors`;
+    
+    // Se for campo CPF na tabela de pessoas_ligadas, usar o seletor especial
+    if (field.key === 'cpf' && (tableName === 'cedentes_pessoas_ligadas' || tableName === 'sacados_pessoas_ligadas')) {
+      const nomeField = fields.find(f => f.key === 'nome');
+      return (
+        <PessoaLigadaSelector
+          value={value || ''}
+          onCpfChange={(cpf) => {
+            onChange(cpf);
+          }}
+          onSelect={(pessoa) => {
+            // Callback quando pessoa é selecionada
+          }}
+          onNomeChange={(nome) => {
+            // Preencher nome automaticamente quando pessoa for encontrada/selecionada
+            if (nomeField && formState && formState.setNome) {
+              formState.setNome(nome);
+            }
+          }}
+        />
+      );
+    }
     
     if (field.type === 'select') {
       return (
@@ -409,7 +432,19 @@ export default function CompactDataManager({
                 className={field.width === 'full' ? 'md:col-span-2 lg:col-span-3' : field.width === 'half' ? 'md:col-span-1 lg:col-span-2' : ''}
               >
                 {renderFieldLabel(field)}
-                {renderField(field, newItemForm[field.key], (val: any) => setNewItemForm({ ...newItemForm, [field.key]: val }))}
+                {renderField(
+                  field, 
+                  newItemForm[field.key], 
+                  (val: any) => {
+                    const updated = { ...newItemForm, [field.key]: val };
+                    setNewItemForm(updated);
+                  },
+                  {
+                    setNome: (nome: string) => {
+                      setNewItemForm({ ...newItemForm, nome });
+                    }
+                  }
+                )}
               </div>
             ))}
           </div>
@@ -473,7 +508,19 @@ export default function CompactDataManager({
                         className={field.width === 'full' ? 'md:col-span-2 lg:col-span-3' : field.width === 'half' ? 'md:col-span-1 lg:col-span-2' : ''}
                       >
                         {renderFieldLabel(field)}
-                        {renderField(field, editForm[field.key], (val: any) => setEditForm({ ...editForm, [field.key]: val }))}
+                        {renderField(
+                          field, 
+                          editForm[field.key], 
+                          (val: any) => {
+                            const updated = { ...editForm, [field.key]: val };
+                            setEditForm(updated);
+                          },
+                          {
+                            setNome: (nome: string) => {
+                              setEditForm({ ...editForm, nome });
+                            }
+                          }
+                        )}
                       </div>
                     ))}
                   </div>
@@ -493,9 +540,19 @@ export default function CompactDataManager({
                         );
                       })}
                       <div className="flex items-baseline gap-1.5">
-                        <Badge variant={item.origem === 'api' ? 'info' : 'neutral'} size="sm">
-                          {item.origem === 'api' ? 'API' : 'Manual'}
-                        </Badge>
+                        {item._from_pessoa_fisica ? (
+                          <Badge variant="success" size="sm" title="Vinculada de Pessoas Físicas">
+                            👤 Pessoa Física
+                          </Badge>
+                        ) : item.origem === 'api' ? (
+                          <Badge variant="info" size="sm">
+                            API
+                          </Badge>
+                        ) : (
+                          <Badge variant="neutral" size="sm">
+                            Manual
+                          </Badge>
+                        )}
                       </div>
                     </div>
                     <div className="flex gap-1.5 shrink-0">
@@ -518,20 +575,48 @@ export default function CompactDataManager({
                           </button>
                         )
                       )}
-                      <button 
-                        onClick={() => handleEdit(item)} 
-                        disabled={loading || deletingId === item.id}
-                        className="px-2.5 py-1 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 transition-colors"
-                      >
-                        Editar
-                      </button>
-                      <button 
-                        onClick={() => handleDelete(item.id!)} 
-                        disabled={loading || deletingId === item.id}
-                        className="px-2.5 py-1 text-xs font-medium text-red-600 bg-white border border-red-300 rounded-md hover:bg-red-50 disabled:opacity-50 transition-colors"
-                      >
-                        {deletingId === item.id ? '...' : 'Excluir'}
-                      </button>
+                      {item._from_pessoa_fisica ? (
+                        <Tooltip content="Esta pessoa é gerenciada em Pessoas Físicas → Vinculações">
+                          <span>
+                            <button 
+                              disabled
+                              className="px-2.5 py-1 text-xs font-medium text-gray-400 bg-gray-100 border border-gray-300 rounded-md cursor-not-allowed"
+                              title="Gerenciar em Pessoas Físicas"
+                            >
+                              Editar
+                            </button>
+                          </span>
+                        </Tooltip>
+                      ) : (
+                        <button 
+                          onClick={() => handleEdit(item)} 
+                          disabled={loading || deletingId === item.id}
+                          className="px-2.5 py-1 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                        >
+                          Editar
+                        </button>
+                      )}
+                      {item._from_pessoa_fisica ? (
+                        <Tooltip content="Esta pessoa é gerenciada em Pessoas Físicas → Vinculações">
+                          <span>
+                            <button 
+                              disabled
+                              className="px-2.5 py-1 text-xs font-medium text-gray-400 bg-gray-100 border border-gray-300 rounded-md cursor-not-allowed"
+                              title="Gerenciar em Pessoas Físicas"
+                            >
+                              Excluir
+                            </button>
+                          </span>
+                        </Tooltip>
+                      ) : (
+                        <button 
+                          onClick={() => handleDelete(item.id!)} 
+                          disabled={loading || deletingId === item.id}
+                          className="px-2.5 py-1 text-xs font-medium text-red-600 bg-white border border-red-300 rounded-md hover:bg-red-50 disabled:opacity-50 transition-colors"
+                        >
+                          {deletingId === item.id ? '...' : 'Excluir'}
+                        </button>
+                      )}
                     </div>
                   </div>
                   {showDetailsButton && showDetailsId === item.id && item.observacoes && (

@@ -17,10 +17,12 @@ type AtividadeCompleta = {
   proxima_acao?: string;
   data_lembrete?: string;
   observacoes?: string;
-  tipo_entidade: 'sacado' | 'cedente';
+  tipo_entidade: 'sacado' | 'cedente' | 'titulo';
   entidade_id: string;
   entidade_nome: string;
   link: string;
+  titulo_numero?: string;
+  cedente_id?: string;
 };
 
 type AtividadesPorData = {
@@ -35,6 +37,7 @@ export default function AtividadesAgendadasPage() {
   const [filtroStatus, setFiltroStatus] = useState<'todos' | 'pendente' | 'concluida'>('todos');
   const [filtroTipo, setFiltroTipo] = useState<string>('todos');
   const [filtroPeriodo, setFiltroPeriodo] = useState<'hoje' | 'semana' | 'mes' | 'todos'>('todos');
+  const [filtroOrigem, setFiltroOrigem] = useState<'todos' | 'sacado' | 'cedente' | 'titulo'>('todos');
   const [dataSelecionada, setDataSelecionada] = useState<string>('');
 
   const tiposAtividade = [
@@ -86,7 +89,7 @@ export default function AtividadesAgendadasPage() {
           .lte('data_hora', dataFim.toISOString());
       }
       
-      sacadosQuery = sacadosQuery.order('data_hora', { ascending: false });
+      const sacadosQueryFinal = sacadosQuery.order('data_hora', { ascending: false });
 
       // Buscar sacados para obter nomes
       const sacadosNomesQuery = supabase
@@ -105,44 +108,97 @@ export default function AtividadesAgendadasPage() {
           .lte('data_hora', dataFim.toISOString());
       }
       
-      cedentesQuery = cedentesQuery.order('data_hora', { ascending: false });
+      const cedentesQueryFinal = cedentesQuery.order('data_hora', { ascending: false });
 
       // Buscar cedentes para obter nomes
       const cedentesNomesQuery = supabase
         .from('cedentes')
         .select('id, nome');
 
+      // Buscar atividades de títulos
+      let titulosQuery = supabase
+        .from('titulos_atividades')
+        .select('id, tipo, descricao, data_hora, status, proxima_acao, data_lembrete, observacoes, titulo_id');
+      
+      // Aplicar filtro de data apenas se não for "todos"
+      if (filtroPeriodo !== 'todos') {
+        titulosQuery = titulosQuery
+          .gte('data_hora', dataInicio.toISOString())
+          .lte('data_hora', dataFim.toISOString());
+      }
+      
+      const titulosQueryFinal = titulosQuery.order('data_hora', { ascending: false });
+
+      // Buscar informações dos títulos (número do título e cedente_id)
+      const titulosInfoQuery = supabase
+        .from('titulos_negociados')
+        .select('id, numero_titulo, cedente_id');
+
       const [
         { data: sacadosData, error: sacadosError },
         { data: sacadosNomesData, error: sacadosNomesError },
         { data: cedentesData, error: cedentesError },
-        { data: cedentesNomesData, error: cedentesNomesError }
+        { data: cedentesNomesData, error: cedentesNomesError },
+        { data: titulosData, error: titulosError },
+        { data: titulosInfoData, error: titulosInfoError }
       ] = await Promise.all([
-        sacadosQuery,
+        sacadosQueryFinal,
         sacadosNomesQuery,
-        cedentesQuery,
-        cedentesNomesQuery
+        cedentesQueryFinal,
+        cedentesNomesQuery,
+        titulosQueryFinal,
+        titulosInfoQuery
       ]);
 
-      // Tratar erros silenciosamente (tabelas podem não existir)
-      if (sacadosError && sacadosError.code !== 'PGRST116' && sacadosError.code !== '42P01') {
-        console.error('Erro ao buscar atividades de sacados:', sacadosError);
-      }
-      if (cedentesError && cedentesError.code !== 'PGRST116' && cedentesError.code !== '42P01') {
-        console.error('Erro ao buscar atividades de cedentes:', cedentesError);
-      }
+      // Tratar erros - se a tabela não existir, usar array vazio
+      const sacadosResult = { 
+        data: sacadosError && (sacadosError.code === 'PGRST116' || sacadosError.code === '42P01') ? [] : sacadosData, 
+        error: sacadosError && (sacadosError.code !== 'PGRST116' && sacadosError.code !== '42P01') ? sacadosError : null
+      };
+      
+      const sacadosNomesResult = { 
+        data: sacadosNomesError && (sacadosNomesError.code === 'PGRST116' || sacadosNomesError.code === '42P01') ? [] : sacadosNomesData, 
+        error: sacadosNomesError && (sacadosNomesError.code !== 'PGRST116' && sacadosNomesError.code !== '42P01') ? sacadosNomesError : null
+      };
+      
+      const cedentesResult = { 
+        data: cedentesError && (cedentesError.code === 'PGRST116' || cedentesError.code === '42P01') ? [] : cedentesData, 
+        error: cedentesError && (cedentesError.code !== 'PGRST116' && cedentesError.code !== '42P01') ? cedentesError : null
+      };
+      
+      const cedentesNomesResult = { 
+        data: cedentesNomesError && (cedentesNomesError.code === 'PGRST116' || cedentesNomesError.code === '42P01') ? [] : cedentesNomesData, 
+        error: cedentesNomesError && (cedentesNomesError.code !== 'PGRST116' && cedentesNomesError.code !== '42P01') ? cedentesNomesError : null
+      };
 
-      const sacadosResult = { data: sacadosData, error: sacadosError };
-      const sacadosNomesResult = { data: sacadosNomesData, error: sacadosNomesError };
-      const cedentesResult = { data: cedentesData, error: cedentesError };
-      const cedentesNomesResult = { data: cedentesNomesData, error: cedentesNomesError };
+      const titulosResult = { 
+        data: titulosError && (titulosError.code === 'PGRST116' || titulosError.code === '42P01') ? [] : titulosData, 
+        error: titulosError && (titulosError.code !== 'PGRST116' && titulosError.code !== '42P01') ? titulosError : null
+      };
+
+      const titulosInfoResult = { 
+        data: titulosInfoError && (titulosInfoError.code === 'PGRST116' || titulosInfoError.code === '42P01') ? [] : titulosInfoData, 
+        error: titulosInfoError && (titulosInfoError.code !== 'PGRST116' && titulosInfoError.code !== '42P01') ? titulosInfoError : null
+      };
+
+      // Log de erros não esperados
+      if (sacadosResult.error) {
+        console.error('Erro ao buscar atividades de sacados:', sacadosResult.error);
+      }
+      if (cedentesResult.error) {
+        console.error('Erro ao buscar atividades de cedentes:', cedentesResult.error);
+      }
+      if (titulosResult.error) {
+        console.error('Erro ao buscar atividades de títulos:', titulosResult.error);
+      }
 
       const atividadesList: AtividadeCompleta[] = [];
       const sacadosMap = new Map((sacadosNomesResult.data || []).map((s: any) => [s.cnpj, s.razao_social]));
       const cedentesMap = new Map((cedentesNomesResult.data || []).map((c: any) => [c.id, c.nome]));
+      const titulosMap = new Map((titulosInfoResult.data || []).map((t: any) => [t.id, { numero: t.numero_titulo, cedente_id: t.cedente_id }]));
 
       // Processar atividades de sacados
-      if (sacadosResult.data) {
+      if (sacadosResult.data && Array.isArray(sacadosResult.data)) {
         sacadosResult.data.forEach((atividade: any) => {
           atividadesList.push({
             ...atividade,
@@ -155,7 +211,7 @@ export default function AtividadesAgendadasPage() {
       }
 
       // Processar atividades de cedentes
-      if (cedentesResult.data) {
+      if (cedentesResult.data && Array.isArray(cedentesResult.data)) {
         cedentesResult.data.forEach((atividade: any) => {
           atividadesList.push({
             ...atividade,
@@ -167,9 +223,29 @@ export default function AtividadesAgendadasPage() {
         });
       }
 
+      // Processar atividades de títulos
+      if (titulosResult.data && Array.isArray(titulosResult.data)) {
+        titulosResult.data.forEach((atividade: any) => {
+          const tituloInfo = titulosMap.get(atividade.titulo_id);
+          if (tituloInfo) {
+            const cedenteNome = cedentesMap.get(tituloInfo.cedente_id) || tituloInfo.cedente_id;
+            atividadesList.push({
+              ...atividade,
+              tipo_entidade: 'titulo',
+              entidade_id: atividade.titulo_id,
+              entidade_nome: `Título #${tituloInfo.numero} - ${cedenteNome}`,
+              link: `/cedentes/${tituloInfo.cedente_id}?titulo=${atividade.titulo_id}&tab=titulos`,
+              titulo_numero: tituloInfo.numero,
+              cedente_id: tituloInfo.cedente_id
+            });
+          }
+        });
+      }
+
       console.log('Atividades carregadas:', atividadesList.length);
       console.log('Sacados:', sacadosResult.data?.length || 0);
       console.log('Cedentes:', cedentesResult.data?.length || 0);
+      console.log('Títulos:', titulosResult.data?.length || 0);
       
       setAtividades(atividadesList);
     } catch (error) {
@@ -181,15 +257,41 @@ export default function AtividadesAgendadasPage() {
   }, [filtroPeriodo]);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      const user = data.user;
-      if (!user) { router.replace('/login'); return; }
-      loadAtividades();
-    });
+    let mounted = true;
+    
+    async function init() {
+      try {
+        const { data } = await supabase.auth.getUser();
+        const user = data?.user;
+        if (!user) { 
+          router.replace('/login'); 
+          return; 
+        }
+        if (mounted) {
+          await loadAtividades();
+        }
+      } catch (error) {
+        console.error('Erro ao verificar autenticação:', error);
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    }
+    
+    init();
+    
+    return () => {
+      mounted = false;
+    };
   }, [router, loadAtividades]);
 
   const atividadesFiltradas = useMemo(() => {
     let filtradas = atividades;
+
+    // Filtro por origem (sacado, cedente, titulo)
+    if (filtroOrigem !== 'todos') {
+      filtradas = filtradas.filter(a => a.tipo_entidade === filtroOrigem);
+    }
 
     // Filtro por status
     if (filtroStatus !== 'todos') {
@@ -211,7 +313,7 @@ export default function AtividadesAgendadasPage() {
     }
 
     return filtradas;
-  }, [atividades, filtroStatus, filtroTipo, dataSelecionada]);
+  }, [atividades, filtroOrigem, filtroStatus, filtroTipo, dataSelecionada]);
 
   const atividadesOrdenadas = useMemo(() => {
     return [...atividadesFiltradas].sort((a, b) => 
@@ -259,7 +361,21 @@ export default function AtividadesAgendadasPage() {
             <h2 className="text-sm font-semibold text-gray-700 uppercase">Filtros</h2>
           </div>
           <div className="p-4">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-[#0369a1] mb-2">Origem</label>
+                <Select
+                  value={filtroOrigem}
+                  onChange={(e) => setFiltroOrigem(e.target.value as any)}
+                  options={[
+                    { value: 'todos', label: 'Todas' },
+                    { value: 'sacado', label: 'Sacados' },
+                    { value: 'cedente', label: 'Cedentes' },
+                    { value: 'titulo', label: 'Títulos' }
+                  ]}
+                />
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-[#0369a1] mb-2">Período</label>
                 <Select
@@ -308,11 +424,12 @@ export default function AtividadesAgendadasPage() {
                 />
               </div>
             </div>
-            {(filtroPeriodo !== 'todos' || filtroStatus !== 'todos' || filtroTipo !== 'todos' || dataSelecionada) && (
+            {(filtroOrigem !== 'todos' || filtroPeriodo !== 'todos' || filtroStatus !== 'todos' || filtroTipo !== 'todos' || dataSelecionada) && (
               <div className="mt-4 flex justify-end">
                 <Button
                   variant="secondary"
                   onClick={() => {
+                    setFiltroOrigem('todos');
                     setFiltroPeriodo('todos');
                     setFiltroStatus('todos');
                     setFiltroTipo('todos');
@@ -338,7 +455,27 @@ export default function AtividadesAgendadasPage() {
             <div className="text-center py-12">
               <div className="flex flex-col items-center gap-3">
                 <span className="text-4xl">📅</span>
-                <p className="text-gray-600">Nenhuma atividade encontrada no período selecionado</p>
+                <p className="text-gray-600">
+                  {atividades.length === 0 
+                    ? 'Nenhuma atividade encontrada. Crie atividades nos perfis de sacados ou cedentes.'
+                    : 'Nenhuma atividade encontrada com os filtros selecionados.'
+                  }
+                </p>
+                {(filtroOrigem !== 'todos' || filtroPeriodo !== 'todos' || filtroStatus !== 'todos' || filtroTipo !== 'todos' || dataSelecionada) && (
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      setFiltroOrigem('todos');
+                      setFiltroPeriodo('todos');
+                      setFiltroStatus('todos');
+                      setFiltroTipo('todos');
+                      setDataSelecionada('');
+                    }}
+                    className="mt-2"
+                  >
+                    Limpar Filtros
+                  </Button>
+                )}
               </div>
             </div>
           </div>
@@ -350,6 +487,7 @@ export default function AtividadesAgendadasPage() {
                   <tr>
                     <th className="px-4 py-2 text-center text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Data</th>
                     <th className="px-4 py-2 text-center text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Hora</th>
+                    <th className="px-4 py-2 text-center text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Origem</th>
                     <th className="px-4 py-2 text-center text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Tipo</th>
                     <th className="px-4 py-2 text-center text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Status</th>
                     <th className="px-4 py-2 text-center text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Empresa</th>
@@ -373,6 +511,15 @@ export default function AtividadesAgendadasPage() {
                           {formatarHora(atividade.data_hora)}
                         </td>
                         <td className="px-4 py-2 text-center border-r border-gray-300">
+                          {atividade.tipo_entidade === 'sacado' ? (
+                            <Badge variant="info" size="sm" className="text-xs">Sacado</Badge>
+                          ) : atividade.tipo_entidade === 'titulo' ? (
+                            <Badge variant="warning" size="sm" className="text-xs">Título</Badge>
+                          ) : (
+                            <Badge variant="success" size="sm" className="text-xs">Cedente</Badge>
+                          )}
+                        </td>
+                        <td className="px-4 py-2 text-center border-r border-gray-300">
                           <span className="text-xs font-medium px-2 py-1 border border-gray-300" style={{ color: tipoInfo.cor }}>
                             {tipoInfo.label}
                           </span>
@@ -386,7 +533,7 @@ export default function AtividadesAgendadasPage() {
                           </Badge>
                         </td>
                         <td className="px-4 py-2 text-sm text-gray-600 text-center border-r border-gray-300">
-                          {atividade.tipo_entidade === 'sacado' ? '🏢' : '👤'} {atividade.entidade_nome}
+                          {atividade.entidade_nome}
                         </td>
                         <td className="px-4 py-2 text-sm text-gray-600 max-w-xs truncate text-center">
                           {atividade.descricao}

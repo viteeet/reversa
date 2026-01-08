@@ -40,7 +40,7 @@ export default function CedentesPage() {
     nome: '', razao_social: '', cnpj: '', telefone: '', email: '', endereco: '',
     porte: '', natureza_juridica: '', situacao: '', data_abertura: '', capital_social: '',
     atividade_principal_codigo: '', atividade_principal_descricao: '', atividades_secundarias: '',
-    simples_nacional: false
+    simples_nacional: false, fundo: ''
   });
   const [pending, setPending] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -156,6 +156,7 @@ export default function CedentesPage() {
       atividade_principal_descricao: form.atividade_principal_descricao || null,
       atividades_secundarias: form.atividades_secundarias || null,
       simples_nacional: form.simples_nacional || null,
+      fundo: form.fundo.trim() || null,
       ultima_atualizacao: new Date().toISOString(),
     }).select('id, cnpj').single();
     
@@ -176,7 +177,7 @@ export default function CedentesPage() {
       nome: '', razao_social: '', cnpj: '', telefone: '', email: '', endereco: '',
       porte: '', natureza_juridica: '', situacao: '', data_abertura: '', capital_social: '',
       atividade_principal_codigo: '', atividade_principal_descricao: '', atividades_secundarias: '',
-      simples_nacional: false
+      simples_nacional: false, fundo: ''
     });
     await load();
     setPending(false);
@@ -398,6 +399,13 @@ export default function CedentesPage() {
                       </Button>
                     </div>
                   </div>
+                  <Input
+                    label="Fundo *"
+                    value={form.fundo}
+                    onChange={(e) => setForm({ ...form, fundo: e.target.value })}
+                    placeholder="Nome do fundo responsável"
+                    required
+                  />
                   <Input
                     label="Telefone"
                     value={form.telefone}
