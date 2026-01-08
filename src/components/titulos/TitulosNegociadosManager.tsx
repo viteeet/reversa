@@ -743,9 +743,10 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
 
   // Gera e baixa modelo Excel
   function downloadModeloExcel() {
+    // Usando CNPJs válidos de exemplo (gerados corretamente)
     const dados = [
       {
-        'CNPJ': '12.345.678/0001-90',
+        'CNPJ': '11.222.333/0001-81',
         'Razão Social': 'Empresa ABC LTDA',
         'Nome Fantasia': 'ABC',
         'Número do Título': '001',
@@ -758,7 +759,7 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
         'VADU': 'Autorizado'
       },
       {
-        'CNPJ': '12.345.678/0001-90',
+        'CNPJ': '11.222.333/0001-81',
         'Razão Social': 'Empresa ABC LTDA',
         'Nome Fantasia': 'ABC',
         'Número do Título': '002',
@@ -771,7 +772,7 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
         'VADU': ''
       },
       {
-        'CNPJ': '98.765.432/0001-11',
+        'CNPJ': '44.555.666/0001-77',
         'Razão Social': 'Empresa XYZ EIRELI',
         'Nome Fantasia': 'XYZ',
         'Número do Título': '003',
@@ -852,12 +853,14 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
         
         // Depois tenta busca case-insensitive, sem espaços e sem acentos
         const rowKeys = Object.keys(row);
-        const possiveisNomesNormalizados = possiveisNomes.map(n => normalizarString(n));
+        const possiveisNomesNormalizados = possiveisNomes.map(n => normalizarString(n.trim()));
         
         for (let i = 0; i < possiveisNomesNormalizados.length; i++) {
           const nomeNormalizado = possiveisNomesNormalizados[i];
           for (const key of rowKeys) {
-            const keyNormalizado = normalizarString(key);
+            // Remove espaços e caracteres invisíveis das chaves também
+            const keyTrimmed = key.trim();
+            const keyNormalizado = normalizarString(keyTrimmed);
             if (keyNormalizado === nomeNormalizado && row[key] !== undefined && row[key] !== null && row[key] !== '') {
               return String(row[key]);
             }
@@ -869,8 +872,12 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
 
       // Debug: mostra as chaves disponíveis na primeira linha
       if (data.length > 0) {
+        console.log('=== DEBUG IMPORTACAO ===');
         console.log('Colunas disponíveis na planilha:', Object.keys(data[0]));
         console.log('Primeira linha de dados:', data[0]);
+        console.log('Valor CNPJ direto:', data[0]['CNPJ']);
+        console.log('Tipo do valor CNPJ:', typeof data[0]['CNPJ']);
+        console.log('Valor CNPJ após String():', String(data[0]['CNPJ']));
       }
 
       // Normaliza os dados - detecta colunas automaticamente
@@ -879,10 +886,23 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
         const cnpjKeys = ['cnpj', 'CNPJ', 'cnpj_sacado', 'CNPJ_Sacado', 'cpf_cnpj', 'documento', 'Documento', 'DOCUMENTO'];
         const cnpjValue = buscarColuna(row, cnpjKeys);
         let cnpj = '';
+        let tem_cnpj = false;
         if (cnpjValue) {
-          cnpj = cnpjValue.replace(/\D+/g, '');
-          if (cnpj.length !== 14 || !validarCNPJ(cnpj)) {
-            cnpj = '';
+          const cnpjLimpo = cnpjValue.replace(/\D+/g, '');
+          if (cnpjLimpo.length === 14 && validarCNPJ(cnpjLimpo)) {
+            cnpj = cnpjLimpo;
+            tem_cnpj = true;
+          } else {
+            // Debug: log quando CNPJ encontrado mas inválido
+            if (index < 3) {
+              console.log(`Linha ${index + 2}: CNPJ encontrado mas inválido - Valor: "${cnpjValue}", Limpo: "${cnpjLimpo}", Tamanho: ${cnpjLimpo.length}, Válido: ${cnpjLimpo.length === 14 ? validarCNPJ(cnpjLimpo) : false}`);
+            }
+          }
+        } else {
+          // Debug: log quando CNPJ não encontrado
+          if (index < 3) {
+            console.log(`Linha ${index + 2}: CNPJ não encontrado. Chaves na linha:`, Object.keys(row));
+            console.log(`Linha ${index + 2}: Tentativas:`, cnpjKeys);
           }
         }
 
@@ -938,16 +958,19 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
         const nomeFantasiaKeys = ['nome_fantasia', 'Nome Fantasia', 'NOME FANTASIA', 'fantasia', 'Fantasia', 'FANTASIA'];
         const nomeFantasia = buscarColuna(row, nomeFantasiaKeys);
 
-        // Debug na primeira linha
-        if (index === 0) {
-          console.log('Primeira linha processada:', {
+        // Debug nas primeiras linhas
+        if (index < 3) {
+          console.log(`=== Linha ${index + 2} ===`);
+          console.log('Chaves na linha:', Object.keys(row));
+          console.log('CNPJ Value encontrado:', cnpjValue);
+          console.log('CNPJ após limpar:', cnpj || '(vazio ou inválido)');
+          console.log('tem_cnpj:', tem_cnpj);
+          console.log('Dados processados:', {
             cnpj,
             numeroTitulo,
             valorOriginal,
             dataVencimento,
-            razaoSocial,
-            rowKeys: Object.keys(row),
-            rowValues: Object.values(row)
+            tem_cnpj
           });
         }
 
@@ -964,7 +987,7 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
           critica: String(critica).trim(),
           checagem: String(checagem).trim(),
           vadu: String(vadu).trim(),
-          tem_cnpj: cnpj.length === 14 && validarCNPJ(cnpj),
+          tem_cnpj: tem_cnpj,
           sacado_existe: false, // será verificado depois
           titulo_existe: false, // será verificado depois
         };
