@@ -15,6 +15,7 @@ type Endereco = {
   cidade?: string;
   estado?: string;
   principal?: boolean;
+  status?: string;
 };
 
 type Telefone = {
@@ -24,6 +25,7 @@ type Telefone = {
   tipo?: string;
   nome_contato?: string;
   principal?: boolean;
+  status?: string;
 };
 
 type Email = {
@@ -67,21 +69,24 @@ export default function ContatosManager({
         cep: '',
         cidade: '',
         estado: '',
-        principal: false
+        principal: false,
+        status: ''
       });
     } else if (tipo === 'telefones') {
       setForm({
         telefone: '',
         tipo: '',
         nome_contato: '',
-        principal: false
+        principal: false,
+        status: ''
       });
     } else {
       setForm({
         email: '',
         tipo: '',
         nome_contato: '',
-        principal: false
+        principal: false,
+        status: ''
       });
     }
   };
@@ -133,16 +138,19 @@ export default function ContatosManager({
         data.cidade = form.cidade?.trim() || null;
         data.estado = form.estado?.trim() || null;
         data.principal = form.principal || false;
+        data.status = form.status?.trim() || null;
       } else if (tipo === 'telefones') {
         data.telefone = form.telefone.trim();
         data.tipo = form.tipo || null;
         data.nome_contato = form.nome_contato?.trim() || null;
         data.principal = form.principal || false;
+        data.status = form.status?.trim() || null;
       } else {
         data.email = form.email.trim().toLowerCase();
         data.tipo = form.tipo || null;
         data.nome_contato = form.nome_contato?.trim() || null;
         data.principal = form.principal || false;
+        data.status = form.status?.trim() || null;
       }
 
       // Se marcar como principal, desmarcar outros
@@ -301,6 +309,36 @@ export default function ContatosManager({
                   />
                 </div>
                 <div className="sm:col-span-2">
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Status
+                  </label>
+                  <select
+                    className="w-full px-3 py-2 border border-gray-300 text-sm bg-white"
+                    value={form.status || ''}
+                    onChange={(e) => setForm({ ...form, status: e.target.value })}
+                  >
+                    <option value="">Selecione...</option>
+                    <option value="visitado">Visitado</option>
+                    <option value="não visitado">Não visitado</option>
+                    <option value="não existe">Não existe</option>
+                    <option value="incorreto">Incorreto</option>
+                    <option value="desatualizado">Desatualizado</option>
+                    <option value="confirmado">Confirmado</option>
+                  </select>
+                  <input
+                    type="text"
+                    className="w-full px-3 py-2 border border-gray-300 text-sm bg-white mt-1"
+                    placeholder="Ou digite um status personalizado..."
+                    value={form.status && !['visitado', 'não visitado', 'não existe', 'incorreto', 'desatualizado', 'confirmado'].includes(form.status) ? form.status : ''}
+                    onChange={(e) => setForm({ ...form, status: e.target.value })}
+                    onFocus={(e) => {
+                      if (['visitado', 'não visitado', 'não existe', 'incorreto', 'desatualizado', 'confirmado'].includes(form.status || '')) {
+                        setForm({ ...form, status: '' });
+                      }
+                    }}
+                  />
+                </div>
+                <div className="sm:col-span-2">
                   <label className="flex items-center gap-2">
                     <input
                       type="checkbox"
@@ -340,6 +378,36 @@ export default function ContatosManager({
                     <option value="fixo">Fixo</option>
                     <option value="comercial">Comercial</option>
                   </select>
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Status
+                  </label>
+                  <select
+                    className="w-full px-3 py-2 border border-gray-300 text-sm bg-white"
+                    value={form.status || ''}
+                    onChange={(e) => setForm({ ...form, status: e.target.value })}
+                  >
+                    <option value="">Selecione...</option>
+                    <option value="tem whatsapp">Tem WhatsApp</option>
+                    <option value="não pertence">Não pertence</option>
+                    <option value="está errado">Está errado</option>
+                    <option value="não existe">Não existe</option>
+                    <option value="desligado">Desligado</option>
+                    <option value="confirmado">Confirmado</option>
+                  </select>
+                  <input
+                    type="text"
+                    className="w-full px-3 py-2 border border-gray-300 text-sm bg-white mt-1"
+                    placeholder="Ou digite um status personalizado..."
+                    value={form.status && !['tem whatsapp', 'não pertence', 'está errado', 'não existe', 'desligado', 'confirmado'].includes(form.status) ? form.status : ''}
+                    onChange={(e) => setForm({ ...form, status: e.target.value })}
+                    onFocus={(e) => {
+                      if (['tem whatsapp', 'não pertence', 'está errado', 'não existe', 'desligado', 'confirmado'].includes(form.status || '')) {
+                        setForm({ ...form, status: '' });
+                      }
+                    }}
+                  />
                 </div>
                 <div className="sm:col-span-2">
                   <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -467,6 +535,12 @@ export default function ContatosManager({
                           {[item.cep, item.cidade, item.estado].filter(Boolean).join(' - ')}
                         </p>
                       )}
+                      {item.status && (
+                        <p className="text-xs mt-1">
+                          <span className="font-medium text-gray-700">Status: </span>
+                          <Badge variant="warning" size="sm">{item.status}</Badge>
+                        </p>
+                      )}
                     </div>
                   ) : tipo === 'telefones' ? (
                     <div>
@@ -481,6 +555,12 @@ export default function ContatosManager({
                       </div>
                       {item.nome_contato && (
                         <p className="text-xs text-gray-600">Contato: {item.nome_contato}</p>
+                      )}
+                      {item.status && (
+                        <p className="text-xs mt-1">
+                          <span className="font-medium text-gray-700">Status: </span>
+                          <Badge variant="warning" size="sm">{item.status}</Badge>
+                        </p>
                       )}
                     </div>
                   ) : (

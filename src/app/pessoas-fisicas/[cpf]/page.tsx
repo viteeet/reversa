@@ -553,7 +553,8 @@ export default function PessoaFisicaPage() {
                     <th className="px-3 py-1.5 text-left font-semibold text-gray-700 border-r border-gray-200 w-24">Tipo</th>
                     <th className="px-3 py-1.5 text-left font-semibold text-gray-700 border-r border-gray-200 w-28">CEP</th>
                     <th className="px-3 py-1.5 text-left font-semibold text-gray-700 border-r border-gray-200 w-32">Cidade</th>
-                    <th className="px-3 py-1.5 text-left font-semibold text-gray-700 w-16">UF</th>
+                    <th className="px-3 py-1.5 text-left font-semibold text-gray-700 border-r border-gray-200 w-16">UF</th>
+                    <th className="px-3 py-1.5 text-left font-semibold text-gray-700 w-32">Status</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -568,7 +569,12 @@ export default function PessoaFisicaPage() {
                       <td className="px-3 py-1.5 text-gray-700 border-r border-gray-200">{endereco.tipo || '—'}</td>
                       <td className="px-3 py-1.5 text-gray-700 border-r border-gray-200">{endereco.cep || '—'}</td>
                       <td className="px-3 py-1.5 text-gray-700 border-r border-gray-200">{endereco.cidade || '—'}</td>
-                      <td className="px-3 py-1.5 text-gray-700">{endereco.estado || '—'}</td>
+                      <td className="px-3 py-1.5 text-gray-700 border-r border-gray-200">{endereco.estado || '—'}</td>
+                      <td className="px-3 py-1.5 text-gray-700">
+                        {endereco.status ? (
+                          <Badge variant="warning" size="sm">{endereco.status}</Badge>
+                        ) : '—'}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -596,7 +602,8 @@ export default function PessoaFisicaPage() {
                   <tr className="bg-gray-50 border-b-2 border-gray-300">
                     <th className="px-3 py-1.5 text-left font-semibold text-gray-700 border-r border-gray-200">Telefone</th>
                     <th className="px-3 py-1.5 text-left font-semibold text-gray-700 border-r border-gray-200 w-24">Tipo</th>
-                    <th className="px-3 py-1.5 text-left font-semibold text-gray-700 w-40">Contato</th>
+                    <th className="px-3 py-1.5 text-left font-semibold text-gray-700 border-r border-gray-200 w-40">Contato</th>
+                    <th className="px-3 py-1.5 text-left font-semibold text-gray-700 w-32">Status</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -609,7 +616,12 @@ export default function PessoaFisicaPage() {
                         )}
                       </td>
                       <td className="px-3 py-1.5 text-gray-700 border-r border-gray-200">{telefone.tipo || '—'}</td>
-                      <td className="px-3 py-1.5 text-gray-700">{telefone.nome_contato || '—'}</td>
+                      <td className="px-3 py-1.5 text-gray-700 border-r border-gray-200">{telefone.nome_contato || '—'}</td>
+                      <td className="px-3 py-1.5 text-gray-700">
+                        {telefone.status ? (
+                          <Badge variant="warning" size="sm">{telefone.status}</Badge>
+                        ) : '—'}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
