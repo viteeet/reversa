@@ -471,7 +471,7 @@ export default function CedentesPage() {
                           nome: '', razao_social: '', cnpj: '', telefone: '', email: '', endereco: '',
                           porte: '', natureza_juridica: '', situacao: '', data_abertura: '', capital_social: '',
                           atividade_principal_codigo: '', atividade_principal_descricao: '', atividades_secundarias: '',
-                          simples_nacional: false
+                          simples_nacional: false, fundo: ''
                         });
                         setConsultarAPIs(false);
                       }}
