@@ -1129,24 +1129,46 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
       });
 
       // Verifica quais títulos já existem no banco
-      const numerosTitulos = dadosSemDuplicatas
-        .filter(d => d.tem_cnpj && d.numero_titulo)
-        .map(d => d.numero_titulo.trim());
-
-      if (numerosTitulos.length > 0) {
-        const { data: titulosExistentes } = await supabase
-          .from('titulos_negociados')
-          .select('numero_titulo')
-          .eq('cedente_id', cedenteId)
-          .in('numero_titulo', numerosTitulos);
-
-        const titulosExistentesSet = new Set(titulosExistentes?.map(t => t.numero_titulo.trim().toLowerCase()) || []);
-        dadosSemDuplicatas.forEach(d => {
-          if (d.tem_cnpj && d.numero_titulo) {
-            d.titulo_existe = titulosExistentesSet.has(d.numero_titulo.trim().toLowerCase());
-          }
-        });
+      // Busca apenas títulos ATIVOS do cedente para verificar duplicatas
+      // (títulos excluídos/marcados como inativos não devem ser considerados)
+      const { data: todosTitulosExistentes, error: titulosError } = await supabase
+        .from('titulos_negociados')
+        .select('numero_titulo, sacado_cnpj')
+        .eq('cedente_id', cedenteId)
+        .eq('ativo', true); // IMPORTANTE: apenas títulos ativos
+      
+      if (titulosError) {
+        console.error('Erro ao buscar títulos existentes:', titulosError);
       }
+      
+      console.log(`Títulos ativos encontrados no banco para este cedente: ${(todosTitulosExistentes || []).length}`);
+
+      // Cria um Set com combinações normalizadas de numero_titulo + sacado_cnpj
+      // Normaliza removendo espaços e convertendo para lowercase para comparação mais robusta
+      const titulosExistentesSet = new Set(
+        (todosTitulosExistentes || []).map(t => {
+          const numNormalizado = (t.numero_titulo || '').trim().toLowerCase().replace(/\s+/g, ' ');
+          const cnpjNormalizado = (t.sacado_cnpj || '').replace(/\D+/g, '');
+          return `${cnpjNormalizado}|${numNormalizado}`;
+        })
+      );
+
+      // Marca títulos como existentes comparando com normalização
+      dadosSemDuplicatas.forEach(d => {
+        if (d.tem_cnpj && d.numero_titulo) {
+          const numNormalizado = d.numero_titulo.trim().toLowerCase().replace(/\s+/g, ' ');
+          const cnpjNormalizado = d.cnpj.replace(/\D+/g, '');
+          const chaveBusca = `${cnpjNormalizado}|${numNormalizado}`;
+          d.titulo_existe = titulosExistentesSet.has(chaveBusca);
+          
+          // Debug para primeiras linhas
+          if (d.linha <= 7) {
+            console.log(`Linha ${d.linha}: Verificando título - Num: "${d.numero_titulo}" (normalizado: "${numNormalizado}"), CNPJ: ${cnpjNormalizado}, Existe: ${d.titulo_existe}`);
+          }
+        } else {
+          d.titulo_existe = false;
+        }
+      });
 
       setDadosImportados(dadosSemDuplicatas);
       setShowImportar(true);
