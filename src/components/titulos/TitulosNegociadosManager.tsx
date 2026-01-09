@@ -820,6 +820,15 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
     }
   }
 
+  // Formata data para YYYY-MM-DD usando timezone LOCAL (não UTC)
+  // Isso evita diferenças de timezone que podem causar deslocamento de dias
+  function formatDateLocal(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
   // Converte número serial do Excel para data
   function excelSerialToDate(serial: any): string {
     // Se está vazio, null ou undefined, retorna vazio
@@ -835,7 +844,8 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
       if (serial >= 1 && serial < 1000000) {
         // Excel epoch: 30 de dezembro de 1899 (mas serial 1 = 01/01/1900)
         // Então: date = 1899-12-30 + (serial * 1 dia)
-        const excelEpoch = new Date(1899, 11, 30); // 30 de dezembro de 1899
+        // IMPORTANTE: Usa construtor local, não UTC
+        const excelEpoch = new Date(1899, 11, 30); // 30 de dezembro de 1899 (timezone local)
         let date = new Date(excelEpoch.getTime() + serial * 24 * 60 * 60 * 1000);
         
         // Ajuste para o bug do Excel (1900 foi considerado bissexto)
@@ -851,7 +861,8 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
           // Mas números muito pequenos (< 32) podem ser dias do mês, não serial completo
           // Serial 32 = 31/01/1900, então aceitamos serial >= 1
           if (year >= 1900) {
-            return date.toISOString().split('T')[0];
+            // Usa formatação LOCAL, não UTC
+            return formatDateLocal(date);
           }
         }
       }
@@ -872,20 +883,17 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
       const dateMatchDDMMYYYY = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
       if (dateMatchDDMMYYYY) {
         const [, dia, mes, ano] = dateMatchDDMMYYYY;
+        // Cria data em timezone LOCAL
         const date = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
         if (!isNaN(date.getTime()) && date.getFullYear() >= 1900) {
-          return date.toISOString().split('T')[0];
+          // Usa formatação LOCAL
+          return formatDateLocal(date);
         }
       }
       
-      // YYYY-MM-DD
-      const dateMatchYYYYMMDD = trimmed.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
-      if (dateMatchYYYYMMDD) {
-        const [, ano, mes, dia] = dateMatchYYYYMMDD;
-        const date = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
-        if (!isNaN(date.getTime()) && date.getFullYear() >= 1900) {
-          return date.toISOString().split('T')[0];
-        }
+      // YYYY-MM-DD - se já está no formato correto, retorna como está
+      if (trimmed.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        return trimmed;
       }
       
       // SEGUNDO: Tenta parsear como número serial do Excel
@@ -897,7 +905,7 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
       // Números seriais do Excel para datas de 1900-2025 estão entre 1 e ~45658
       // Mas aceitamos até 1000000 para cobrir futuras datas
       if (!isNaN(serialNum) && serialNum >= 1 && serialNum < 1000000) {
-        // Excel epoch: 30 de dezembro de 1899
+        // Excel epoch: 30 de dezembro de 1899 (timezone local)
         const excelEpoch = new Date(1899, 11, 30);
         let date = new Date(excelEpoch.getTime() + serialNum * 24 * 60 * 60 * 1000);
         
@@ -915,7 +923,8 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
           // A menos que seja uma data muito antiga (que não faz sentido para vencimentos)
           // Vamos aceitar serial >= 1, mas validar o ano resultante
           if (year >= 1900 && year <= 2100) {
-            return date.toISOString().split('T')[0];
+            // Usa formatação LOCAL
+            return formatDateLocal(date);
           }
         }
       }
@@ -925,7 +934,8 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
       if (!isNaN(parsedDate.getTime())) {
         const year = parsedDate.getFullYear();
         if (year >= 1900 && year <= 2100) {
-          return parsedDate.toISOString().split('T')[0];
+          // Usa formatação LOCAL
+          return formatDateLocal(parsedDate);
         }
       }
     }
