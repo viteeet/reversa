@@ -822,68 +822,112 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
 
   // Converte número serial do Excel para data
   function excelSerialToDate(serial: any): string {
-    // Se é um número (serial do Excel) - números grandes geralmente são datas
+    // Se está vazio, null ou undefined, retorna vazio
+    if (serial === null || serial === undefined || serial === '') {
+      return '';
+    }
+    
+    // Se é um número (serial do Excel)
     if (typeof serial === 'number') {
-      // Excel conta a partir de 01/01/1900
-      // 1 = 01/01/1900, mas Excel tem bug: considera 1900 como bissexto
-      // Então 1 = 31/12/1899, mas precisamos ajustar
-      if (serial > 0 && serial < 1000000) { // Números muito grandes provavelmente não são datas
-        // Excel epoch: 30 de dezembro de 1899
-        const excelEpoch = new Date(1899, 11, 30);
-        const date = new Date(excelEpoch.getTime() + (serial - 1) * 24 * 60 * 60 * 1000);
+      // Excel serial dates: 1 = 01/01/1900
+      // Números seriais válidos para datas são >= 1 e < 1000000
+      // Datas de 2000-2025 estão aproximadamente entre 36526 e 45658
+      if (serial >= 1 && serial < 1000000) {
+        // Excel epoch: 30 de dezembro de 1899 (mas serial 1 = 01/01/1900)
+        // Então: date = 1899-12-30 + (serial * 1 dia)
+        const excelEpoch = new Date(1899, 11, 30); // 30 de dezembro de 1899
+        let date = new Date(excelEpoch.getTime() + serial * 24 * 60 * 60 * 1000);
         
         // Ajuste para o bug do Excel (1900 foi considerado bissexto)
+        // A partir do serial 60 (29/02/1900), precisa subtrair 1 dia
         if (serial >= 60) {
-          date.setTime(date.getTime() - 24 * 60 * 60 * 1000);
+          date = new Date(date.getTime() - 24 * 60 * 60 * 1000);
         }
         
+        // Valida se a data é válida e não está no passado distante (antes de 1900)
         if (!isNaN(date.getTime())) {
-          return date.toISOString().split('T')[0];
+          const year = date.getFullYear();
+          // Aceita apenas anos >= 1900
+          // Mas números muito pequenos (< 32) podem ser dias do mês, não serial completo
+          // Serial 32 = 31/01/1900, então aceitamos serial >= 1
+          if (year >= 1900) {
+            return date.toISOString().split('T')[0];
+          }
         }
       }
       return '';
     }
     
     // Se é uma string
-    if (typeof serial === 'string' && serial.trim() !== '') {
+    if (typeof serial === 'string') {
       const trimmed = serial.trim();
       
-      // Se é um número como string (pode ser serial do Excel)
-      const numValue = parseFloat(trimmed);
-      if (!isNaN(numValue) && numValue > 0 && numValue < 1000000) {
+      // Se está vazio, retorna vazio
+      if (!trimmed) return '';
+      
+      // PRIMEIRO: Tenta parsear como data formatada (DD/MM/YYYY ou YYYY-MM-DD)
+      // Isso tem prioridade sobre números seriais
+      
+      // DD/MM/YYYY ou D/M/YYYY
+      const dateMatchDDMMYYYY = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      if (dateMatchDDMMYYYY) {
+        const [, dia, mes, ano] = dateMatchDDMMYYYY;
+        const date = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
+        if (!isNaN(date.getTime()) && date.getFullYear() >= 1900) {
+          return date.toISOString().split('T')[0];
+        }
+      }
+      
+      // YYYY-MM-DD
+      const dateMatchYYYYMMDD = trimmed.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+      if (dateMatchYYYYMMDD) {
+        const [, ano, mes, dia] = dateMatchYYYYMMDD;
+        const date = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
+        if (!isNaN(date.getTime()) && date.getFullYear() >= 1900) {
+          return date.toISOString().split('T')[0];
+        }
+      }
+      
+      // SEGUNDO: Tenta parsear como número serial do Excel
+      // Remove formatação (pontos como separadores de milhar, vírgulas como decimais)
+      const serialStr = trimmed.replace(/\./g, '').replace(',', '.');
+      const serialNum = parseFloat(serialStr);
+      
+      // Verifica se é um número válido e razoável para ser serial do Excel
+      // Números seriais do Excel para datas de 1900-2025 estão entre 1 e ~45658
+      // Mas aceitamos até 1000000 para cobrir futuras datas
+      if (!isNaN(serialNum) && serialNum >= 1 && serialNum < 1000000) {
+        // Excel epoch: 30 de dezembro de 1899
         const excelEpoch = new Date(1899, 11, 30);
-        const date = new Date(excelEpoch.getTime() + (numValue - 1) * 24 * 60 * 60 * 1000);
+        let date = new Date(excelEpoch.getTime() + serialNum * 24 * 60 * 60 * 1000);
         
-        if (numValue >= 60) {
-          date.setTime(date.getTime() - 24 * 60 * 60 * 1000);
+        // Ajuste para o bug do Excel (1900 foi considerado bissexto)
+        if (serialNum >= 60) {
+          date = new Date(date.getTime() - 24 * 60 * 60 * 1000);
         }
         
+        // Valida se a data é válida e não está no passado distante
         if (!isNaN(date.getTime())) {
-          return date.toISOString().split('T')[0];
+          const year = date.getFullYear();
+          // Aceita apenas anos >= 1900
+          // Mas cuidado: números muito pequenos podem ser apenas dias do mês
+          // Se o número for < 32 (menos de um mês), provavelmente NÃO é um serial completo
+          // A menos que seja uma data muito antiga (que não faz sentido para vencimentos)
+          // Vamos aceitar serial >= 1, mas validar o ano resultante
+          if (year >= 1900 && year <= 2100) {
+            return date.toISOString().split('T')[0];
+          }
         }
       }
       
-      // Tenta formatos DD/MM/YYYY
-      if (/^\d{2}\/\d{2}\/\d{4}$/.test(trimmed)) {
-        const [day, month, year] = trimmed.split('/');
-        const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-        if (!isNaN(date.getTime())) {
-          return date.toISOString().split('T')[0];
-        }
-      }
-      
-      // Tenta formato YYYY-MM-DD
-      if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
-        return trimmed;
-      }
-      
-      // Tenta parsear como data ISO
+      // TERCEIRO: Tenta parsear como data ISO genérica
       const parsedDate = new Date(trimmed);
       if (!isNaN(parsedDate.getTime())) {
-        return parsedDate.toISOString().split('T')[0];
+        const year = parsedDate.getFullYear();
+        if (year >= 1900 && year <= 2100) {
+          return parsedDate.toISOString().split('T')[0];
+        }
       }
-      
-      return trimmed; // Retorna como está se não conseguir parsear
     }
     
     return '';
@@ -1109,9 +1153,35 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
           'data_venc', 'Data Venc', 'dt_vencimento', 'DT Vencimento', 'venc', 'Venc',
           'data_vencimento_original', 'Data Vencimento Original'
         ];
-        const dataVencimentoRaw = buscarColuna(row, dataVencimentoKeys);
-        // Converte número serial do Excel para data ou mantém string
-        const dataVencimento = dataVencimentoRaw ? excelSerialToDate(dataVencimentoRaw) : '';
+        // Busca o valor BRUTO (número ou string) sem converter para string primeiro
+        // Isso é importante para capturar números seriais do Excel corretamente
+        let dataVencimentoRawValue: any = null;
+        // Primeiro tenta busca exata
+        for (const nome of dataVencimentoKeys) {
+          if (row[nome] !== undefined && row[nome] !== null && row[nome] !== '') {
+            dataVencimentoRawValue = row[nome];
+            break;
+          }
+        }
+        // Se não encontrou com busca exata, tenta case-insensitive
+        if (dataVencimentoRawValue === null) {
+          const rowKeys = Object.keys(row);
+          const possiveisNomesNormalizados = dataVencimentoKeys.map(n => normalizarString(n.trim()));
+          for (let i = 0; i < possiveisNomesNormalizados.length; i++) {
+            const nomeNormalizado = possiveisNomesNormalizados[i];
+            for (const key of rowKeys) {
+              const keyTrimmed = key.trim();
+              const keyNormalizado = normalizarString(keyTrimmed);
+              if (keyNormalizado === nomeNormalizado && row[key] !== undefined && row[key] !== null && row[key] !== '') {
+                dataVencimentoRawValue = row[key];
+                break;
+              }
+            }
+            if (dataVencimentoRawValue !== null) break;
+          }
+        }
+        // Converte número serial do Excel para data ou mantém string formatada
+        const dataVencimento = dataVencimentoRawValue !== null ? excelSerialToDate(dataVencimentoRawValue) : '';
 
         const telefoneKeys = ['telefone', 'Telefone', 'TELEFONE', 'tel', 'Tel', 'fone', 'Fone'];
         const telefone = buscarColuna(row, telefoneKeys);
