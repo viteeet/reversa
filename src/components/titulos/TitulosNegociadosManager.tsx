@@ -164,7 +164,6 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
         .from('titulos_negociados')
         .select('*')
         .eq('cedente_id', cedenteId)
-        .eq('ativo', true)
         .order('data_vencimento_original', { ascending: false });
 
       if (error) throw error;
@@ -1129,13 +1128,11 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
       });
 
       // Verifica quais títulos já existem no banco
-      // Busca apenas títulos ATIVOS do cedente para verificar duplicatas
-      // (títulos excluídos/marcados como inativos não devem ser considerados)
+      // Busca todos os títulos do cedente para verificar duplicatas
       const { data: todosTitulosExistentes, error: titulosError } = await supabase
         .from('titulos_negociados')
         .select('numero_titulo, sacado_cnpj')
-        .eq('cedente_id', cedenteId)
-        .eq('ativo', true); // IMPORTANTE: apenas títulos ativos
+        .eq('cedente_id', cedenteId);
       
       if (titulosError) {
         console.error('Erro ao buscar títulos existentes:', titulosError);
@@ -1736,27 +1733,52 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
                       </button>
                       <button
                         onClick={async () => {
-                          if (!confirm(`Tem certeza que deseja excluir o título "${titulo.numero_titulo}"?`)) {
+                          if (!confirm(`Tem certeza que deseja excluir PERMANENTEMENTE o título "${titulo.numero_titulo}"?\n\nEsta ação não pode ser desfeita.`)) {
                             return;
                           }
                           
                           try {
+                            // Verifica se o título está em algum parcelamento
+                            const { data: parcelamentosTitulo } = await supabase
+                              .from('parcelamentos_titulos')
+                              .select('parcelamento_id')
+                              .eq('titulo_id', titulo.id);
+
+                            if (parcelamentosTitulo && parcelamentosTitulo.length > 0) {
+                              const parcelamentoIds = parcelamentosTitulo.map(p => p.parcelamento_id);
+                              showToast(`Não é possível excluir: título está vinculado a ${parcelamentoIds.length} parcelamento(s). Primeiro remova o título do parcelamento.`, 'error');
+                              return;
+                            }
+
+                            // Deleta as atividades relacionadas primeiro (se houver)
+                            await supabase
+                              .from('titulos_atividades')
+                              .delete()
+                              .eq('titulo_id', titulo.id);
+
+                            // Deleta o histórico de críticas relacionadas (se houver)
+                            await supabase
+                              .from('titulos_criticas_historico')
+                              .delete()
+                              .eq('titulo_id', titulo.id);
+
+                            // Deleta o título (CASCADE vai deletar parcelamentos_titulos automaticamente)
                             const { error } = await supabase
                               .from('titulos_negociados')
-                              .update({ ativo: false })
+                              .delete()
                               .eq('id', titulo.id);
 
                             if (error) throw error;
 
-                            showToast('Título excluído com sucesso', 'success');
+                            showToast('Título excluído permanentemente com sucesso', 'success');
                             loadTitulos();
                           } catch (error: any) {
                             console.error('Erro ao excluir título:', error);
-                            showToast('Erro ao excluir título', 'error');
+                            showToast(`Erro ao excluir título: ${error.message || 'Erro desconhecido'}`, 'error');
                           }
                         }}
                         className="px-2 py-1 border border-red-300 bg-white hover:bg-red-50 text-red-600 text-xs font-medium"
-                        title="Excluir"
+                        title="Excluir permanentemente"
                         disabled={titulo.status === 'titulo_de_acordo' || titulo.status === 'pago'}
                       >
                         Excluir
