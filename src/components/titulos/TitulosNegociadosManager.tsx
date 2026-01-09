@@ -140,6 +140,8 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
     valores_parcelas: [] as string[],
     tem_sinal: false,
     valor_sinal: '',
+    modo: 'simples' as 'simples' | 'grupos', // 'simples' ou 'grupos'
+    grupos: [] as Array<{ quantidade: string; valor: string }>, // Para modo grupos
   });
 
   useEffect(() => {
@@ -495,36 +497,85 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
       ...formParcelamento,
       valor_total_negociado: formatMoneyInput(Math.round(valorTotal * 100).toString()),
       data_primeira_parcela: new Date().toISOString().split('T')[0],
+      modo: 'simples',
+      grupos: [],
     });
 
     setShowParcelar(true);
   }
 
   async function handleCriarParcelamento() {
-    if (!formParcelamento.valor_total_negociado || !formParcelamento.data_primeira_parcela || !formParcelamento.numero_parcelas) {
+    if (!formParcelamento.valor_total_negociado || !formParcelamento.data_primeira_parcela) {
       showToast('Preencha todos os campos obrigatórios', 'error');
       return;
     }
 
-    // Validação: se tem sinal, o valor do sinal é obrigatório
-    if (formParcelamento.tem_sinal && !formParcelamento.valor_sinal) {
-      showToast('Informe o valor do sinal', 'error');
-      return;
-    }
-
-    // Validação: valor do sinal não pode ser maior que o valor total
-    if (formParcelamento.tem_sinal) {
-      const valorTotal = parseMoneyInput(formParcelamento.valor_total_negociado);
-      const valorSinal = parseMoneyInput(formParcelamento.valor_sinal);
-      
-      if (valorSinal > valorTotal) {
-        showToast('O valor do sinal não pode ser maior que o valor total negociado', 'error');
+    // Validação para modo grupos
+    if (formParcelamento.modo === 'grupos') {
+      if (formParcelamento.grupos.length === 0) {
+        showToast('Adicione pelo menos um grupo de parcelas', 'error');
         return;
       }
       
-      if (valorSinal <= 0) {
-        showToast('O valor do sinal deve ser maior que zero', 'error');
+      // Valida se todos os grupos têm quantidade e valor
+      const gruposInvalidos = formParcelamento.grupos.some(g => 
+        !g.quantidade || parseInt(g.quantidade) <= 0 || !g.valor || parseMoneyInput(g.valor) <= 0
+      );
+      
+      if (gruposInvalidos) {
+        showToast('Preencha quantidade e valor em todos os grupos', 'error');
         return;
+      }
+
+      // Calcula total dos grupos
+      const totalGrupos = formParcelamento.grupos.reduce((sum, grupo) => {
+        const quantidade = parseInt(grupo.quantidade) || 0;
+        const valor = parseMoneyInput(grupo.valor);
+        return sum + (quantidade * valor);
+      }, 0);
+      
+      const valorTotal = parseMoneyInput(formParcelamento.valor_total_negociado);
+      const diferenca = valorTotal - totalGrupos;
+      
+      // Se faltar valor (parcelas somam menos que o total), pergunta se é desconto
+      if (diferenca > 0.01) {
+        const confirmarDesconto = confirm(
+          `As parcelas somam ${formatMoney(totalGrupos)}, mas o valor total negociado é ${formatMoney(valorTotal)}.\n\n` +
+          `Faltam ${formatMoney(diferenca)}.\n\n` +
+          `Isso é um DESCONTO? Se sim, clique OK para continuar. Se não, clique Cancelar para ajustar os valores.`
+        );
+        
+        if (!confirmarDesconto) {
+          return;
+        }
+      }
+    } else {
+      // Validação para modo simples
+      if (!formParcelamento.numero_parcelas) {
+        showToast('Informe o número de parcelas', 'error');
+        return;
+      }
+
+      // Validação: se tem sinal, o valor do sinal é obrigatório
+      if (formParcelamento.tem_sinal && !formParcelamento.valor_sinal) {
+        showToast('Informe o valor do sinal', 'error');
+        return;
+      }
+
+      // Validação: valor do sinal não pode ser maior que o valor total
+      if (formParcelamento.tem_sinal) {
+        const valorTotal = parseMoneyInput(formParcelamento.valor_total_negociado);
+        const valorSinal = parseMoneyInput(formParcelamento.valor_sinal);
+        
+        if (valorSinal > valorTotal) {
+          showToast('O valor do sinal não pode ser maior que o valor total negociado', 'error');
+          return;
+        }
+        
+        if (valorSinal <= 0) {
+          showToast('O valor do sinal deve ser maior que zero', 'error');
+          return;
+        }
       }
     }
 
@@ -565,37 +616,64 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
       if (titulosError) throw titulosError;
 
       // Calcula e cria as parcelas
-      const numeroParcelas = parseInt(formParcelamento.numero_parcelas);
-      const valoresIguais = formParcelamento.valores_iguais;
-      const temSinal = formParcelamento.tem_sinal;
-      const valorSinal = temSinal ? parseMoneyInput(formParcelamento.valor_sinal) : 0;
-      const valorRestante = valorTotalNegociado - valorSinal;
-      const numeroParcelasRestantes = numeroParcelas - (temSinal ? 1 : 0);
-
       let valoresParcelas: number[] = [];
-      
-      if (temSinal) {
-        // Primeira parcela é o sinal
-        valoresParcelas.push(valorSinal);
+      let numeroParcelas = 0;
+
+      if (formParcelamento.modo === 'grupos') {
+        // Modo Grupos: gera parcelas baseado nos grupos
+        formParcelamento.grupos.forEach(grupo => {
+          const quantidade = parseInt(grupo.quantidade) || 0;
+          const valor = parseMoneyInput(grupo.valor);
+          for (let i = 0; i < quantidade; i++) {
+            valoresParcelas.push(valor);
+          }
+        });
+        numeroParcelas = valoresParcelas.length;
         
-        // Calcula as parcelas restantes
-        if (valoresIguais && numeroParcelasRestantes > 0) {
-          const valorParcela = valorRestante / numeroParcelasRestantes;
-          for (let i = 0; i < numeroParcelasRestantes; i++) {
-            valoresParcelas.push(valorParcela);
+        // Verifica se há diferença (excedente - juros)
+        const totalGrupos = valoresParcelas.reduce((sum, v) => sum + v, 0);
+        const diferenca = valorTotalNegociado - totalGrupos;
+        
+        // Se SOBRAR (parcelas somam mais que o total) - adiciona parcela de ajuste (juros)
+        // Se FALTAR (parcelas somam menos) - não cria parcela (é desconto, já validado)
+        if (diferenca < -0.01) {
+          // Sobra valor = juros, adiciona parcela de ajuste positiva
+          valoresParcelas.push(Math.abs(diferenca));
+          numeroParcelas++;
+        }
+        // Se faltar (diferenca > 0.01), não cria parcela de ajuste - é desconto
+      } else {
+        // Modo Simples (lógica original)
+        numeroParcelas = parseInt(formParcelamento.numero_parcelas);
+        const valoresIguais = formParcelamento.valores_iguais;
+        const temSinal = formParcelamento.tem_sinal;
+        const valorSinal = temSinal ? parseMoneyInput(formParcelamento.valor_sinal) : 0;
+        const valorRestante = valorTotalNegociado - valorSinal;
+        const numeroParcelasRestantes = numeroParcelas - (temSinal ? 1 : 0);
+        
+        if (temSinal) {
+          // Primeira parcela é o sinal
+          valoresParcelas.push(valorSinal);
+          
+          // Calcula as parcelas restantes
+          if (valoresIguais && numeroParcelasRestantes > 0) {
+            const valorParcela = valorRestante / numeroParcelasRestantes;
+            for (let i = 0; i < numeroParcelasRestantes; i++) {
+              valoresParcelas.push(valorParcela);
+            }
+          } else {
+            // Usa os valores informados manualmente (pula a primeira que já é o sinal)
+            const valoresManuais = formParcelamento.valores_parcelas.slice(1).map(v => parseMoneyInput(v || '0'));
+            valoresParcelas.push(...valoresManuais);
           }
         } else {
-          // Usa os valores informados manualmente (pula a primeira que já é o sinal)
-          const valoresManuais = formParcelamento.valores_parcelas.slice(1).map(v => parseMoneyInput(v || '0'));
-          valoresParcelas.push(...valoresManuais);
-        }
-      } else {
-        // Sem sinal, cálculo normal
-        if (valoresIguais) {
-          const valorParcela = valorTotalNegociado / numeroParcelas;
-          valoresParcelas = Array(numeroParcelas).fill(valorParcela);
-        } else {
-          valoresParcelas = formParcelamento.valores_parcelas.map(v => parseMoneyInput(v || '0'));
+          // Sem sinal, cálculo normal
+          if (valoresIguais) {
+            const valorParcela = valorTotalNegociado / numeroParcelas;
+            valoresParcelas = Array(numeroParcelas).fill(valorParcela);
+          } else {
+            valoresParcelas = formParcelamento.valores_parcelas.map(v => parseMoneyInput(v || '0'));
+          }
         }
       }
 
@@ -653,6 +731,8 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
         valores_parcelas: [],
         tem_sinal: false,
         valor_sinal: '',
+        modo: 'simples',
+        grupos: [],
       });
       loadData();
     } catch (error: any) {
@@ -2360,6 +2440,42 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
                   </div>
                 )}
 
+                {/* Seletor de Modo */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Modo de Parcelamento
+                  </label>
+                  <div className="flex gap-3">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="modo_parcelamento"
+                        value="simples"
+                        checked={formParcelamento.modo === 'simples'}
+                        onChange={(e) => setFormParcelamento({ ...formParcelamento, modo: 'simples' })}
+                      />
+                      <span className="text-sm text-gray-700">Simples</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="modo_parcelamento"
+                        value="grupos"
+                        checked={formParcelamento.modo === 'grupos'}
+                        onChange={(e) => setFormParcelamento({ ...formParcelamento, modo: 'grupos' })}
+                      />
+                      <span className="text-sm text-gray-700">Grupos</span>
+                    </label>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {formParcelamento.modo === 'simples' 
+                      ? 'Parcelas iguais ou valores individuais'
+                      : 'Defina grupos de parcelas com valores iguais (ex: 5 parcelas de R$ 150,00)'}
+                  </p>
+                </div>
+
+                {/* Número de Parcelas (apenas modo simples) */}
+                {formParcelamento.modo === 'simples' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Número de Parcelas <span className="text-red-500">*</span>
@@ -2383,7 +2499,157 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
                     required
                   />
                 </div>
+                )}
 
+                {/* Modo Grupos */}
+                {formParcelamento.modo === 'grupos' && (
+                  <div className="space-y-3 border border-gray-300 p-4 rounded bg-gray-50">
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Grupos de Parcelas
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormParcelamento({
+                            ...formParcelamento,
+                            grupos: [...formParcelamento.grupos, { quantidade: '', valor: '' }]
+                          });
+                        }}
+                        className="px-3 py-1 bg-[#0369a1] text-white text-xs font-medium rounded hover:bg-[#0284c7]"
+                      >
+                        + Adicionar Grupo
+                      </button>
+                    </div>
+
+                    <div className="space-y-2">
+                      {formParcelamento.grupos.map((grupo, index) => {
+                        const quantidade = parseInt(grupo.quantidade) || 0;
+                        const valor = parseMoneyInput(grupo.valor);
+                        const subtotal = quantidade * valor;
+                        
+                        return (
+                          <div key={index} className="bg-white p-3 rounded border border-gray-200">
+                            <div className="flex items-start gap-2">
+                              <div className="flex-1 grid grid-cols-2 gap-2">
+                                <div>
+                                  <label className="block text-xs text-gray-600 mb-1">
+                                    Quantidade de Parcelas
+                                  </label>
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    value={grupo.quantidade}
+                                    onChange={(e) => {
+                                      const novosGrupos = [...formParcelamento.grupos];
+                                      novosGrupos[index].quantidade = e.target.value;
+                                      setFormParcelamento({ ...formParcelamento, grupos: novosGrupos });
+                                    }}
+                                    className="w-full px-2 py-1.5 border border-gray-300 text-sm rounded"
+                                    placeholder="Ex: 5"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-xs text-gray-600 mb-1">
+                                    Valor de Cada Parcela
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={grupo.valor}
+                                    onChange={(e) => {
+                                      const formatted = formatMoneyInput(e.target.value);
+                                      const novosGrupos = [...formParcelamento.grupos];
+                                      novosGrupos[index].valor = formatted;
+                                      setFormParcelamento({ ...formParcelamento, grupos: novosGrupos });
+                                    }}
+                                    className="w-full px-2 py-1.5 border border-gray-300 text-sm rounded"
+                                    placeholder="R$ 0,00"
+                                  />
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const novosGrupos = formParcelamento.grupos.filter((_, i) => i !== index);
+                                  setFormParcelamento({ ...formParcelamento, grupos: novosGrupos });
+                                }}
+                                className="px-2 py-1 text-red-600 hover:bg-red-50 rounded text-sm"
+                                title="Remover grupo"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                            {quantidade > 0 && valor > 0 && (
+                              <div className="mt-2 text-xs text-gray-600">
+                                <strong>{quantidade}</strong> parcela(s) × <strong>{formatMoney(valor)}</strong> = <strong className="text-[#0369a1]">{formatMoney(subtotal)}</strong>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {formParcelamento.grupos.length === 0 && (
+                      <p className="text-xs text-gray-500 text-center py-2">
+                        Clique em "Adicionar Grupo" para começar
+                      </p>
+                    )}
+
+                    {/* Total calculado dos grupos */}
+                    {formParcelamento.grupos.length > 0 && (() => {
+                      const totalGrupos = formParcelamento.grupos.reduce((sum, grupo) => {
+                        const quantidade = parseInt(grupo.quantidade) || 0;
+                        const valor = parseMoneyInput(grupo.valor);
+                        return sum + (quantidade * valor);
+                      }, 0);
+                      const totalParcelas = formParcelamento.grupos.reduce((sum, grupo) => {
+                        return sum + (parseInt(grupo.quantidade) || 0);
+                      }, 0);
+
+                      return (
+                        <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded">
+                          <div className="flex justify-between items-center text-sm">
+                            <span className="text-gray-700">
+                              <strong>{totalParcelas}</strong> parcela(s) no total
+                            </span>
+                            <span className="text-[#0369a1] font-semibold">
+                              Total: {formatMoney(totalGrupos)}
+                            </span>
+                          </div>
+                          {formParcelamento.valor_total_negociado && (
+                            (() => {
+                              const valorTotal = parseMoneyInput(formParcelamento.valor_total_negociado);
+                              const diferenca = valorTotal - totalGrupos;
+                              return (
+                                <div className="mt-2 text-xs">
+                                  {Math.abs(diferenca) > 0.01 ? (
+                                    diferenca > 0 ? (
+                                      // Faltam (parcelas somam menos) - pode ser desconto
+                                      <span className="text-orange-600">
+                                        Faltam {formatMoney(diferenca)} do valor total negociado. 
+                                        Se for desconto, pode continuar.
+                                      </span>
+                                    ) : (
+                                      // Sobram (parcelas somam mais) - são juros, tudo bem
+                                      <span className="text-blue-600">
+                                        ✓ Excedente de {formatMoney(Math.abs(diferenca))} (juros)
+                                      </span>
+                                    )
+                                  ) : (
+                                    <span className="text-green-600">✓ Valores conferem!</span>
+                                  )}
+                                </div>
+                              );
+                            })()
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+
+                {/* Modo Simples */}
+                {formParcelamento.modo === 'simples' && (
                 <div className="space-y-3">
                   <label className="flex items-center gap-2">
                     <input
@@ -2444,8 +2710,9 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
                     <span className="text-sm text-gray-700">Valores iguais (nas parcelas restantes)</span>
                   </label>
                 </div>
+                )}
 
-                {!formParcelamento.valores_iguais && formParcelamento.numero_parcelas && (
+                {formParcelamento.modo === 'simples' && !formParcelamento.valores_iguais && formParcelamento.numero_parcelas && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Valores das Parcelas {formParcelamento.tem_sinal && '(a partir da 2ª parcela)'}
@@ -2488,43 +2755,73 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
                 {/* Preview das Parcelas */}
                 {(() => {
                   const valorTotalNegociado = parseMoneyInput(formParcelamento.valor_total_negociado);
-                  const numeroParcelas = parseInt(formParcelamento.numero_parcelas) || 0;
-                  const valoresIguais = formParcelamento.valores_iguais;
-                  const temSinal = formParcelamento.tem_sinal;
-                  const valorSinal = temSinal ? parseMoneyInput(formParcelamento.valor_sinal) : 0;
-                  const valorRestante = valorTotalNegociado - valorSinal;
-                  const numeroParcelasRestantes = numeroParcelas - (temSinal ? 1 : 0);
                   const dataPrimeira = formParcelamento.data_primeira_parcela;
                   const intervalo = formParcelamento.intervalo_parcelas;
                   const intervaloDias = formParcelamento.intervalo_dias ? parseInt(formParcelamento.intervalo_dias) : 0;
 
-                  if (!numeroParcelas || !dataPrimeira) return null;
+                  if (!dataPrimeira) return null;
 
-                  // Calcula valores das parcelas
+                  // Calcula valores das parcelas baseado no modo
                   let valoresParcelas: number[] = [];
-                  
-                  if (temSinal) {
-                    // Primeira parcela é o sinal
-                    valoresParcelas.push(valorSinal);
+                  let numeroParcelas = 0;
+                  const temSinal = formParcelamento.modo === 'simples' && formParcelamento.tem_sinal;
+                  const valorSinal = temSinal ? parseMoneyInput(formParcelamento.valor_sinal) : 0;
+
+                  if (formParcelamento.modo === 'grupos') {
+                    // Modo Grupos: gera parcelas baseado nos grupos
+                    formParcelamento.grupos.forEach(grupo => {
+                      const quantidade = parseInt(grupo.quantidade) || 0;
+                      const valor = parseMoneyInput(grupo.valor);
+                      for (let i = 0; i < quantidade; i++) {
+                        valoresParcelas.push(valor);
+                      }
+                    });
+                    numeroParcelas = valoresParcelas.length;
                     
-                    // Calcula as parcelas restantes
-                    if (valoresIguais && numeroParcelasRestantes > 0) {
-                      const valorParcela = valorRestante / numeroParcelasRestantes;
-                      for (let i = 0; i < numeroParcelasRestantes; i++) {
-                        valoresParcelas.push(valorParcela);
+                    // Verifica se há diferença (excedente - juros)
+                    const totalGrupos = valoresParcelas.reduce((sum, v) => sum + v, 0);
+                    const diferenca = valorTotalNegociado - totalGrupos;
+                    
+                    // Se SOBRAR (parcelas somam mais que o total) - adiciona parcela de ajuste (juros)
+                    // Se FALTAR (parcelas somam menos) - não cria parcela (é desconto)
+                    if (diferenca < -0.01) {
+                      // Sobra valor = juros, adiciona parcela de ajuste positiva
+                      valoresParcelas.push(Math.abs(diferenca));
+                      numeroParcelas++;
+                    }
+                    // Se faltar (diferenca > 0.01), não cria parcela de ajuste - é desconto
+                  } else {
+                    // Modo Simples (lógica original)
+                    numeroParcelas = parseInt(formParcelamento.numero_parcelas) || 0;
+                    if (!numeroParcelas) return null;
+                    
+                    const valoresIguais = formParcelamento.valores_iguais;
+                    const valorRestante = valorTotalNegociado - valorSinal;
+                    const numeroParcelasRestantes = numeroParcelas - (temSinal ? 1 : 0);
+                    
+                    if (temSinal) {
+                      // Primeira parcela é o sinal
+                      valoresParcelas.push(valorSinal);
+                      
+                      // Calcula as parcelas restantes
+                      if (valoresIguais && numeroParcelasRestantes > 0) {
+                        const valorParcela = valorRestante / numeroParcelasRestantes;
+                        for (let i = 0; i < numeroParcelasRestantes; i++) {
+                          valoresParcelas.push(valorParcela);
+                        }
+                      } else {
+                        // Usa os valores informados manualmente (pula a primeira que já é o sinal)
+                        const valoresManuais = formParcelamento.valores_parcelas.slice(1).map(v => parseMoneyInput(v || '0'));
+                        valoresParcelas.push(...valoresManuais);
                       }
                     } else {
-                      // Usa os valores informados manualmente (pula a primeira que já é o sinal)
-                      const valoresManuais = formParcelamento.valores_parcelas.slice(1).map(v => parseMoneyInput(v || '0'));
-                      valoresParcelas.push(...valoresManuais);
-                    }
-                  } else {
-                    // Sem sinal, cálculo normal
-                    if (valoresIguais) {
-                      const valorParcela = valorTotalNegociado / numeroParcelas;
-                      valoresParcelas = Array(numeroParcelas).fill(valorParcela);
-                    } else {
-                      valoresParcelas = formParcelamento.valores_parcelas.map(v => parseMoneyInput(v || '0'));
+                      // Sem sinal, cálculo normal
+                      if (valoresIguais) {
+                        const valorParcela = valorTotalNegociado / numeroParcelas;
+                        valoresParcelas = Array(numeroParcelas).fill(valorParcela);
+                      } else {
+                        valoresParcelas = formParcelamento.valores_parcelas.map(v => parseMoneyInput(v || '0'));
+                      }
                     }
                   }
 
@@ -2570,14 +2867,38 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
                                 </tr>
                               </thead>
                               <tbody>
-                                {parcelasPreview.map((parcela) => (
+                                {parcelasPreview.map((parcela) => {
+                                  // Verifica se é parcela de ajuste (última e valor diferente dos grupos - apenas se SOBRAR)
+                                  const isAjuste = formParcelamento.modo === 'grupos' && 
+                                    parcela.numero === parcelasPreview.length &&
+                                    formParcelamento.grupos.length > 0 &&
+                                    (() => {
+                                      const totalGrupos = formParcelamento.grupos.reduce((sum, grupo) => {
+                                        const quantidade = parseInt(grupo.quantidade) || 0;
+                                        const valor = parseMoneyInput(grupo.valor);
+                                        return sum + (quantidade * valor);
+                                      }, 0);
+                                      const diferenca = valorTotalNegociado - totalGrupos;
+                                      // Só é ajuste se SOBRAR valor (diferenca negativa, ou seja, parcelas somam mais)
+                                      // E se a última parcela tem o valor do excedente
+                                      if (diferenca < -0.01) {
+                                        return Math.abs(parcela.valor - Math.abs(diferenca)) < 0.01;
+                                      }
+                                      return false;
+                                    })();
+                                  
+                                  return (
                                   <tr key={parcela.numero} className={`border-b border-gray-200 ${
-                                    temSinal && parcela.numero === 1 ? 'bg-blue-50' : ''
+                                    temSinal && parcela.numero === 1 ? 'bg-blue-50' : 
+                                    isAjuste ? 'bg-yellow-50' : ''
                                   }`}>
                                     <td className="px-2 py-2 border-r border-gray-300 font-medium">
                                       {parcela.numero}
                                       {temSinal && parcela.numero === 1 && (
                                         <span className="ml-1 text-blue-600 font-semibold">(Sinal)</span>
+                                      )}
+                                      {isAjuste && (
+                                        <span className="ml-1 text-yellow-600 font-semibold">(Juros/Ajuste)</span>
                                       )}
                                     </td>
                                     <td className="px-2 py-2 border-r border-gray-300 font-semibold">
@@ -2587,7 +2908,8 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
                                       {new Date(parcela.data).toLocaleDateString('pt-BR')}
                                     </td>
                                   </tr>
-                                ))}
+                                  );
+                                })}
                               </tbody>
                             </table>
                           </div>
@@ -2611,13 +2933,23 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
 
                       {diferenca > 0.01 && (
                         <div className={`mt-3 p-2 rounded text-xs ${
-                          diferenca > 1 
-                            ? 'bg-red-50 border border-red-200 text-red-800' 
-                            : 'bg-yellow-50 border border-yellow-200 text-yellow-800'
+                          somaParcelas < valorTotalNegociado
+                            ? 'bg-orange-50 border border-orange-200 text-orange-800' 
+                            : 'bg-blue-50 border border-blue-200 text-blue-800'
                         }`}>
-                          <strong>Atenção:</strong> A soma das parcelas ({formatMoney(somaParcelas)}) 
-                          {somaParcelas < valorTotalNegociado ? ' é menor' : ' é maior'} que o valor total negociado ({formatMoney(valorTotalNegociado)}).
-                          Diferença: {formatMoney(diferenca)}
+                          {somaParcelas < valorTotalNegociado ? (
+                            <>
+                              <strong>Desconto:</strong> A soma das parcelas ({formatMoney(somaParcelas)}) 
+                              é menor que o valor total negociado ({formatMoney(valorTotalNegociado)}).
+                              Diferença: <strong>{formatMoney(diferenca)}</strong> (será confirmado antes de salvar)
+                            </>
+                          ) : (
+                            <>
+                              <strong>Juros:</strong> A soma das parcelas ({formatMoney(somaParcelas)}) 
+                              é maior que o valor total negociado ({formatMoney(valorTotalNegociado)}).
+                              Excedente: <strong>{formatMoney(diferenca)}</strong> (juros)
+                            </>
+                          )}
                         </div>
                       )}
                     </div>

@@ -28,13 +28,22 @@ export function useNotifications() {
         return;
       }
 
-      // Buscar atividades pendentes
+      // Data de hoje (início e fim do dia)
+      const hoje = new Date();
+      hoje.setHours(0, 0, 0, 0);
+      const hojeInicio = hoje.toISOString().split('T')[0];
+      const amanha = new Date(hoje);
+      amanha.setDate(amanha.getDate() + 1);
+      const amanhaInicio = amanha.toISOString().split('T')[0];
+
+      // Buscar atividades pendentes (filtrar por data_lembrete = hoje ou data_hora = hoje)
       const [sacadosAtividades, cedentesAtividades, titulosAtividades, contasVencendo] = await Promise.all([
         Promise.resolve(
           supabase
             .from('sacados_atividades')
             .select('id, tipo, descricao, data_hora, data_lembrete, sacado_cnpj')
             .eq('status', 'pendente')
+            .or(`data_lembrete.eq.${hojeInicio},data_hora.gte.${hojeInicio},data_hora.lt.${amanhaInicio}`)
         ).then(result => ({ data: result.data, error: result.error }))
         .catch(() => ({ data: null, error: null })),
         Promise.resolve(
@@ -42,6 +51,7 @@ export function useNotifications() {
             .from('cedentes_atividades')
             .select('id, tipo, descricao, data_hora, data_lembrete, cedente_id')
             .eq('status', 'pendente')
+            .or(`data_lembrete.eq.${hojeInicio},data_hora.gte.${hojeInicio},data_hora.lt.${amanhaInicio}`)
         ).then(result => ({ data: result.data, error: result.error }))
         .catch(() => ({ data: null, error: null })),
         Promise.resolve(
@@ -49,6 +59,7 @@ export function useNotifications() {
             .from('titulos_atividades')
             .select('id, tipo, descricao, data_hora, data_lembrete, titulo_id')
             .eq('status', 'pendente')
+            .or(`data_lembrete.eq.${hojeInicio},data_hora.gte.${hojeInicio},data_hora.lt.${amanhaInicio}`)
         ).then(result => ({ data: result.data, error: result.error }))
         .catch(() => ({ data: null, error: null })),
         Promise.resolve(
@@ -57,41 +68,65 @@ export function useNotifications() {
             .select('id, descricao, valor, data_competencia')
             .eq('status', 'pendente')
             .eq('natureza', 'receita')
-            .lte('data_competencia', new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
+            .eq('data_competencia', hojeInicio) // Apenas contas do dia atual
         ).then(result => ({ data: result.data, error: result.error }))
         .catch(() => ({ data: null, error: null }))
       ]);
 
       const notificationsList: Notification[] = [];
 
-      // Processar atividades pendentes
+      // Processar atividades pendentes (apenas do dia atual)
       if (sacadosAtividades.data) {
         sacadosAtividades.data.forEach((atividade: any) => {
-          notificationsList.push({
-            id: `sacado_${atividade.id}`,
-            tipo: 'atividade_pendente',
-            titulo: 'Atividade Pendente',
-            mensagem: `${atividade.descricao} (Sacado)`,
-            link: `/sacados/${encodeURIComponent(atividade.sacado_cnpj)}`,
-            lida: false,
-            created_at: atividade.data_hora,
-            data_referencia: atividade.data_lembrete || undefined
-          });
+          // Verifica se a atividade é do dia atual
+          const dataAtividade = atividade.data_lembrete || atividade.data_hora;
+          if (dataAtividade) {
+            const dataAtividadeObj = new Date(dataAtividade);
+            dataAtividadeObj.setHours(0, 0, 0, 0);
+            const hojeObj = new Date(hoje);
+            hojeObj.setHours(0, 0, 0, 0);
+            
+            // Só adiciona se for do dia atual
+            if (dataAtividadeObj.getTime() === hojeObj.getTime()) {
+              notificationsList.push({
+                id: `sacado_${atividade.id}`,
+                tipo: 'atividade_pendente',
+                titulo: 'Atividade Pendente',
+                mensagem: `${atividade.descricao} (Sacado)`,
+                link: `/sacados/${encodeURIComponent(atividade.sacado_cnpj)}`,
+                lida: false,
+                created_at: atividade.data_hora,
+                data_referencia: atividade.data_lembrete || undefined
+              });
+            }
+          }
         });
       }
 
       if (cedentesAtividades.data) {
         cedentesAtividades.data.forEach((atividade: any) => {
-          notificationsList.push({
-            id: `cedente_${atividade.id}`,
-            tipo: 'atividade_pendente',
-            titulo: 'Atividade Pendente',
-            mensagem: `${atividade.descricao} (Cedente)`,
-            link: `/cedentes/${atividade.cedente_id}`,
-            lida: false,
-            created_at: atividade.data_hora,
-            data_referencia: atividade.data_lembrete || undefined
-          });
+          // Verifica se a atividade é do dia atual
+          const dataAtividade = atividade.data_lembrete || atividade.data_hora;
+          if (dataAtividade) {
+            const dataAtividadeObj = new Date(dataAtividade);
+            dataAtividadeObj.setHours(0, 0, 0, 0);
+            const hojeObj = new Date(hoje);
+            hojeObj.setHours(0, 0, 0, 0);
+            
+            // Só adiciona se for do dia atual
+            if (dataAtividadeObj.getTime() === hojeObj.getTime()) {
+              notificationsList.push({
+                id: `cedente_${atividade.id}`,
+                tipo: 'atividade_pendente',
+                titulo: 'Atividade Pendente',
+                mensagem: `${atividade.descricao} (Cedente)`,
+                link: `/cedentes/${atividade.cedente_id}`,
+                lida: false,
+                created_at: atividade.data_hora,
+                data_referencia: atividade.data_lembrete || undefined
+              });
+            }
+          }
         });
       }
 
@@ -107,36 +142,49 @@ export function useNotifications() {
         const titulosMap = new Map((titulosInfo || []).map((t: any) => [t.id, t]));
 
         titulosAtividades.data.forEach((atividade: any) => {
-          const tituloInfo = titulosMap.get(atividade.titulo_id);
-          if (tituloInfo) {
-            notificationsList.push({
-              id: `titulo_${atividade.id}`,
-              tipo: 'atividade_pendente',
-              titulo: 'Atividade Pendente',
-              mensagem: `${atividade.descricao} (Título #${tituloInfo.numero_titulo})`,
-              link: `/cedentes/${tituloInfo.cedente_id}?titulo=${atividade.titulo_id}&tab=titulos`,
-              lida: false,
-              created_at: atividade.data_hora,
-              data_referencia: atividade.data_lembrete || undefined
-            });
+          // Verifica se a atividade é do dia atual
+          const dataAtividade = atividade.data_lembrete || atividade.data_hora;
+          if (dataAtividade) {
+            const dataAtividadeObj = new Date(dataAtividade);
+            dataAtividadeObj.setHours(0, 0, 0, 0);
+            const hojeObj = new Date(hoje);
+            hojeObj.setHours(0, 0, 0, 0);
+            
+            // Só adiciona se for do dia atual
+            if (dataAtividadeObj.getTime() === hojeObj.getTime()) {
+              const tituloInfo = titulosMap.get(atividade.titulo_id);
+              if (tituloInfo) {
+                notificationsList.push({
+                  id: `titulo_${atividade.id}`,
+                  tipo: 'atividade_pendente',
+                  titulo: 'Atividade Pendente',
+                  mensagem: `${atividade.descricao} (Título #${tituloInfo.numero_titulo})`,
+                  link: `/cedentes/${tituloInfo.cedente_id}?titulo=${atividade.titulo_id}&tab=titulos`,
+                  lida: false,
+                  created_at: atividade.data_hora,
+                  data_referencia: atividade.data_lembrete || undefined
+                });
+              }
+            }
           }
         });
       }
 
-      // Processar lembretes de vencimento
+      // Processar lembretes de vencimento (apenas do dia atual)
       if (cedentesAtividades.data) {
         cedentesAtividades.data.forEach((atividade: any) => {
           if (atividade.data_lembrete) {
             const dataLembrete = new Date(atividade.data_lembrete);
-            const hoje = new Date();
-            hoje.setHours(0, 0, 0, 0);
-            const diasRestantes = Math.ceil((dataLembrete.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
+            dataLembrete.setHours(0, 0, 0, 0);
+            const hojeObj = new Date(hoje);
+            hojeObj.setHours(0, 0, 0, 0);
             
-            if (diasRestantes >= 0 && diasRestantes <= 7) {
+            // Só mostra se for do dia atual
+            if (dataLembrete.getTime() === hojeObj.getTime()) {
               notificationsList.push({
                 id: `lembrete_cedente_${atividade.id}`,
-                tipo: diasRestantes === 0 ? 'lembrete_vencimento' : 'lembrete_vencimento',
-                titulo: diasRestantes === 0 ? 'Lembrete Vencido Hoje' : `Lembrete em ${diasRestantes} dia(s)`,
+                tipo: 'lembrete_vencimento',
+                titulo: 'Lembrete Vencido Hoje',
                 mensagem: atividade.descricao,
                 link: `/cedentes/${atividade.cedente_id}`,
                 lida: false,
@@ -152,15 +200,16 @@ export function useNotifications() {
         sacadosAtividades.data.forEach((atividade: any) => {
           if (atividade.data_lembrete) {
             const dataLembrete = new Date(atividade.data_lembrete);
-            const hoje = new Date();
-            hoje.setHours(0, 0, 0, 0);
-            const diasRestantes = Math.ceil((dataLembrete.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
+            dataLembrete.setHours(0, 0, 0, 0);
+            const hojeObj = new Date(hoje);
+            hojeObj.setHours(0, 0, 0, 0);
             
-            if (diasRestantes >= 0 && diasRestantes <= 7) {
+            // Só mostra se for do dia atual
+            if (dataLembrete.getTime() === hojeObj.getTime()) {
               notificationsList.push({
                 id: `lembrete_sacado_${atividade.id}`,
-                tipo: diasRestantes === 0 ? 'lembrete_vencimento' : 'lembrete_vencimento',
-                titulo: diasRestantes === 0 ? 'Lembrete Vencido Hoje' : `Lembrete em ${diasRestantes} dia(s)`,
+                tipo: 'lembrete_vencimento',
+                titulo: 'Lembrete Vencido Hoje',
                 mensagem: atividade.descricao,
                 link: `/sacados/${encodeURIComponent(atividade.sacado_cnpj)}`,
                 lida: false,
@@ -172,7 +221,7 @@ export function useNotifications() {
         });
       }
 
-      // Processar lembretes de atividades de títulos
+      // Processar lembretes de atividades de títulos (apenas do dia atual)
       if (titulosAtividades.data) {
         const titulosIds = titulosAtividades.data.map((a: any) => a.titulo_id);
         const { data: titulosInfo } = await supabase
@@ -184,18 +233,19 @@ export function useNotifications() {
 
         titulosAtividades.data.forEach((atividade: any) => {
           if (atividade.data_lembrete) {
-            const tituloInfo = titulosMap.get(atividade.titulo_id);
-            if (tituloInfo) {
-              const dataLembrete = new Date(atividade.data_lembrete);
-              const hoje = new Date();
-              hoje.setHours(0, 0, 0, 0);
-              const diasRestantes = Math.ceil((dataLembrete.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
-              
-              if (diasRestantes >= 0 && diasRestantes <= 7) {
+            const dataLembrete = new Date(atividade.data_lembrete);
+            dataLembrete.setHours(0, 0, 0, 0);
+            const hojeObj = new Date(hoje);
+            hojeObj.setHours(0, 0, 0, 0);
+            
+            // Só mostra se for do dia atual
+            if (dataLembrete.getTime() === hojeObj.getTime()) {
+              const tituloInfo = titulosMap.get(atividade.titulo_id);
+              if (tituloInfo) {
                 notificationsList.push({
                   id: `lembrete_titulo_${atividade.id}`,
-                  tipo: diasRestantes === 0 ? 'lembrete_vencimento' : 'lembrete_vencimento',
-                  titulo: diasRestantes === 0 ? 'Lembrete Vencido Hoje' : `Lembrete em ${diasRestantes} dia(s)`,
+                  tipo: 'lembrete_vencimento',
+                  titulo: 'Lembrete Vencido Hoje',
                   mensagem: `${atividade.descricao} (Título #${tituloInfo.numero_titulo})`,
                   link: `/cedentes/${tituloInfo.cedente_id}?titulo=${atividade.titulo_id}&tab=titulos`,
                   lida: false,
@@ -208,24 +258,27 @@ export function useNotifications() {
         });
       }
 
-      // Processar contas vencendo
+      // Processar contas vencendo (apenas do dia atual)
       if (contasVencendo.data) {
         contasVencendo.data.forEach((conta: any) => {
           const dataVencimento = new Date(conta.data_competencia);
-          const hoje = new Date();
-          hoje.setHours(0, 0, 0, 0);
-          const diasRestantes = Math.ceil((dataVencimento.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
+          dataVencimento.setHours(0, 0, 0, 0);
+          const hojeObj = new Date(hoje);
+          hojeObj.setHours(0, 0, 0, 0);
           
-          notificationsList.push({
-            id: `conta_${conta.id}`,
-            tipo: diasRestantes < 0 ? 'lembrete_vencimento' : 'lembrete_vencimento',
-            titulo: diasRestantes < 0 ? 'Conta Vencida' : diasRestantes === 0 ? 'Conta Vence Hoje' : `Conta Vence em ${diasRestantes} dia(s)`,
-            mensagem: `${conta.descricao || 'Conta'} - ${conta.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`,
-            link: '/financeiro/a-receber',
-            lida: false,
-            created_at: conta.data_competencia,
-            data_referencia: conta.data_competencia
-          });
+          // Só mostra se for do dia atual
+          if (dataVencimento.getTime() === hojeObj.getTime()) {
+            notificationsList.push({
+              id: `conta_${conta.id}`,
+              tipo: 'lembrete_vencimento',
+              titulo: 'Conta Vence Hoje',
+              mensagem: `${conta.descricao || 'Conta'} - ${conta.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`,
+              link: '/financeiro/a-receber',
+              lida: false,
+              created_at: conta.data_competencia,
+              data_referencia: conta.data_competencia
+            });
+          }
         });
       }
 
