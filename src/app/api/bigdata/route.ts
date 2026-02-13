@@ -1,7 +1,78 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 
 // Integração com BigData Corp API
 // Documentação: https://api.bigdatacorp.com.br
+
+// Inicializa cliente Supabase para verificação de consultas
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const supabase = supabaseServiceKey ? createClient(supabaseUrl, supabaseServiceKey) : null;
+
+/**
+ * Verifica se já existe uma consulta recente (últimas 24h) para o documento e tipo
+ */
+async function verificarConsultaRecente(documento: string, tipo: string): Promise<{ podeConsultar: boolean; ultimaConsulta: string | null }> {
+  if (!supabase) {
+    // Se não tiver Supabase configurado, permite a consulta (modo de desenvolvimento)
+    return { podeConsultar: true, ultimaConsulta: null };
+  }
+
+  try {
+    const vinteQuatroHorasAtras = new Date();
+    vinteQuatroHorasAtras.setHours(vinteQuatroHorasAtras.getHours() - 24);
+
+    const { data, error } = await supabase
+      .from('bigdata_consultas')
+      .select('data_consulta')
+      .eq('documento', documento)
+      .eq('tipo', tipo)
+      .gte('data_consulta', vinteQuatroHorasAtras.toISOString())
+      .order('data_consulta', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error && error.code !== 'PGRST116') {
+      // Se for erro de tabela não existir, permite a consulta
+      console.warn('Erro ao verificar consultas recentes:', error);
+      return { podeConsultar: true, ultimaConsulta: null };
+    }
+
+    if (data) {
+      return { 
+        podeConsultar: false, 
+        ultimaConsulta: data.data_consulta 
+      };
+    }
+
+    return { podeConsultar: true, ultimaConsulta: null };
+  } catch (error) {
+    console.error('Erro ao verificar consulta recente:', error);
+    // Em caso de erro, permite a consulta para não bloquear o sistema
+    return { podeConsultar: true, ultimaConsulta: null };
+  }
+}
+
+/**
+ * Registra uma consulta no banco de dados
+ */
+async function registrarConsulta(documento: string, tipo: string, userId?: string) {
+  if (!supabase) return;
+
+  try {
+    await supabase
+      .from('bigdata_consultas')
+      .insert({
+        documento,
+        tipo,
+        user_id: userId || null,
+        data_consulta: new Date().toISOString()
+      });
+  } catch (error) {
+    // Não bloqueia a consulta se falhar ao registrar
+    console.error('Erro ao registrar consulta:', error);
+  }
+}
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -10,14 +81,40 @@ export async function GET(request: NextRequest) {
   const tipo = searchParams.get('tipo'); // 'completo', 'qsa', 'enderecos', 'telefones', 'emails', 'processos', 'pessoa_fisica'
 
   // Processos e pessoa_fisica precisam de CPF, outros dados precisam de CNPJ
+  let documento: string;
   if (tipo === 'processos' || tipo === 'pessoa_fisica') {
     if (!cpf) {
       return NextResponse.json({ error: 'CPF não fornecido' }, { status: 400 });
+    }
+    documento = cpf.replace(/\D/g, '');
+    // Validação básica de CPF
+    if (documento.length !== 11) {
+      return NextResponse.json({ error: 'CPF inválido. Deve ter 11 dígitos.' }, { status: 400 });
     }
   } else {
     if (!cnpj) {
       return NextResponse.json({ error: 'CNPJ não fornecido' }, { status: 400 });
     }
+    documento = cnpj.replace(/\D/g, '');
+    // Validação básica de CNPJ
+    if (documento.length !== 14) {
+      return NextResponse.json({ error: 'CNPJ inválido. Deve ter 14 dígitos.' }, { status: 400 });
+    }
+  }
+
+  // Verifica se já foi consultado nas últimas 24h
+  const { podeConsultar, ultimaConsulta } = await verificarConsultaRecente(documento, tipo);
+  
+  if (!podeConsultar && ultimaConsulta) {
+    const dataUltimaConsulta = new Date(ultimaConsulta);
+    const horasDesdeUltimaConsulta = Math.floor((Date.now() - dataUltimaConsulta.getTime()) / (1000 * 60 * 60));
+    const minutosRestantes = 24 - horasDesdeUltimaConsulta;
+    
+    return NextResponse.json({
+      error: `Este ${documento.length === 11 ? 'CPF' : 'CNPJ'} já foi consultado há ${horasDesdeUltimaConsulta} hora(s). Aguarde ${minutosRestantes} hora(s) antes de consultar novamente.`,
+      ultima_consulta: ultimaConsulta,
+      bloqueado: true
+    }, { status: 429 }); // 429 = Too Many Requests
   }
 
   const accessToken = process.env.BIGDATA_ACCESS_TOKEN || '';
@@ -31,10 +128,15 @@ export async function GET(request: NextRequest) {
     }, { status: 503 });
   }
 
+  // Tenta obter o user_id do header (se disponível)
+  // Nota: Em rotas de API, geralmente não temos acesso direto ao usuário autenticado
+  // O user_id será null se não for possível obter
+  let userId: string | undefined;
+
   try {
     // Busca dados de pessoa física por CPF
     if (tipo === 'pessoa_fisica') {
-      const cpfLimpo = cpf!.replace(/\D/g, '');
+      const cpfLimpo = documento;
       const pessoaData = await fetchBigDataPessoaFisica(cpfLimpo, accessToken, tokenId);
       
       if (!pessoaData) {
@@ -42,12 +144,16 @@ export async function GET(request: NextRequest) {
       }
 
       const converted = convertPessoaFisicaToOurFormat(pessoaData);
+      
+      // Registra a consulta após sucesso
+      await registrarConsulta(documento, tipo, userId);
+      
       return NextResponse.json(converted);
     }
     
     // Busca processos por CPF
     if (tipo === 'processos') {
-      const cpfLimpo = cpf!.replace(/\D/g, '');
+      const cpfLimpo = documento;
       const processosData = await fetchBigDataProcessos(cpfLimpo, accessToken, tokenId);
       
       if (!processosData) {
@@ -55,10 +161,14 @@ export async function GET(request: NextRequest) {
       }
 
       const converted = convertProcessosToOurFormat(processosData);
+      
+      // Registra a consulta após sucesso
+      await registrarConsulta(documento, tipo, userId);
+      
       return NextResponse.json(converted);
     }
     
-    const cnpjLimpo = cnpj.replace(/\D/g, '');
+    const cnpjLimpo = documento;
     
     // Se for para buscar QSA, usa endpoint específico
     if (tipo === 'qsa') {
@@ -69,6 +179,10 @@ export async function GET(request: NextRequest) {
       }
 
       const converted = convertQSAToOurFormat(qsaData);
+      
+      // Registra a consulta após sucesso
+      await registrarConsulta(documento, tipo, userId);
+      
       return NextResponse.json(converted);
     }
     
@@ -86,6 +200,9 @@ export async function GET(request: NextRequest) {
         throw new Error('Dados básicos não encontrados');
       }
 
+      // Registra a consulta após sucesso
+      await registrarConsulta(documento, tipo, userId);
+
       return NextResponse.json(basicData);
     }
     
@@ -98,6 +215,9 @@ export async function GET(request: NextRequest) {
 
     // Converte o formato da BigData para nosso formato
     const converted = convertBigDataToOurFormat(registrationData, tipo);
+    
+    // Registra a consulta após sucesso
+    await registrarConsulta(documento, tipo, userId);
     
     return NextResponse.json(converted);
     

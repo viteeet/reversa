@@ -1,17 +1,34 @@
+/**
+ * Remove todos os caracteres não numéricos
+ */
 export function onlyDigits(value: string): string {
   return (value || "").replace(/\D+/g, "");
 }
 
+/**
+ * Formata CPF permitindo apenas números válidos durante a digitação
+ * Limita a 11 dígitos
+ */
 export function formatCpf(value: string): string {
+  // Remove tudo que não é número
   const d = onlyDigits(value).slice(0, 11);
+  
+  // Aplica máscara progressivamente
   if (d.length <= 3) return d;
   if (d.length <= 6) return `${d.slice(0, 3)}.${d.slice(3)}`;
   if (d.length <= 9) return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6)}`;
   return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9, 11)}`;
 }
 
+/**
+ * Formata CNPJ permitindo apenas números válidos durante a digitação
+ * Limita a 14 dígitos
+ */
 export function formatCnpj(value: string): string {
+  // Remove tudo que não é número
   const d = onlyDigits(value).slice(0, 14);
+  
+  // Aplica máscara progressivamente
   if (d.length <= 2) return d;
   if (d.length <= 5) return `${d.slice(0, 2)}.${d.slice(2)}`;
   if (d.length <= 8) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5)}`;
@@ -19,10 +36,35 @@ export function formatCnpj(value: string): string {
   return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12, 14)}`;
 }
 
+/**
+ * Formata CPF ou CNPJ automaticamente baseado no tamanho
+ * Permite apenas números válidos durante a digitação
+ */
 export function formatCpfCnpj(value: string): string {
   const d = onlyDigits(value);
   if (d.length > 11) return formatCnpj(d);
   return formatCpf(d);
+}
+
+/**
+ * Handler para input de CPF - permite apenas números e aplica máscara
+ */
+export function handleCpfInput(value: string): string {
+  return formatCpf(value);
+}
+
+/**
+ * Handler para input de CNPJ - permite apenas números e aplica máscara
+ */
+export function handleCnpjInput(value: string): string {
+  return formatCnpj(value);
+}
+
+/**
+ * Handler para input de CPF/CNPJ - permite apenas números e aplica máscara automaticamente
+ */
+export function handleCpfCnpjInput(value: string): string {
+  return formatCpfCnpj(value);
 }
 
 export function isValidEmail(value: string): boolean {

@@ -485,6 +485,11 @@ export default function Header() {
                     <div className="text-sm text-gray-700">Relatório de Vencidos</div>
                   </div>
                 </Link>
+                <Link href="/relatorios/bigdata-consultas" onClick={() => setIsMenuOpen(false)}>
+                  <div className="px-2 py-1.5 rounded hover:bg-gray-50 transition-colors cursor-pointer">
+                    <div className="text-sm text-gray-700">Relatório BigData</div>
+                  </div>
+                </Link>
               </div>
               
               {/* Seção Financeiro */}
