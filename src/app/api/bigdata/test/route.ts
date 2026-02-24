@@ -1,12 +1,34 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * Endpoint de teste para verificar se a API BigData está configurada
- * GET /api/bigdata/test
+ * GET /api/bigdata/test - Verifica configuração atual
+ * POST /api/bigdata/test - Testa tokens fornecidos
  */
 export async function GET() {
   const accessToken = process.env.BIGDATA_ACCESS_TOKEN || '';
   const tokenId = process.env.BIGDATA_TOKEN_ID || '';
+  
+  return testarBigData(accessToken, tokenId);
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const accessToken = body.accessToken || process.env.BIGDATA_ACCESS_TOKEN || '';
+    const tokenId = body.tokenId || process.env.BIGDATA_TOKEN_ID || '';
+    
+    return testarBigData(accessToken, tokenId);
+  } catch (error) {
+    return NextResponse.json({
+      configurada: false,
+      mensagem: 'Erro ao processar requisição',
+      erro: error instanceof Error ? error.message : 'Erro desconhecido'
+    }, { status: 400 });
+  }
+}
+
+async function testarBigData(accessToken: string, tokenId: string) {
 
   const status = {
     configurada: false,

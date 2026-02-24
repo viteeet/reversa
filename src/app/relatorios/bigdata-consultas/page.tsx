@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { supabase } from '@/lib/supabase';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
@@ -34,6 +33,7 @@ export default function RelatorioBigDataConsultasPage() {
   const [consultas, setConsultas] = useState<ConsultaBigData[]>([]);
   const [loading, setLoading] = useState(true);
   const [estatisticas, setEstatisticas] = useState<Estatisticas | null>(null);
+  const [erroCarregamento, setErroCarregamento] = useState<string | null>(null);
   
   // Filtros
   const [filtroDataInicio, setFiltroDataInicio] = useState('');
@@ -51,67 +51,28 @@ export default function RelatorioBigDataConsultasPage() {
 
   async function carregarConsultas() {
     setLoading(true);
+    setErroCarregamento(null);
     try {
-      let query = supabase
-        .from('bigdata_consultas')
-        .select('*')
-        .order('data_consulta', { ascending: false });
+      const params = new URLSearchParams({
+        periodo: periodoPredefinido,
+        dataInicio: filtroDataInicio,
+        dataFim: filtroDataFim,
+        documento: filtroDocumento,
+        tipo: filtroTipo,
+        usuario: filtroUsuario,
+      });
 
-      // Aplica filtro de período pré-definido
-      if (periodoPredefinido !== 'todos') {
-        const agora = new Date();
-        let dataInicio: Date;
+      const response = await fetch(`/api/admin/bigdata-consultas?${params.toString()}`);
+      const payload = await response.json();
 
-        switch (periodoPredefinido) {
-          case 'hoje':
-            dataInicio = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate());
-            break;
-          case 'semana':
-            dataInicio = new Date(agora);
-            dataInicio.setDate(agora.getDate() - 7);
-            break;
-          case 'mes':
-            dataInicio = new Date(agora);
-            dataInicio.setMonth(agora.getMonth() - 1);
-            break;
-          default:
-            dataInicio = new Date(0);
-        }
-
-        query = query.gte('data_consulta', dataInicio.toISOString());
+      if (!response.ok) {
+        setConsultas([]);
+        setEstatisticas(null);
+        setErroCarregamento(payload?.error || 'Erro ao carregar consultas BigData');
+        return;
       }
 
-      // Aplica filtros manuais
-      if (filtroDataInicio) {
-        query = query.gte('data_consulta', new Date(filtroDataInicio).toISOString());
-      }
-      if (filtroDataFim) {
-        const fim = new Date(filtroDataFim);
-        fim.setHours(23, 59, 59, 999);
-        query = query.lte('data_consulta', fim.toISOString());
-      }
-      if (filtroDocumento) {
-        const docLimpo = filtroDocumento.replace(/\D/g, '');
-        query = query.eq('documento', docLimpo);
-      }
-      if (filtroTipo) {
-        query = query.eq('tipo', filtroTipo);
-      }
-      if (filtroUsuario) {
-        query = query.eq('user_id', filtroUsuario);
-      }
-
-      const { data, error } = await query.limit(10000); // Limite alto para relatórios
-
-      if (error) {
-        if (error.code === 'PGRST116' || error.message.includes('does not exist')) {
-          setConsultas([]);
-          setEstatisticas(null);
-          setLoading(false);
-          return;
-        }
-        throw error;
-      }
+      const data = payload?.data || [];
 
       // Carrega informações dos usuários (simplificado - não temos acesso admin)
       const consultasComUsuarios = (data || []).map(consulta => ({
@@ -127,6 +88,8 @@ export default function RelatorioBigDataConsultasPage() {
     } catch (error: any) {
       console.error('Erro ao carregar consultas:', error);
       setConsultas([]);
+      setEstatisticas(null);
+      setErroCarregamento(error?.message || 'Erro ao carregar consultas BigData');
     } finally {
       setLoading(false);
     }
@@ -321,6 +284,19 @@ export default function RelatorioBigDataConsultasPage() {
             </div>
           </div>
         </Card>
+
+        {erroCarregamento && (
+          <Card>
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-700 font-medium">{erroCarregamento}</p>
+              {erroCarregamento.includes('SUPABASE_SERVICE_ROLE_KEY') && (
+                <p className="text-xs text-red-600 mt-1">
+                  Configure SUPABASE_SERVICE_ROLE_KEY no ambiente (Vercel e/ou .env.local) e reinicie o app.
+                </p>
+              )}
+            </div>
+          </Card>
+        )}
 
         {/* Estatísticas */}
         {estatisticas && (

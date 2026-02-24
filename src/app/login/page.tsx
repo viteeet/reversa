@@ -9,7 +9,6 @@ import Input from '@/components/ui/Input';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [pending, setPending] = useState(false);
@@ -21,13 +20,8 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      if (mode === 'login') {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.auth.signUp({ email, password });
-        if (error) throw error;
-      }
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
       router.push('/dashboard'); // pós-login
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Erro inesperado';
@@ -45,12 +39,6 @@ export default function LoginPage() {
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
               Reversa
             </h1>
-            <h2 className="text-xl font-semibold text-slate-800">
-              {mode === 'login' ? 'Entrar' : 'Criar conta'}
-            </h2>
-            <p className="text-slate-600 text-sm">
-              {mode === 'login' ? 'Acesse sua conta' : 'Crie uma nova conta'}
-            </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -86,21 +74,9 @@ export default function LoginPage() {
               disabled={pending}
               className="w-full"
             >
-              {mode === 'login' ? 'Entrar' : 'Criar conta'}
+              Continuar
             </Button>
           </form>
-
-          <div className="text-center">
-            <Button
-              variant="outline"
-              onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
-              className="w-full"
-            >
-              {mode === 'login'
-                ? 'Não tem conta? Criar conta'
-                : 'Já tem conta? Entrar'}
-            </Button>
-          </div>
         </div>
       </Card>
     </main>

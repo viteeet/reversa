@@ -84,6 +84,11 @@ export default function SettingsPage() {
                     Status
                   </Button>
                 </Link>
+                <Link href="/settings/bigdata" className="block">
+                  <Button variant="outline" className="w-full justify-start text-sm">
+                    🔑 API BigData
+                  </Button>
+                </Link>
                 <Button 
                   variant="outline" 
                   className="w-full justify-start text-sm"
