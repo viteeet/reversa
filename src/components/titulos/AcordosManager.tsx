@@ -63,6 +63,7 @@ export default function AcordosManager({ cedenteId }: AcordosManagerProps) {
   const [parcelaEditando, setParcelaEditando] = useState<Parcela | null>(null);
   const [formParcela, setFormParcela] = useState({
     status: 'a_vencer',
+    data_vencimento: '',
     data_pagamento: '',
     valor_pago: '',
     observacoes: '',
@@ -316,6 +317,7 @@ export default function AcordosManager({ cedenteId }: AcordosManagerProps) {
     setParcelaEditando(parcela);
     setFormParcela({
       status: parcela.status,
+      data_vencimento: parcela.data_vencimento ? new Date(parcela.data_vencimento).toISOString().split('T')[0] : '',
       data_pagamento: parcela.data_pagamento ? new Date(parcela.data_pagamento).toISOString().split('T')[0] : '',
       valor_pago: parcela.valor_pago ? formatMoneyInput(Math.round(parcela.valor_pago * 100).toString()) : '',
       observacoes: parcela.observacoes || '',
@@ -327,14 +329,14 @@ export default function AcordosManager({ cedenteId }: AcordosManagerProps) {
     if (!parcelaEditando) return;
 
     try {
-      // Determina o status automaticamente se não foi paga
+      const novoVencimento = formParcela.data_vencimento || parcelaEditando.data_vencimento;
+
       let statusFinal = formParcela.status;
       
-      // Se não está paga, verifica se está vencida
       if (formParcela.status !== 'paga') {
         const hoje = new Date();
         hoje.setHours(0, 0, 0, 0);
-        const vencimento = new Date(parcelaEditando.data_vencimento);
+        const vencimento = new Date(novoVencimento);
         vencimento.setHours(0, 0, 0, 0);
         
         if (vencimento < hoje) {
@@ -344,7 +346,6 @@ export default function AcordosManager({ cedenteId }: AcordosManagerProps) {
         }
       }
 
-      // Se está marcada como paga, precisa ter data de pagamento
       if (statusFinal === 'paga' && !formParcela.data_pagamento) {
         showToast('Informe a data de pagamento para marcar como paga', 'error');
         return;
@@ -356,6 +357,7 @@ export default function AcordosManager({ cedenteId }: AcordosManagerProps) {
         .from('parcelas')
         .update({
           status: statusFinal,
+          data_vencimento: novoVencimento,
           data_pagamento: formParcela.data_pagamento || null,
           valor_pago: valorPago,
           observacoes: formParcela.observacoes || null,
@@ -700,12 +702,27 @@ export default function AcordosManager({ cedenteId }: AcordosManagerProps) {
                       <p className="font-semibold text-gray-900">{formatMoney(parcelaEditando.valor)}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 uppercase mb-1">Vencimento</p>
+                      <p className="text-xs text-gray-500 uppercase mb-1">Vencimento Original</p>
                       <p className="font-semibold text-gray-900">
                         {new Date(parcelaEditando.data_vencimento).toLocaleDateString('pt-BR')}
                       </p>
                     </div>
                   </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Data de Vencimento
+                  </label>
+                  <input
+                    type="date"
+                    value={formParcela.data_vencimento}
+                    onChange={(e) => setFormParcela({ ...formParcela, data_vencimento: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 text-sm"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Altere para ajustar o vencimento desta parcela.
+                  </p>
                 </div>
 
                 <div>

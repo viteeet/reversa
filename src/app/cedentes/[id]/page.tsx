@@ -534,7 +534,7 @@ export default function CedentePage() {
                     <div className="border-b border-gray-300 bg-gray-100 -mx-4 -mt-4 px-4 py-2 mb-4">
                       <h2 className="text-xs font-semibold text-gray-700 uppercase">Observações Gerais</h2>
                     </div>
-                    <div className="whitespace-pre-line text-sm text-gray-900">{observacoesGerais}</div>
+                    <div className="prose prose-sm max-w-none text-gray-900" dangerouslySetInnerHTML={{ __html: observacoesGerais }} />
                   </div>
                 )}
 

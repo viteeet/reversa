@@ -17,7 +17,7 @@ export default function CobrancaBulkForm({ titulosIds, demandas, onSuccess }: Co
   const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
-    tipo: 'ligacao' as 'ligacao' | 'email' | 'reuniao' | 'observacao' | 'lembrete' | 'documento' | 'negociacao',
+    tipo: 'ligacao' as 'ligacao' | 'email' | 'reuniao' | 'observacao' | 'lembrete' | 'documento' | 'negociacao' | 'whatsapp',
     descricao: '',
     status: 'concluida' as 'pendente' | 'concluida' | 'cancelada',
     proxima_acao: '',
@@ -28,6 +28,7 @@ export default function CobrancaBulkForm({ titulosIds, demandas, onSuccess }: Co
   const tiposAtividade = [
     { value: 'ligacao', label: 'Ligação' },
     { value: 'email', label: 'Email' },
+    { value: 'whatsapp', label: 'WhatsApp' },
     { value: 'reuniao', label: 'Reunião' },
     { value: 'observacao', label: 'Observação' },
     { value: 'lembrete', label: 'Lembrete' },

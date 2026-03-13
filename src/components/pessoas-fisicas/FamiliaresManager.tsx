@@ -131,7 +131,7 @@ export default function FamiliaresManager({
     'pai', 'mae', 'conjuge', 'filho', 'filha', 'irmao', 'irma', 
     'avô', 'avó', 'neto', 'neta', 'tio', 'tia', 'primo', 'prima', 
     'sobrinho', 'sobrinha', 'cunhado', 'cunhada', 'sogro', 'sogra', 
-    'genro', 'nora', 'outro'
+    'genro', 'nora', 'socio_oculto', 'outro'
   ];
 
   return (

@@ -4,12 +4,28 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
-import { formatCpfCnpj } from '@/lib/format';
+import { formatCpfCnpj, formatMoney } from '@/lib/format';
 import { consultarCnpj } from '@/lib/cnpjws';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Badge from '@/components/ui/Badge';
+
+const ESTEIRA_OPTIONS = [
+  { value: 'em_cobranca', label: 'Em Cobrança', color: 'bg-blue-100 text-blue-800 border-blue-300' },
+  { value: 'em_negociacao', label: 'Em Negociação', color: 'bg-yellow-100 text-yellow-800 border-yellow-300' },
+  { value: 'localizando', label: 'Localizando', color: 'bg-purple-100 text-purple-800 border-purple-300' },
+  { value: 'acordo_em_andamento', label: 'Acordo em Andamento', color: 'bg-green-100 text-green-800 border-green-300' },
+  { value: 'analise', label: 'Análise', color: 'bg-cyan-100 text-cyan-800 border-cyan-300' },
+  { value: 'investigacao', label: 'Investigação', color: 'bg-orange-100 text-orange-800 border-orange-300' },
+  { value: 'juridico', label: 'Jurídico', color: 'bg-red-100 text-red-800 border-red-300' },
+  { value: 'devolvido', label: 'Devolvido', color: 'bg-gray-100 text-gray-800 border-gray-300' },
+] as const;
+
+function getEsteiraInfo(value: string | null) {
+  if (!value) return null;
+  return ESTEIRA_OPTIONS.find(e => e.value === value) || null;
+}
 
 type Cedente = {
   id: string;
@@ -29,6 +45,8 @@ type Cedente = {
   atividades_secundarias: string | null;
   simples_nacional: boolean | null;
   ultima_atualizacao: string | null;
+  esteira: string | null;
+  valor_total_demandas?: number;
 };
 
 type ViewMode = 'table' | 'grid';
@@ -54,6 +72,7 @@ export default function CedentesPage() {
   const [pageSize, setPageSize] = useState(10);
   const [viewMode, setViewMode] = useState<ViewMode>('table');
   const [filterSituacao, setFilterSituacao] = useState<string>('all');
+  const [filterEsteira, setFilterEsteira] = useState<string>('all');
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -66,10 +85,37 @@ export default function CedentesPage() {
   async function load() {
     const { data, error } = await supabase
       .from('cedentes')
-      .select('id, nome, razao_social, cnpj, telefone, email, endereco, porte, natureza_juridica, situacao, data_abertura, capital_social, atividade_principal_codigo, atividade_principal_descricao, atividades_secundarias, simples_nacional, ultima_atualizacao')
+      .select('id, nome, razao_social, cnpj, telefone, email, endereco, porte, natureza_juridica, situacao, data_abertura, capital_social, atividade_principal_codigo, atividade_principal_descricao, atividades_secundarias, simples_nacional, ultima_atualizacao, esteira')
       .order('nome', { ascending: true });
-    if (error) setErr(error.message);
-    setItems((data as Cedente[]) ?? []);
+    if (error) { setErr(error.message); return; }
+
+    const cedentes = (data as Cedente[]) ?? [];
+
+    const { data: totais } = await supabase
+      .from('titulos_negociados')
+      .select('cedente_id, valor_atualizado')
+      .eq('ativo', true);
+
+    if (totais) {
+      const somaPorCedente: Record<string, number> = {};
+      for (const t of totais) {
+        somaPorCedente[t.cedente_id] = (somaPorCedente[t.cedente_id] || 0) + (t.valor_atualizado || 0);
+      }
+      for (const c of cedentes) {
+        c.valor_total_demandas = somaPorCedente[c.id] || 0;
+      }
+    }
+
+    setItems(cedentes);
+  }
+
+  async function handleChangeEsteira(cedenteId: string, novaEsteira: string | null) {
+    const { error } = await supabase
+      .from('cedentes')
+      .update({ esteira: novaEsteira })
+      .eq('id', cedenteId);
+    if (error) { alert(error.message); return; }
+    setItems(prev => prev.map(c => c.id === cedenteId ? { ...c, esteira: novaEsteira } : c));
   }
 
   async function consultarAPIsCedente(cedenteId: string, cnpj: string, salvarNoBanco: boolean = false) {
@@ -193,7 +239,6 @@ export default function CedentesPage() {
   const filtered = useMemo(() => {
     let result = items;
     
-    // Filtro por situação
     if (filterSituacao !== 'all') {
       if (filterSituacao === 'ativa') {
         result = result.filter(i => i.situacao === 'ATIVA');
@@ -201,18 +246,30 @@ export default function CedentesPage() {
         result = result.filter(i => i.situacao !== 'ATIVA');
       }
     }
+
+    if (filterEsteira !== 'all') {
+      if (filterEsteira === 'sem_esteira') {
+        result = result.filter(i => !i.esteira);
+      } else {
+        result = result.filter(i => i.esteira === filterEsteira);
+      }
+    }
     
-    // Filtro por texto
     const t = q.trim().toLowerCase();
     if (t) {
       result = result.filter(i => [
         i.nome, i.razao_social ?? '', i.cnpj ?? '', i.email ?? '', i.telefone ?? '', i.endereco ?? '',
-        i.porte ?? '', i.natureza_juridica ?? '', i.situacao ?? '', i.atividade_principal_descricao ?? ''
+        i.porte ?? '', i.natureza_juridica ?? '', i.situacao ?? '', i.atividade_principal_descricao ?? '',
+        getEsteiraInfo(i.esteira)?.label ?? ''
       ].some(v => String(v).toLowerCase().includes(t)));
     }
     
     return result;
-  }, [items, q, filterSituacao]);
+  }, [items, q, filterSituacao, filterEsteira]);
+
+  const valorTotalFiltrado = useMemo(() => {
+    return filtered.reduce((sum, c) => sum + (c.valor_total_demandas || 0), 0);
+  }, [filtered]);
 
   const sorted = useMemo(() => {
     const arr = [...filtered];
@@ -244,7 +301,7 @@ export default function CedentesPage() {
     setPage(1);
   }
 
-  useEffect(() => { setPage(1); }, [q, filterSituacao]);
+  useEffect(() => { setPage(1); }, [q, filterSituacao, filterEsteira]);
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -286,9 +343,20 @@ export default function CedentesPage() {
                 onChange={(e) => setFilterSituacao(e.target.value)}
                 className="px-3 py-2 border border-gray-300 text-sm text-[#0369a1] bg-white hover:bg-gray-50"
               >
-                <option value="all">📊 Todas as situações</option>
-                <option value="ativa">✅ Apenas Ativos</option>
-                <option value="inativa">⏸ Apenas Inativos</option>
+                <option value="all">Todas as situações</option>
+                <option value="ativa">Apenas Ativos</option>
+                <option value="inativa">Apenas Inativos</option>
+              </select>
+              <select
+                value={filterEsteira}
+                onChange={(e) => setFilterEsteira(e.target.value)}
+                className="px-3 py-2 border border-gray-300 text-sm text-[#0369a1] bg-white hover:bg-gray-50"
+              >
+                <option value="all">Todas as esteiras</option>
+                <option value="sem_esteira">Sem esteira</option>
+                {ESTEIRA_OPTIONS.map(e => (
+                  <option key={e.value} value={e.value}>{e.label}</option>
+                ))}
               </select>
             </div>
 
@@ -309,13 +377,20 @@ export default function CedentesPage() {
 
           {/* Contador de resultados */}
           <div className="mt-3 pt-3 border-t border-gray-300 flex items-center justify-between text-sm">
-            <span className="text-[#64748b]">
-              Exibindo <strong className="text-[#0369a1]">{paginated.length}</strong> de <strong className="text-[#0369a1]">{total}</strong> cedentes
-              {q && <span> (filtrado de <strong>{items.length}</strong>)</span>}
-            </span>
-            {q && (
-              <Button variant="secondary" onClick={() => setQ('')} className="text-xs">
-                Limpar busca
+            <div className="flex items-center gap-4">
+              <span className="text-[#64748b]">
+                Exibindo <strong className="text-[#0369a1]">{paginated.length}</strong> de <strong className="text-[#0369a1]">{total}</strong> cedentes
+                {q && <span> (filtrado de <strong>{items.length}</strong>)</span>}
+              </span>
+              {valorTotalFiltrado > 0 && (
+                <span className="text-[#64748b]">
+                  | Valor total demandas: <strong className="text-[#0369a1]">{formatMoney(valorTotalFiltrado)}</strong>
+                </span>
+              )}
+            </div>
+            {(q || filterEsteira !== 'all') && (
+              <Button variant="secondary" onClick={() => { setQ(''); setFilterEsteira('all'); setFilterSituacao('all'); }} className="text-xs">
+                Limpar filtros
               </Button>
             )}
           </div>
@@ -514,18 +589,22 @@ export default function CedentesPage() {
                         <span className="ml-1 text-gray-500">{sortDir === 'asc' ? '▲' : '▼'}</span>
                       )}
                     </th>
+                    <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Esteira</th>
+                    <th className="px-4 py-2 text-right text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Valor Demandas</th>
                     <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
                   {paginated.length === 0 ? (
-                    <tr><td colSpan={5} className="p-8 text-center text-gray-600 border-b border-gray-300">
+                    <tr><td colSpan={7} className="p-8 text-center text-gray-600 border-b border-gray-300">
                       <div className="flex flex-col items-center gap-3">
                         <span className="text-4xl">📭</span>
                         <p>Nenhum cedente encontrado.</p>
                       </div>
                     </td></tr>
-                  ) : paginated.map(c => (
+                  ) : paginated.map(c => {
+                    const esteiraInfo = getEsteiraInfo(c.esteira);
+                    return (
                     <tr key={c.id} className="hover:bg-gray-50 border-b border-gray-300 group">
                       <td className="px-4 py-2 text-sm text-gray-900 font-medium border-r border-gray-300">{c.nome}</td>
                       <td className="px-4 py-2 text-sm text-gray-600 border-r border-gray-300">{c.razao_social ?? '—'}</td>
@@ -535,6 +614,27 @@ export default function CedentesPage() {
                           <Badge variant={c.situacao === 'ATIVA' ? 'success' : 'neutral'} size="sm">
                             {c.situacao}
                           </Badge>
+                        )}
+                      </td>
+                      <td className="px-4 py-2 border-r border-gray-300">
+                        <select
+                          value={c.esteira || ''}
+                          onChange={(e) => handleChangeEsteira(c.id, e.target.value || null)}
+                          className={`text-xs px-2 py-1 border rounded font-medium cursor-pointer ${
+                            esteiraInfo ? esteiraInfo.color : 'bg-white text-gray-500 border-gray-300'
+                          }`}
+                        >
+                          <option value="">— Selecionar —</option>
+                          {ESTEIRA_OPTIONS.map(e => (
+                            <option key={e.value} value={e.value}>{e.label}</option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-4 py-2 text-sm text-right font-semibold border-r border-gray-300">
+                        {(c.valor_total_demandas || 0) > 0 ? (
+                          <span className="text-[#0369a1]">{formatMoney(c.valor_total_demandas || 0)}</span>
+                        ) : (
+                          <span className="text-gray-400">—</span>
                         )}
                       </td>
                       <td className="px-4 py-2">
@@ -549,7 +649,8 @@ export default function CedentesPage() {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -562,21 +663,35 @@ export default function CedentesPage() {
                     <p>Nenhum cedente encontrado.</p>
                   </div>
                 </div>
-              ) : paginated.map(c => (
+              ) : paginated.map(c => {
+                const esteiraInfo = getEsteiraInfo(c.esteira);
+                return (
                 <div key={c.id} className="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-lg transition-all hover:-translate-y-1">
                   <div className="flex items-start justify-between mb-3">
                     <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
                       <span className="text-2xl">🏢</span>
                     </div>
-                    {c.situacao && (
-                      <Badge variant={c.situacao === 'ATIVA' ? 'success' : 'neutral'} size="sm">
-                        {c.situacao}
-                      </Badge>
-                    )}
+                    <div className="flex flex-col items-end gap-1">
+                      {c.situacao && (
+                        <Badge variant={c.situacao === 'ATIVA' ? 'success' : 'neutral'} size="sm">
+                          {c.situacao}
+                        </Badge>
+                      )}
+                      {esteiraInfo && (
+                        <span className={`text-xs px-2 py-0.5 rounded border font-medium ${esteiraInfo.color}`}>
+                          {esteiraInfo.label}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <h3 className="font-bold text-[#0369a1] mb-1 text-lg">{c.nome}</h3>
-                  {c.razao_social && <p className="text-sm text-[#64748b] mb-2">{c.razao_social}</p>}
-                  {c.cnpj && <p className="text-xs text-[#64748b] font-mono mb-3">{formatCpfCnpj(c.cnpj)}</p>}
+                  {c.razao_social && <p className="text-sm text-[#64748b] mb-1">{c.razao_social}</p>}
+                  {c.cnpj && <p className="text-xs text-[#64748b] font-mono mb-1">{formatCpfCnpj(c.cnpj)}</p>}
+                  {(c.valor_total_demandas || 0) > 0 && (
+                    <p className="text-sm font-semibold text-[#0369a1] mb-3">
+                      Demandas: {formatMoney(c.valor_total_demandas || 0)}
+                    </p>
+                  )}
                   <div className="flex gap-2 pt-3 border-t border-gray-100">
                     <Link href={`/cedentes/${c.id}`} className="flex-1">
                       <button className="w-full px-3 py-2 border border-gray-300 bg-white hover:bg-gray-50 text-[#0369a1] font-medium text-sm">
@@ -596,7 +711,8 @@ export default function CedentesPage() {
                     </button>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
 

@@ -9,7 +9,7 @@ import Modal from '@/components/ui/Modal';
 
 type Atividade = {
   id: string;
-  tipo: 'ligacao' | 'email' | 'reuniao' | 'observacao' | 'lembrete' | 'documento' | 'negociacao';
+  tipo: 'ligacao' | 'email' | 'reuniao' | 'observacao' | 'lembrete' | 'documento' | 'negociacao' | 'whatsapp';
   descricao: string;
   data_hora: string;
   usuario_id: string;
@@ -47,6 +47,7 @@ export default function AtividadesManager({ tipo, id, nome }: AtividadesManagerP
   const tiposAtividade = [
     { value: 'ligacao', label: 'Ligação', cor: '#3b82f6' },
     { value: 'email', label: 'Email', cor: '#10b981' },
+    { value: 'whatsapp', label: 'WhatsApp', cor: '#25D366' },
     { value: 'reuniao', label: 'Reunião', cor: '#8b5cf6' },
     { value: 'observacao', label: 'Observação', cor: '#6b7280' },
     { value: 'lembrete', label: 'Lembrete', cor: '#f59e0b' },

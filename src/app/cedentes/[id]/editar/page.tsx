@@ -12,6 +12,9 @@ import Select from '@/components/ui/Select';
 import CompactDataManager from '@/components/shared/CompactDataManager';
 import { categoriasCedentes } from '@/config/cedentesCategorias';
 import { useToast } from '@/components/ui/ToastContainer';
+import dynamic from 'next/dynamic';
+
+const RichTextEditor = dynamic(() => import('@/components/ui/RichTextEditor'), { ssr: false });
 
 type Cedente = {
   id: string;
@@ -68,6 +71,7 @@ export default function EditarCedentePage() {
     atividades_secundarias: '',
     simples_nacional: false,
     fundo: '',
+    esteira: '',
   });
   const [savingInfoBasicas, setSavingInfoBasicas] = useState(false);
   const [infoBasicasCollapsed, setInfoBasicasCollapsed] = useState(true);
@@ -183,7 +187,7 @@ export default function EditarCedentePage() {
     // Carrega dados do cedente
     const { data: cedenteData } = await supabase
       .from('cedentes')
-      .select('id, nome, razao_social, cnpj, telefone, email, endereco, situacao, porte, natureza_juridica, data_abertura, capital_social, atividade_principal_codigo, atividade_principal_descricao, atividades_secundarias, simples_nacional, fundo')
+      .select('id, nome, razao_social, cnpj, telefone, email, endereco, situacao, porte, natureza_juridica, data_abertura, capital_social, atividade_principal_codigo, atividade_principal_descricao, atividades_secundarias, simples_nacional, fundo, esteira')
       .eq('id', id)
       .single();
     
@@ -209,6 +213,7 @@ export default function EditarCedentePage() {
         atividades_secundarias: cedenteData.atividades_secundarias || '',
         simples_nacional: cedenteData.simples_nacional ?? false,
         fundo: cedenteData.fundo || '',
+        esteira: cedenteData.esteira || '',
       });
     }
 
@@ -695,6 +700,7 @@ export default function EditarCedentePage() {
           atividades_secundarias: infoBasicas.atividades_secundarias.trim() || null,
           simples_nacional: infoBasicas.simples_nacional,
           fundo: infoBasicas.fundo.trim() || null,
+          esteira: infoBasicas.esteira || null,
           ultima_atualizacao: new Date().toISOString(),
         })
         .eq('id', id);
@@ -1196,6 +1202,24 @@ export default function EditarCedentePage() {
                       placeholder="Nome do fundo responsável"
                       required
                     />
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Esteira</label>
+                      <select
+                        value={infoBasicas.esteira}
+                        onChange={(e) => setInfoBasicas({ ...infoBasicas, esteira: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 text-sm bg-white"
+                      >
+                        <option value="">— Sem esteira —</option>
+                        <option value="em_cobranca">Em Cobrança</option>
+                        <option value="em_negociacao">Em Negociação</option>
+                        <option value="localizando">Localizando</option>
+                        <option value="acordo_em_andamento">Acordo em Andamento</option>
+                        <option value="analise">Análise</option>
+                        <option value="investigacao">Investigação</option>
+                        <option value="juridico">Jurídico</option>
+                        <option value="devolvido">Devolvido</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
 
@@ -1311,12 +1335,9 @@ export default function EditarCedentePage() {
                 <h2 className="text-xs font-semibold text-gray-700 uppercase">Observações Gerais - {cedente.nome}</h2>
               </div>
               <div className="p-4">
-                <textarea
-                  className="w-full px-3 py-2 text-sm border border-gray-300 min-h-[100px] resize-y"
-                  value={observacoesGerais}
-                  onChange={e => {
-                    setObservacoesGerais(e.target.value);
-                  }}
+                <RichTextEditor
+                  content={observacoesGerais}
+                  onChange={(html) => setObservacoesGerais(html)}
                   placeholder="Digite observações gerais sobre esta empresa: contexto, histórico, alertas, etc..."
                 />
               </div>

@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { formatCpfCnpj, parseMoneyInput, formatMoneyInput, formatMoney } from '@/lib/format';
-import { validarCNPJ } from '@/lib/validations';
+import { validarCNPJ, validarCPF } from '@/lib/validations';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import { useToast } from '@/components/ui/ToastContainer';
@@ -112,6 +112,8 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [tituloSelecionadoParaAtividades, setTituloSelecionadoParaAtividades] = useState<TituloNegociado | null>(null);
   const [showHelp, setShowHelp] = useState(false);
+  const [tituloCriticaView, setTituloCriticaView] = useState<TituloNegociado | null>(null);
+  const [historicoCriticasView, setHistoricoCriticasView] = useState<any[]>([]);
 
   // Formulário de novo título
   const [formTitulo, setFormTitulo] = useState({
@@ -1111,25 +1113,26 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
       // Normaliza os dados - detecta colunas automaticamente
       const dadosNormalizados = data.map((row: any, index: number) => {
         // Tenta detectar CNPJ usando a função buscarColuna
-        const cnpjKeys = ['cnpj', 'CNPJ', 'cnpj_sacado', 'CNPJ_Sacado', 'cpf_cnpj', 'documento', 'Documento', 'DOCUMENTO'];
+        const cnpjKeys = ['cnpj', 'CNPJ', 'cnpj_sacado', 'CNPJ_Sacado', 'cpf_cnpj', 'CPF_CNPJ', 'cpf', 'CPF', 'documento', 'Documento', 'DOCUMENTO'];
         const cnpjValue = buscarColuna(row, cnpjKeys);
         let cnpj = '';
         let tem_cnpj = false;
         if (cnpjValue) {
-          const cnpjLimpo = cnpjValue.replace(/\D+/g, '');
-          if (cnpjLimpo.length === 14 && validarCNPJ(cnpjLimpo)) {
-            cnpj = cnpjLimpo;
+          const docLimpo = cnpjValue.replace(/\D+/g, '');
+          if (docLimpo.length === 14 && validarCNPJ(docLimpo)) {
+            cnpj = docLimpo;
+            tem_cnpj = true;
+          } else if (docLimpo.length === 11 && validarCPF(docLimpo)) {
+            cnpj = docLimpo;
             tem_cnpj = true;
           } else {
-            // Debug: log quando CNPJ encontrado mas inválido
             if (index < 3) {
-              console.log(`Linha ${index + 2}: CNPJ encontrado mas inválido - Valor: "${cnpjValue}", Limpo: "${cnpjLimpo}", Tamanho: ${cnpjLimpo.length}, Válido: ${cnpjLimpo.length === 14 ? validarCNPJ(cnpjLimpo) : false}`);
+              console.log(`Linha ${index + 2}: CPF/CNPJ encontrado mas inválido - Valor: "${cnpjValue}", Limpo: "${docLimpo}", Tamanho: ${docLimpo.length}`);
             }
           }
         } else {
-          // Debug: log quando CNPJ não encontrado
           if (index < 3) {
-            console.log(`Linha ${index + 2}: CNPJ não encontrado. Chaves na linha:`, Object.keys(row));
+            console.log(`Linha ${index + 2}: CPF/CNPJ não encontrado. Chaves na linha:`, Object.keys(row));
             console.log(`Linha ${index + 2}: Tentativas:`, cnpjKeys);
           }
         }
@@ -1709,7 +1712,7 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
                       <div className="bg-yellow-50 p-2 rounded text-xs">
                         <p className="font-semibold text-yellow-800 mb-1">⚠️ Importante:</p>
                         <p className="text-yellow-700">• A primeira linha deve conter os nomes das colunas (cabeçalhos)</p>
-                        <p className="text-yellow-700">• Títulos sem CNPJ válido não serão importados</p>
+                        <p className="text-yellow-700">• Títulos sem CPF/CNPJ válido não serão importados</p>
                         <p className="text-yellow-700">• O sistema detecta automaticamente os nomes das colunas (case-insensitive)</p>
                       </div>
 
@@ -1845,8 +1848,28 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
                        titulo.status}
                     </Badge>
                   </td>
-                  <td className="px-4 py-2 text-sm text-gray-600 border-r border-gray-300">
-                    {titulo.critica || '—'}
+                  <td className="px-4 py-2 text-sm border-r border-gray-300">
+                    {titulo.critica ? (
+                      <button
+                        onClick={async () => {
+                          setTituloCriticaView(titulo);
+                          try {
+                            const { data } = await supabase
+                              .from('titulos_criticas_historico')
+                              .select('*')
+                              .eq('titulo_id', titulo.id)
+                              .order('created_at', { ascending: false });
+                            setHistoricoCriticasView(data || []);
+                          } catch { setHistoricoCriticasView([]); }
+                        }}
+                        className="px-2 py-0.5 text-xs font-medium rounded border border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100 cursor-pointer"
+                        title="Clique para ver detalhes da crítica"
+                      >
+                        {titulo.critica}
+                      </button>
+                    ) : (
+                      <span className="text-gray-400">—</span>
+                    )}
                   </td>
                   <td className="px-4 py-2 text-center border-r border-gray-300">
                     {titulo.quantidade_atividades !== undefined ? (
@@ -3174,7 +3197,7 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
                             </td>
                             <td className="px-2 py-2">
                               {!item.tem_cnpj && (
-                                <Badge variant="error" size="sm">Sem CNPJ</Badge>
+                                <Badge variant="error" size="sm">Sem CPF/CNPJ</Badge>
                               )}
                               {item.tem_cnpj && !item.numero_titulo && (
                                 <Badge variant="error" size="sm">Sem Nº Título</Badge>
@@ -3485,6 +3508,80 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
                 )}
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Visualizar Crítica */}
+      {tituloCriticaView && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-lg w-full max-h-[80vh] flex flex-col">
+            <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 flex-shrink-0">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Crítica - Título #{tituloCriticaView.numero_titulo}
+              </h3>
+              <button
+                onClick={() => { setTituloCriticaView(null); setHistoricoCriticasView([]); }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto flex-1 space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded p-4">
+                <p className="text-xs text-blue-600 uppercase font-semibold mb-1">Crítica Atual</p>
+                <p className="text-lg font-bold text-blue-900">{tituloCriticaView.critica || 'Nenhuma'}</p>
+              </div>
+              <div className="bg-gray-50 border border-gray-200 rounded p-4">
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase mb-1">Sacado</p>
+                    <p className="font-medium text-gray-900">{tituloCriticaView.sacado?.razao_social || '—'}</p>
+                    <p className="text-xs text-gray-500 font-mono">{formatCpfCnpj(tituloCriticaView.sacado_cnpj)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase mb-1">Valor Atualizado</p>
+                    <p className="font-semibold text-gray-900">{formatMoney(tituloCriticaView.valor_atualizado)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase mb-1">Vencimento</p>
+                    <p className="font-medium text-gray-900">{new Date(tituloCriticaView.data_vencimento_original).toLocaleDateString('pt-BR')}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase mb-1">Status</p>
+                    <Badge
+                      variant={
+                        tituloCriticaView.status === 'titulo_original' ? 'error' :
+                        tituloCriticaView.status === 'titulo_de_acordo' ? 'warning' :
+                        tituloCriticaView.status === 'pago' ? 'success' : 'neutral'
+                      }
+                      size="sm"
+                    >
+                      {tituloCriticaView.status === 'titulo_original' ? 'Título Original' :
+                       tituloCriticaView.status === 'titulo_de_acordo' ? 'Título de Acordo' :
+                       tituloCriticaView.status === 'pago' ? 'Pago' : tituloCriticaView.status}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+              {historicoCriticasView.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-700 uppercase mb-2">Histórico de Alterações</h4>
+                  <div className="space-y-2">
+                    {historicoCriticasView.map((h: any) => (
+                      <div key={h.id} className="flex items-center gap-3 text-sm border-b border-gray-100 pb-2">
+                        <span className="text-xs text-gray-400 whitespace-nowrap">
+                          {new Date(h.created_at).toLocaleString('pt-BR')}
+                        </span>
+                        <span className="text-red-500 line-through text-xs">{h.critica_anterior || 'Nenhuma'}</span>
+                        <span className="text-gray-400">→</span>
+                        <span className="text-green-700 font-medium text-xs">{h.critica_nova || 'Nenhuma'}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
