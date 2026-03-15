@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { formatCpfCnpj, formatMoney } from '@/lib/format';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
+import PageHeader from '@/components/ui/PageHeader';
 
 type PessoaFisica = {
   id: string;
@@ -455,29 +456,17 @@ export default function PessoaFisicaPage() {
   return (
     <main className="min-h-screen bg-gray-50">
       <div className="container max-w-6xl mx-auto px-4 py-4 space-y-3">
-        {/* Header */}
-        <header className="mb-2">
-          <div className="flex items-center justify-between mb-2">
-            <button 
-              onClick={() => router.push('/pessoas-fisicas')}
-              className="inline-flex items-center gap-1 px-2 py-1 bg-white border border-gray-300 hover:bg-gray-50 text-[#0369a1] text-xs font-medium"
-            >
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              Voltar
-            </button>
+        <PageHeader
+          title={pessoa.nome}
+          subtitle={`CPF: ${formatCpfCnpj(pessoa.cpf)}`}
+          backHref="/pessoas-fisicas"
+          actions={
             <Button variant="primary" size="sm" onClick={() => router.push(`/pessoas-fisicas/${encodeURIComponent(cpf)}/editar`)}>
               Editar
             </Button>
-          </div>
-          <div className="border-b border-[#0369a1] pb-2">
-            <div className="flex items-center gap-3">
-              <h1 className="text-xl font-bold text-[#0369a1]">{pessoa.nome}</h1>
-              <span className="text-xs text-gray-500">CPF: {formatCpfCnpj(pessoa.cpf)}</span>
-            </div>
-          </div>
-        </header>
+          }
+          className="mb-2"
+        />
 
         {/* Informações - Estilo Excel */}
         <div className="bg-white border border-gray-300">

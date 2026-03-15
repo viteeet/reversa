@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
+import PageHeader from '@/components/ui/PageHeader';
 
 export default function TestarAPIBigDataPage() {
   const [testando, setTestando] = useState(false);
@@ -33,12 +34,13 @@ export default function TestarAPIBigDataPage() {
   }
 
   return (
-    <main className="min-h-screen p-6 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+    <main className="min-h-screen p-6 bg-gray-50">
       <div className="container max-w-4xl mx-auto space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-[#0369a1]">Teste de Configuração - API BigData</h1>
-          <p className="text-[#64748b] mt-2">Verifica se a API BigData está configurada e funcionando</p>
-        </div>
+        <PageHeader
+          title="Teste de Configuração - API BigData"
+          subtitle="Verifica se a API BigData está configurada e funcionando"
+          backHref="/settings/bigdata"
+        />
 
         <Card>
           <div className="space-y-4">
@@ -62,10 +64,10 @@ export default function TestarAPIBigDataPage() {
                 }`}>
                   <h2 className="font-semibold text-lg mb-2">
                     {resultado.ok && resultado.configurada && resultado.testeConexao?.sucesso
-                      ? '✅ API Configurada e Funcionando!'
+                      ? 'API Configurada e Funcionando'
                       : resultado.configurada
-                      ? '⚠️ API Configurada, mas com Problemas'
-                      : '❌ API Não Configurada'
+                      ? 'API Configurada, mas com Problemas'
+                      : 'API Não Configurada'
                     }
                   </h2>
                   <p className="text-sm text-gray-700">{resultado.mensagem}</p>

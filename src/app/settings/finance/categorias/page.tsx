@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import PageHeader from '@/components/ui/PageHeader';
+import EmptyState from '@/components/ui/EmptyState';
 
 type Cat = { id: string; nome: string; natureza: 'receita'|'despesa'; cor: string | null; ordem: number | null };
 
@@ -44,9 +46,13 @@ export default function CategoriasPage() {
   }
 
   return (
-    <main className="min-h-screen p-6">
+    <main className="min-h-screen p-6 bg-gray-50">
       <div className="container max-w-4xl space-y-4">
-        <h1 className="text-2xl font-semibold">Categorias</h1>
+        <PageHeader
+          title="Categorias"
+          subtitle="Gerenciamento de categorias financeiras"
+          backHref="/settings/finance"
+        />
 
         <div className="card p-4 grid gap-3 sm:grid-cols-4 items-end">
           <input className="input" placeholder="Nome" value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} />
@@ -61,35 +67,37 @@ export default function CategoriasPage() {
         </div>
 
         <div className="card p-0 overflow-x-auto">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Nome</th>
-                <th>Natureza</th>
-                <th>Cor</th>
-                <th>Ordem</th>
-                <th className="w-24">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.length === 0 ? (
-                <tr><td colSpan={5} className="p-3 muted">Nenhuma categoria.</td></tr>
-              ) : items.map(c => (
-                <tr key={c.id}>
-                  <td>{c.nome}</td>
-                  <td>{c.natureza}</td>
-                  <td>
-                    <span className="inline-flex items-center gap-2">
-                      <span className="inline-block w-3 h-3 rounded-full" style={{ background: c.cor ?? '#cdb89a' }} />
-                      {c.cor ?? '—'}
-                    </span>
-                  </td>
-                  <td>{c.ordem ?? '—'}</td>
-                  <td><button className="btn h-8 px-2" onClick={() => remove(c.id)}>Excluir</button></td>
+          {items.length === 0 ? (
+            <EmptyState title="Nenhuma categoria cadastrada" className="p-6" />
+          ) : (
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Natureza</th>
+                  <th>Cor</th>
+                  <th>Ordem</th>
+                  <th className="w-24">Acoes</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {items.map(c => (
+                  <tr key={c.id}>
+                    <td>{c.nome}</td>
+                    <td>{c.natureza}</td>
+                    <td>
+                      <span className="inline-flex items-center gap-2">
+                        <span className="inline-block w-3 h-3 rounded-full" style={{ background: c.cor ?? '#cdb89a' }} />
+                        {c.cor ?? '—'}
+                      </span>
+                    </td>
+                    <td>{c.ordem ?? '—'}</td>
+                    <td><button className="btn h-8 px-2" onClick={() => remove(c.id)}>Excluir</button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
     </main>

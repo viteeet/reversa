@@ -137,30 +137,46 @@ export default function SacadoDetailPage() {
       
       setCategoriasData(categoriasTemp);
       
-      // Carrega observações gerais
+      // Carrega observações e processos da mesma fonte usada na edição
       try {
         const { data } = await supabase
-          .from('sacados')
-          .select('observacoes_gerais')
-          .eq('cnpj', cnpj)
-          .single();
-        
-        setObservacoesGerais(data?.observacoes_gerais || '');
-      } catch (err) {
-        setObservacoesGerais('');
-      }
-      
-      // Carrega processos
-      try {
-        const { data } = await supabase
-          .from('sacados_processos')
-          .select('processos_texto')
+          .from('sacados_observacoes_gerais')
+          .select('observacoes, processos_texto')
           .eq('sacado_cnpj', cnpj)
           .single();
-        
-        setProcessosTexto(data?.processos_texto || '');
+
+        if (data) {
+          setObservacoesGerais(data.observacoes || '');
+          setProcessosTexto(data.processos_texto || '');
+        } else {
+          setObservacoesGerais('');
+          setProcessosTexto('');
+        }
       } catch (err) {
-        setProcessosTexto('');
+        // Fallback para estrutura legada, caso a tabela nova ainda nao exista
+        try {
+          const { data: observacoesLegacy } = await supabase
+            .from('sacados')
+            .select('observacoes_gerais')
+            .eq('cnpj', cnpj)
+            .single();
+
+          setObservacoesGerais(observacoesLegacy?.observacoes_gerais || '');
+        } catch {
+          setObservacoesGerais('');
+        }
+
+        try {
+          const { data: processosLegacy } = await supabase
+            .from('sacados_processos')
+            .select('processos_texto')
+            .eq('sacado_cnpj', cnpj)
+            .single();
+
+          setProcessosTexto(processosLegacy?.processos_texto || '');
+        } catch {
+          setProcessosTexto('');
+        }
       }
       
       // Carrega detalhes do QSA (após carregar os dados do QSA)
@@ -399,7 +415,7 @@ export default function SacadoDetailPage() {
                     <div className="border-b border-gray-300 bg-gray-100 -mx-4 -mt-4 px-4 py-2 mb-4">
                       <h2 className="text-xs font-semibold text-gray-700 uppercase">Observações Gerais</h2>
                     </div>
-                    <div className="whitespace-pre-line text-sm text-gray-900">{observacoesGerais}</div>
+                    <div className="prose prose-sm max-w-none text-gray-900" dangerouslySetInnerHTML={{ __html: observacoesGerais }} />
                   </div>
                 )}
 

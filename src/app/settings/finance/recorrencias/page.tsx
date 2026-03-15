@@ -6,6 +6,8 @@ import { supabase } from '@/lib/supabase';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Badge from '@/components/ui/Badge';
+import PageHeader from '@/components/ui/PageHeader';
+import EmptyState from '@/components/ui/EmptyState';
 
 type Recorrencia = {
   id: string;
@@ -232,27 +234,17 @@ export default function RecorrenciasPage() {
   return (
     <main className="min-h-screen bg-gray-50">
       <div className="container max-w-7xl mx-auto px-4 py-6 space-y-4">
-        {/* Header */}
-        <header className="mb-4">
-          <button 
-            onClick={() => router.push('/settings/finance')}
-            className="inline-flex items-center gap-2 px-3 py-1.5 mb-4 bg-white border border-gray-300 hover:bg-gray-50 text-[#0369a1] text-sm font-medium"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Voltar
-          </button>
-          <div className="border-b-2 border-[#0369a1] pb-3 flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-[#0369a1] mb-1">Recorrências Financeiras</h1>
-              <p className="text-sm text-gray-600">Gerenciar lançamentos recorrentes</p>
-            </div>
+        <PageHeader
+          title="Recorrencias Financeiras"
+          subtitle="Gerenciar lancamentos recorrentes"
+          backHref="/settings/finance"
+          actions={
             <Button variant="primary" onClick={() => { setEditandoId(null); setShowCreate(true); }}>
-              + Nova Recorrência
+              Nova Recorrencia
             </Button>
-          </div>
-        </header>
+          }
+          className="mb-4"
+        />
 
         {/* Tabela */}
         <div className="bg-white border border-gray-300">
@@ -263,9 +255,7 @@ export default function RecorrenciasPage() {
           </div>
           <div className="overflow-x-auto">
             {items.length === 0 ? (
-              <div className="p-8 text-center text-gray-600">
-                <p>Nenhuma recorrência cadastrada</p>
-              </div>
+              <EmptyState title="Nenhuma recorrencia cadastrada" className="p-8" />
             ) : (
               <table className="w-full border-collapse">
                 <thead className="bg-gray-100 border-b-2 border-gray-300">

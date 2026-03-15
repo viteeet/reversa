@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { formatCpfCnpj } from '@/lib/format';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import PageHeader from '@/components/ui/PageHeader';
 import VinculacoesManager from '@/components/pessoas-fisicas/VinculacoesManager';
 import ContatosManager from '@/components/pessoas-fisicas/ContatosManager';
 import FamiliaresManager from '@/components/pessoas-fisicas/FamiliaresManager';
@@ -702,33 +703,17 @@ export default function EditarPessoaFisicaPage() {
   return (
     <main className="min-h-screen bg-gray-50">
       <div className="container max-w-6xl mx-auto px-4 py-4 space-y-3">
-        {/* Header */}
-        <header className="mb-2">
-          <div className="flex items-center justify-between mb-2">
-            <button 
-              onClick={() => router.push(`/pessoas-fisicas/${encodeURIComponent(cpf)}`)}
-              className="inline-flex items-center gap-1 px-2 py-1 bg-white border border-gray-300 hover:bg-gray-50 text-[#0369a1] text-xs font-medium"
-            >
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              Voltar
-            </button>
+        <PageHeader
+          title={form.nome || 'Nova Pessoa Fisica'}
+          subtitle={`CPF: ${formatCpfCnpj(form.cpf || cpf)}`}
+          backHref={`/pessoas-fisicas/${encodeURIComponent(cpf)}`}
+          className="mb-2"
+        />
+        {!form.id && (
+          <div className="inline-block text-xs px-2 py-0.5 bg-orange-100 text-orange-700 rounded">
+            Nao cadastrada
           </div>
-          <div className="border-b border-[#0369a1] pb-2">
-            <div className="flex items-center gap-3">
-              <h1 className="text-xl font-bold text-[#0369a1]">
-                {form.nome || 'Nova Pessoa Física'}
-              </h1>
-              <span className="text-xs text-gray-500">CPF: {formatCpfCnpj(form.cpf || cpf)}</span>
-              {!form.id && (
-                <span className="text-xs px-2 py-0.5 bg-orange-100 text-orange-700 rounded">
-                  Não cadastrada
-                </span>
-              )}
-            </div>
-          </div>
-        </header>
+        )}
 
         {/* Formulário - Estilo Excel */}
         <div className="bg-white border border-gray-300">
@@ -740,14 +725,14 @@ export default function EditarPessoaFisicaPage() {
                 disabled={buscandoAPI}
                 className="px-2 py-1 text-xs font-medium bg-[#0369a1] text-white hover:bg-[#075985] disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {buscandoAPI ? 'Buscando...' : '🔍 API'}
+                {buscandoAPI ? 'Buscando...' : 'Buscar API'}
               </button>
               <button 
                 className="px-2 py-1 text-xs font-medium bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
                 onClick={salvar}
                 disabled={pending}
               >
-                {pending ? 'Salvando...' : '✓ Salvar'}
+                {pending ? 'Salvando...' : 'Salvar'}
               </button>
             </div>
           </div>

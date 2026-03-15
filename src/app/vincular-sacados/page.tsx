@@ -6,6 +6,8 @@ import { formatCpfCnpj } from '@/lib/format';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { useRouter } from 'next/navigation';
+import PageHeader from '@/components/ui/PageHeader';
+import EmptyState from '@/components/ui/EmptyState';
 
 type Sacado = {
   cnpj: string;
@@ -127,19 +129,16 @@ export default function VincularSacadosPage() {
   return (
     <main className="min-h-screen p-6 bg-white">
       <div className="container max-w-4xl mx-auto space-y-6">
-        <header>
-          <h1 className="text-3xl font-bold text-[#0369a1] mb-2">
-            🔗 Vincular Sacados aos Cedentes
-          </h1>
-          <p className="text-[#64748b]">
-            {sacados.length} sacado(s) sem cedente vinculado
-          </p>
-        </header>
+        <PageHeader
+          title="Vincular Sacados aos Cedentes"
+          subtitle={`${sacados.length} sacado(s) sem cedente vinculado`}
+          backHref="/menu/operacional"
+        />
 
         {sacados.length === 0 ? (
           <Card>
-            <div className="text-center py-8">
-              <p className="text-lg text-green-600 mb-2">✅ Todos os sacados estão vinculados!</p>
+            <div className="py-4">
+              <EmptyState title="Todos os sacados estão vinculados." />
               <Button variant="secondary" onClick={() => {
   if (typeof window !== 'undefined' && window.history.length > 1) {
     router.back();
@@ -156,7 +155,7 @@ export default function VincularSacadosPage() {
             {/* Vincular Todos */}
             <Card>
               <div className="space-y-4">
-                <h2 className="text-xl font-semibold text-gray-800">⚡ Vincular Todos</h2>
+                <h2 className="text-xl font-semibold text-gray-800">Vincular Todos</h2>
                 <div className="flex gap-3 items-end">
                   <div className="flex-1">
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -191,7 +190,7 @@ export default function VincularSacadosPage() {
             {/* Lista de Sacados */}
             <Card>
               <div className="space-y-4">
-                <h2 className="text-xl font-semibold text-gray-800">📋 Sacados Sem Cedente</h2>
+                <h2 className="text-xl font-semibold text-gray-800">Sacados Sem Cedente</h2>
                 
                 <div className="space-y-3">
                   {sacados.map(sacado => (

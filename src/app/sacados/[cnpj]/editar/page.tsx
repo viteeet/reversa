@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { supabase } from '@/lib/supabase';
 import { formatCpfCnpj } from '@/lib/format';
 import Card from '@/components/ui/Card';
@@ -12,6 +13,8 @@ import Select from '@/components/ui/Select';
 import CompactDataManager from '@/components/shared/CompactDataManager';
 import { categoriasCedentes } from '@/config/cedentesCategorias';
 import { useToast } from '@/components/ui/ToastContainer';
+
+const RichTextEditor = dynamic(() => import('@/components/ui/RichTextEditor'), { ssr: false });
 
 type Sacado = {
   cnpj: string;
@@ -1361,12 +1364,9 @@ export default function EditarSacadoPage() {
                 <label className="block text-sm font-semibold text-gray-800">
                   Observações Gerais - {sacado.razao_social}
                 </label>
-                <textarea
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[100px] resize-y"
-                  value={observacoesGerais}
-                  onChange={e => {
-                    setObservacoesGerais(e.target.value);
-                  }}
+                <RichTextEditor
+                  content={observacoesGerais}
+                  onChange={(html) => setObservacoesGerais(html)}
                   placeholder="Digite observações gerais sobre esta empresa: contexto, histórico, alertas, etc..."
                 />
               </div>

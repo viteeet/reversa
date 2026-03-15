@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import PageHeader from '@/components/ui/PageHeader';
+import EmptyState from '@/components/ui/EmptyState';
 
 type Meio = { id: string; nome: string };
 
@@ -33,28 +35,34 @@ export default function MeiosPage() {
     await load();
   }
   return (
-    <main className="min-h-screen p-6">
+    <main className="min-h-screen p-6 bg-gray-50">
       <div className="container max-w-4xl space-y-4">
-        <h1 className="text-2xl font-semibold">Meios de pagamento</h1>
+        <PageHeader
+          title="Meios de Pagamento"
+          subtitle="Gerenciamento de meios de pagamento"
+          backHref="/settings/finance"
+        />
         <div className="card p-4 grid gap-3 sm:grid-cols-[1fr_auto] items-end">
           <input className="input" placeholder="Nome" value={nome} onChange={(e) => setNome(e.target.value)} />
           <button className="btn btn-primary" onClick={add}>Adicionar</button>
           {err && <p className="text-sm text-red-600 sm:col-span-2">{err}</p>}
         </div>
         <div className="card p-0 overflow-x-auto">
-          <table className="table">
-            <thead><tr><th>Nome</th><th className="w-24">Ações</th></tr></thead>
-            <tbody>
-              {items.length === 0 ? (
-                <tr><td colSpan={2} className="p-3 muted">Nenhum meio.</td></tr>
-              ) : items.map(m => (
-                <tr key={m.id}>
-                  <td>{m.nome}</td>
-                  <td><button className="btn h-8 px-2" onClick={() => remove(m.id)}>Excluir</button></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          {items.length === 0 ? (
+            <EmptyState title="Nenhum meio de pagamento cadastrado" className="p-6" />
+          ) : (
+            <table className="table">
+              <thead><tr><th>Nome</th><th className="w-24">Acoes</th></tr></thead>
+              <tbody>
+                {items.map(m => (
+                  <tr key={m.id}>
+                    <td>{m.nome}</td>
+                    <td><button className="btn h-8 px-2" onClick={() => remove(m.id)}>Excluir</button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
     </main>

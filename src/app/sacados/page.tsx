@@ -9,6 +9,8 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Badge from '@/components/ui/Badge';
+import EmptyState from '@/components/ui/EmptyState';
+import PageHeader from '@/components/ui/PageHeader';
 
 type Sacado = {
   cnpj: string;
@@ -193,23 +195,11 @@ export default function SacadosPage() {
   return (
     <main className="min-h-screen bg-gray-50">
       <div className="container max-w-7xl mx-auto px-4 py-6 space-y-4">
-        <header className="flex flex-col gap-4">
-          <div>
-            <button 
-              onClick={() => router.push('/menu/operacional')}
-              className="inline-flex items-center gap-2 px-3 py-1.5 mb-4 bg-white border border-gray-300 hover:bg-gray-50 text-[#0369a1] text-sm font-medium"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              Voltar
-            </button>
-            <div className="border-b-2 border-[#0369a1] pb-3">
-              <h1 className="text-3xl font-bold text-[#0369a1] mb-1">Sacados</h1>
-              <p className="text-sm text-gray-600">Visualização de todos os sacados cadastrados</p>
-            </div>
-          </div>
-        </header>
+        <PageHeader
+          title="Sacados"
+          subtitle="Visualização de todos os sacados cadastrados"
+          backHref="/menu/operacional"
+        />
 
         {/* Toolbar */}
         <div className="bg-white border border-gray-300 p-4">
@@ -218,7 +208,7 @@ export default function SacadosPage() {
             <div className="flex flex-col sm:flex-row gap-3 flex-1">
               <div className="relative flex-1">
                 <Input
-                  placeholder="🔍 Buscar por nome, CNPJ, cedente..."
+                  placeholder="Buscar por nome, CNPJ, cedente..."
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
                   className="w-full"
@@ -241,7 +231,6 @@ export default function SacadosPage() {
                 {showHelp && (
                   <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-gray-200 p-4 z-50">
                     <div className="flex items-start gap-3">
-                      <span className="text-2xl">ℹ️</span>
                       <div className="flex-1">
                         <h3 className="font-semibold text-[#0369a1] mb-1">Como cadastrar sacados</h3>
                         <p className="text-sm text-[#64748b] mb-3">
@@ -347,10 +336,7 @@ export default function SacadosPage() {
                   {sorted.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="p-8 text-center text-gray-600 border-b border-gray-300">
-                        <div className="flex flex-col items-center gap-3">
-                          <span className="text-4xl">📭</span>
-                          <p>Nenhum sacado encontrado.</p>
-                        </div>
+                        <EmptyState title="Nenhum sacado encontrado." />
                       </td>
                     </tr>
                   ) : sorted.map(s => (

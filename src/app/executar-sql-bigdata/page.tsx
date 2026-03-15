@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { supabase } from '@/lib/supabase';
+import PageHeader from '@/components/ui/PageHeader';
 
 export default function ExecutarSQLBigDataPage() {
   const [copied, setCopied] = useState(false);
@@ -114,14 +115,11 @@ WHERE routine_name = 'limpar_consultas_antigas_bigdata';`;
   return (
     <main className="min-h-screen p-6 bg-white">
       <div className="container max-w-4xl mx-auto space-y-6">
-        <header>
-          <h1 className="text-3xl font-bold text-[#0369a1] mb-2">
-            🔒 Criar Trava de Segurança BigData
-          </h1>
-          <p className="text-[#64748b]">
-            Cria a tabela para controlar consultas à API BigData e prevenir consultas duplicadas
-          </p>
-        </header>
+        <PageHeader
+          title="Criar Trava de Segurança BigData"
+          subtitle="Cria a tabela para controlar consultas à API BigData e prevenir consultas duplicadas"
+          backHref="/settings/bigdata"
+        />
 
         {resultado && (
           <Card>
@@ -140,17 +138,17 @@ WHERE routine_name = 'limpar_consultas_antigas_bigdata';`;
         <Card>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-gray-800">📋 Script SQL</h2>
+              <h2 className="text-xl font-semibold text-gray-800">Script SQL</h2>
               <div className="flex gap-2">
                 <Button 
                   variant="primary" 
                   onClick={executarSQL}
                   disabled={executando}
                 >
-                  {executando ? '⏳ Executando...' : '🚀 Executar Automaticamente'}
+                  {executando ? 'Executando...' : 'Executar Automaticamente'}
                 </Button>
                 <Button variant="secondary" onClick={copyToClipboard}>
-                  {copied ? '✅ Copiado!' : '📋 Copiar Script'}
+                  {copied ? 'Copiado' : 'Copiar Script'}
                 </Button>
               </div>
             </div>
@@ -163,7 +161,7 @@ WHERE routine_name = 'limpar_consultas_antigas_bigdata';`;
 
         <Card>
           <div className="space-y-4">
-            <h2 className="text-xl font-semibold text-gray-800">📝 Executar Manualmente (Recomendado)</h2>
+            <h2 className="text-xl font-semibold text-gray-800">Executar Manualmente (Recomendado)</h2>
             
             <ol className="space-y-3 list-decimal list-inside text-gray-700">
               <li>
@@ -199,7 +197,7 @@ WHERE routine_name = 'limpar_consultas_antigas_bigdata';`;
 
         <Card>
           <div className="space-y-4">
-            <h2 className="text-xl font-semibold text-gray-800">✅ O que o Script Faz?</h2>
+            <h2 className="text-xl font-semibold text-gray-800">O que o Script Faz</h2>
             
             <ul className="space-y-2 list-disc list-inside text-gray-700">
               <li><strong>Cria a tabela <code>bigdata_consultas</code></strong> para armazenar histórico de consultas</li>
@@ -213,7 +211,7 @@ WHERE routine_name = 'limpar_consultas_antigas_bigdata';`;
 
         <Card>
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h3 className="font-semibold text-blue-900 mb-2">💡 Como Funciona a Trava</h3>
+            <h3 className="font-semibold text-blue-900 mb-2">Como Funciona a Trava</h3>
             <p className="text-blue-800 text-sm mb-2">
               Após criar esta tabela, o sistema irá:
             </p>

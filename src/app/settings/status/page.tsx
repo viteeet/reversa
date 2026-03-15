@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import PageHeader from '@/components/ui/PageHeader';
 
 type Status = { id: string; nome: string; cor: string | null; descricao: string | null; ordem: number | null };
 
@@ -57,28 +58,12 @@ export default function StatusSettingsPage() {
   return (
     <main className="min-h-screen bg-gray-50">
       <div className="container max-w-4xl mx-auto px-4 py-6 space-y-4">
-        {/* Header */}
-        <header className="mb-4">
-          <button 
-            onClick={() => {
-              if (typeof window !== 'undefined' && window.history.length > 1) {
-                window.history.back();
-              } else {
-                window.location.href = '/menu/configuracoes';
-              }
-            }}
-            className="inline-flex items-center gap-2 px-3 py-1.5 mb-4 bg-white border border-gray-300 hover:bg-gray-50 text-[#0369a1] text-sm font-medium"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Voltar
-          </button>
-          <div className="border-b-2 border-[#0369a1] pb-3">
-            <h1 className="text-3xl font-bold text-[#0369a1] mb-1">Configurações · Status de Sacado</h1>
-            <p className="text-sm text-gray-600">Cadastre os status que aparecerão como badge na Ficha do Sacado.</p>
-          </div>
-        </header>
+        <PageHeader
+          title="Configuracoes · Status de Sacado"
+          subtitle="Cadastre os status que aparecerao como badge na ficha do sacado"
+          backHref="/menu/configuracoes"
+          className="mb-4"
+        />
 
         {/* Formulário */}
         <div className="bg-white border border-gray-300">

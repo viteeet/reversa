@@ -134,7 +134,7 @@ export default function NewEmpresaGrupoPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+    <main className="min-h-screen bg-gray-50">
       <div className="container max-w-2xl mx-auto px-4 py-8">
         <Card>
           <div className="p-6">

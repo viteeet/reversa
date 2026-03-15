@@ -1,13 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import Input from '@/components/ui/Input';
+import PageHeader from '@/components/ui/PageHeader';
 
 export default function ConfigurarBigDataPage() {
-  const router = useRouter();
   const [accessToken, setAccessToken] = useState('');
   const [tokenId, setTokenId] = useState('');
   const [salvando, setSalvando] = useState(false);
@@ -100,32 +99,20 @@ BIGDATA_TOKEN_ID=${tokenId || 'seu_token_id_aqui'}
   return (
     <main className="min-h-screen bg-gray-50">
       <div className="container max-w-4xl mx-auto px-4 py-6 space-y-6">
-        {/* Header */}
-        <header>
-          <button 
-            onClick={() => router.push('/settings')}
-            className="inline-flex items-center gap-2 px-3 py-1.5 mb-4 bg-white border border-gray-300 hover:bg-gray-50 text-[#0369a1] text-sm font-medium"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Voltar
-          </button>
-          <div className="border-b-2 border-[#0369a1] pb-3">
-            <h1 className="text-3xl font-bold text-[#0369a1] mb-1">🔑 Configurar API BigData</h1>
-            <p className="text-sm text-gray-600">Configure suas credenciais da API BigData Corp</p>
-          </div>
-        </header>
+        <PageHeader
+          title="Configurar API BigData"
+          subtitle="Configure suas credenciais da API BigData Corp"
+          backHref="/settings"
+        />
 
         {/* Status Atual */}
         <Card>
           <div className="space-y-4">
-            <h2 className="text-xl font-semibold text-gray-800">📊 Status da Configuração</h2>
+            <h2 className="text-xl font-semibold text-gray-800">Status da Configuração</h2>
             
             {configurado ? (
               <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
                 <div className="flex items-center gap-2">
-                  <span className="text-2xl">✅</span>
                   <div>
                     <p className="font-semibold text-green-900">API BigData Configurada!</p>
                     <p className="text-sm text-green-800">A API está funcionando corretamente.</p>
@@ -135,7 +122,6 @@ BIGDATA_TOKEN_ID=${tokenId || 'seu_token_id_aqui'}
             ) : (
               <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                 <div className="flex items-center gap-2">
-                  <span className="text-2xl">⚠️</span>
                   <div>
                     <p className="font-semibold text-yellow-900">API BigData Não Configurada</p>
                     <p className="text-sm text-yellow-800">Configure as credenciais abaixo para usar a API.</p>
@@ -149,7 +135,7 @@ BIGDATA_TOKEN_ID=${tokenId || 'seu_token_id_aqui'}
         {/* Formulário de Configuração */}
         <Card>
           <div className="space-y-4">
-            <h2 className="text-xl font-semibold text-gray-800">🔧 Configurar Credenciais</h2>
+            <h2 className="text-xl font-semibold text-gray-800">Configurar Credenciais</h2>
             
             <div className="space-y-4">
               <div>
@@ -191,7 +177,7 @@ BIGDATA_TOKEN_ID=${tokenId || 'seu_token_id_aqui'}
                   loading={testando}
                   disabled={testando || (!accessToken && !tokenId)}
                 >
-                  {testando ? 'Testando...' : '🧪 Testar Configuração'}
+                  {testando ? 'Testando...' : 'Testar Configuração'}
                 </Button>
                 
                 <Button
@@ -199,7 +185,7 @@ BIGDATA_TOKEN_ID=${tokenId || 'seu_token_id_aqui'}
                   onClick={salvarConfiguracao}
                   disabled={salvando}
                 >
-                  💾 Ver Instruções para Salvar
+                  Ver Instruções para Salvar
                 </Button>
               </div>
             </div>
@@ -210,16 +196,16 @@ BIGDATA_TOKEN_ID=${tokenId || 'seu_token_id_aqui'}
         {resultado && (
           <Card>
             <div className="space-y-4">
-              <h2 className="text-xl font-semibold text-gray-800">📋 Resultado do Teste</h2>
+              <h2 className="text-xl font-semibold text-gray-800">Resultado do Teste</h2>
               
               {resultado.ok && resultado.configurada ? (
                 <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                  <p className="font-semibold text-green-900">✅ Sucesso!</p>
+                  <p className="font-semibold text-green-900">Sucesso</p>
                   <p className="text-sm text-green-800 mt-1">{resultado.mensagem || 'API configurada corretamente'}</p>
                 </div>
               ) : (
                 <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="font-semibold text-red-900">❌ Erro</p>
+                  <p className="font-semibold text-red-900">Erro</p>
                   <p className="text-sm text-red-800 mt-1">
                     {resultado.mensagem || resultado.erro || 'Não foi possível conectar com a API'}
                   </p>
@@ -250,7 +236,7 @@ BIGDATA_TOKEN_ID=${tokenId || 'seu_token_id_aqui'}`}
                   </ol>
                   
                   <div className="mt-3 p-3 bg-yellow-100 border border-yellow-300 rounded">
-                    <p className="text-xs font-semibold text-yellow-900">⚠️ IMPORTANTE:</p>
+                    <p className="text-xs font-semibold text-yellow-900">IMPORTANTE:</p>
                     <p className="text-xs text-yellow-800 mt-1">
                       O arquivo <code className="bg-white px-1 rounded">.env.local</code> não deve ser commitado no Git por questões de segurança!
                     </p>
@@ -264,7 +250,7 @@ BIGDATA_TOKEN_ID=${tokenId || 'seu_token_id_aqui'}`}
         {/* Informações Adicionais */}
         <Card>
           <div className="space-y-4">
-            <h2 className="text-xl font-semibold text-gray-800">ℹ️ Informações</h2>
+            <h2 className="text-xl font-semibold text-gray-800">Informações</h2>
             
             <div className="space-y-3 text-sm text-gray-700">
               <div>
@@ -304,7 +290,7 @@ BIGDATA_TOKEN_ID=${tokenId || 'seu_token_id_aqui'}`}
               </div>
 
               <div className="p-3 bg-gray-100 rounded">
-                <p className="font-semibold text-gray-900 mb-1">💡 Dica:</p>
+                <p className="font-semibold text-gray-900 mb-1">Dica:</p>
                 <p className="text-xs text-gray-700">
                   Após configurar, você pode testar a API na página de teste ou usar diretamente nas páginas de edição de sacados/cedentes.
                 </p>

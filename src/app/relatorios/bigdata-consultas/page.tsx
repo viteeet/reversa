@@ -4,6 +4,8 @@ import { useEffect, useState, useMemo } from 'react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import PageHeader from '@/components/ui/PageHeader';
+import EmptyState from '@/components/ui/EmptyState';
 import { formatCpfCnpj } from '@/lib/format';
 
 type ConsultaBigData = {
@@ -171,19 +173,16 @@ export default function RelatorioBigDataConsultasPage() {
   return (
     <main className="min-h-screen p-6 bg-white">
       <div className="container max-w-7xl mx-auto space-y-6">
-        <header>
-          <h1 className="text-3xl font-bold text-[#0369a1] mb-2">
-            📊 Relatório de Consultas BigData
-          </h1>
-          <p className="text-[#64748b]">
-            Controle e análise de todas as consultas realizadas à API BigData
-          </p>
-        </header>
+        <PageHeader
+          title="Relatorio de Consultas BigData"
+          subtitle="Controle e analise de todas as consultas realizadas a API BigData"
+          backHref="/menu/operacional"
+        />
 
         {/* Filtros */}
         <Card>
           <div className="space-y-4">
-            <h2 className="text-xl font-semibold text-gray-800">🔍 Filtros</h2>
+            <h2 className="text-xl font-semibold text-gray-800">Filtros</h2>
             
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {/* Período pré-definido */}
@@ -340,7 +339,7 @@ export default function RelatorioBigDataConsultasPage() {
         {/* Detalhamento por Tipo */}
         {estatisticas && Object.keys(estatisticas.por_tipo).length > 0 && (
           <Card>
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">📈 Consultas por Tipo</h2>
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">Consultas por Tipo</h2>
             <div className="space-y-2">
               {Object.entries(estatisticas.por_tipo)
                 .sort((a, b) => b[1] - a[1])
@@ -358,22 +357,20 @@ export default function RelatorioBigDataConsultasPage() {
         <Card>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold text-gray-800">
-              📋 Consultas Realizadas ({consultas.length})
+              Consultas Realizadas ({consultas.length})
             </h2>
             <Button variant="primary" onClick={exportarCSV}>
-              📥 Exportar CSV
+              Exportar CSV
             </Button>
           </div>
 
           {consultas.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <p>Nenhuma consulta encontrada no período selecionado.</p>
-              <p className="text-sm mt-2">
-                {periodoPredefinido === 'todos' 
-                  ? 'A tabela bigdata_consultas pode não existir ainda. Execute o script SQL primeiro.'
-                  : 'Tente ajustar os filtros ou selecionar um período diferente.'}
-              </p>
-            </div>
+            <EmptyState
+              title="Nenhuma consulta encontrada"
+              description={periodoPredefinido === 'todos'
+                ? 'A tabela bigdata_consultas pode nao existir ainda. Execute o script SQL primeiro.'
+                : 'Tente ajustar os filtros ou selecionar um periodo diferente.'}
+            />
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full border-collapse">
@@ -413,7 +410,7 @@ export default function RelatorioBigDataConsultasPage() {
         {/* Resumo para Confronto */}
         {estatisticas && (
           <Card>
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">💡 Resumo para Confronto com BigData</h2>
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">Resumo para Confronto com BigData</h2>
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-2">
               <div className="grid md:grid-cols-2 gap-4">
                 <div>

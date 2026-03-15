@@ -9,6 +9,8 @@ import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
+import PageHeader from '@/components/ui/PageHeader';
+import EmptyState from '@/components/ui/EmptyState';
 import { useToast } from '@/components/ui/ToastContainer';
 import TitulosAtividadesManager from '@/components/atividades/TitulosAtividadesManager';
 import AtividadesManager from '@/components/atividades/AtividadesManager';
@@ -368,10 +370,14 @@ export default function RelatorioVencidosPage() {
   return (
     <main className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-7xl mx-auto space-y-4">
+        <PageHeader
+          title="Relatorio de Vencidos"
+          subtitle="Titulos e acordos vencidos"
+          backHref="/menu/operacional"
+        />
+
         {/* Cabeçalho */}
         <div className="bg-white border border-gray-300 p-4">
-          <h1 className="text-xl font-bold text-gray-900 mb-4">Relatório de Vencidos</h1>
-          
           {/* Filtros */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5 mb-4">
             <div>
@@ -511,9 +517,11 @@ export default function RelatorioVencidosPage() {
           </div>
 
           {demandasAgrupadas.length === 0 ? (
-            <div className="p-8 text-center text-gray-500 text-sm">
-              Nenhuma demanda encontrada com os filtros aplicados.
-            </div>
+            <EmptyState
+              title="Nenhuma demanda encontrada"
+              description="Ajuste os filtros para visualizar resultados"
+              className="p-8"
+            />
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-xs">

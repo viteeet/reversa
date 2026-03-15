@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import PageHeader from '@/components/ui/PageHeader';
+import EmptyState from '@/components/ui/EmptyState';
 
 type Conta = { id: string; nome: string; tipo: string; saldo_inicial: number };
 
@@ -42,9 +44,13 @@ export default function ContasPage() {
   }
 
   return (
-    <main className="min-h-screen p-6">
+    <main className="min-h-screen p-6 bg-gray-50">
       <div className="container max-w-4xl space-y-4">
-        <h1 className="text-2xl font-semibold">Contas financeiras</h1>
+        <PageHeader
+          title="Contas Financeiras"
+          subtitle="Gerenciamento de contas financeiras"
+          backHref="/settings/finance"
+        />
 
         <div className="card p-4 grid gap-3 sm:grid-cols-3 items-end">
           <div>
@@ -66,28 +72,30 @@ export default function ContasPage() {
         </div>
 
         <div className="card p-0 overflow-x-auto">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Nome</th>
-                <th>Tipo</th>
-                <th>Saldo inicial</th>
-                <th className="w-24">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.length === 0 ? (
-                <tr><td colSpan={4} className="p-3 muted">Nenhuma conta.</td></tr>
-              ) : items.map(c => (
-                <tr key={c.id}>
-                  <td>{c.nome}</td>
-                  <td>{c.tipo}</td>
-                  <td>{c.saldo_inicial.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
-                  <td><button className="btn h-8 px-2" onClick={() => remove(c.id)}>Excluir</button></td>
+          {items.length === 0 ? (
+            <EmptyState title="Nenhuma conta cadastrada" className="p-6" />
+          ) : (
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Tipo</th>
+                  <th>Saldo inicial</th>
+                  <th className="w-24">Acoes</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {items.map(c => (
+                  <tr key={c.id}>
+                    <td>{c.nome}</td>
+                    <td>{c.tipo}</td>
+                    <td>{c.saldo_inicial.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                    <td><button className="btn h-8 px-2" onClick={() => remove(c.id)}>Excluir</button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
     </main>

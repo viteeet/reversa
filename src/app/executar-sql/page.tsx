@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
+import PageHeader from '@/components/ui/PageHeader';
 
 export default function ExecutarSQLPage() {
   const [copied, setCopied] = useState(false);
@@ -53,21 +54,18 @@ WHERE cedente_id IS NULL;`;
   return (
     <main className="min-h-screen p-6 bg-white">
       <div className="container max-w-4xl mx-auto space-y-6">
-        <header>
-          <h1 className="text-3xl font-bold text-[#0369a1] mb-2">
-            🔧 Atualizar Supabase - Adicionar Coluna cedente_id
-          </h1>
-          <p className="text-[#64748b]">
-            Execute este script SQL no Supabase para corrigir o erro
-          </p>
-        </header>
+        <PageHeader
+          title="Atualizar Supabase - Adicionar Coluna cedente_id"
+          subtitle="Execute este script SQL no Supabase para corrigir o erro"
+          backHref="/settings"
+        />
 
         <Card>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-gray-800">📋 Script SQL</h2>
+              <h2 className="text-xl font-semibold text-gray-800">Script SQL</h2>
               <Button variant="primary" onClick={copyToClipboard}>
-                {copied ? '✅ Copiado!' : '📋 Copiar Script'}
+                {copied ? 'Copiado' : 'Copiar Script'}
               </Button>
             </div>
 
@@ -79,7 +77,7 @@ WHERE cedente_id IS NULL;`;
 
         <Card>
           <div className="space-y-4">
-            <h2 className="text-xl font-semibold text-gray-800">📝 Passo a Passo</h2>
+            <h2 className="text-xl font-semibold text-gray-800">Passo a Passo</h2>
             
             <ol className="space-y-3 list-decimal list-inside text-gray-700">
               <li>
@@ -115,7 +113,7 @@ WHERE cedente_id IS NULL;`;
 
         <Card>
           <div className="space-y-4">
-            <h2 className="text-xl font-semibold text-gray-800">✅ O que o Script Faz?</h2>
+            <h2 className="text-xl font-semibold text-gray-800">O que o Script Faz</h2>
             
             <ul className="space-y-2 list-disc list-inside text-gray-700">
               <li><strong>Adiciona a coluna <code>cedente_id</code></strong> na tabela <code>sacados</code></li>
@@ -128,7 +126,7 @@ WHERE cedente_id IS NULL;`;
 
         <Card>
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h3 className="font-semibold text-blue-900 mb-2">💡 Dica</h3>
+            <h3 className="font-semibold text-blue-900 mb-2">Dica</h3>
             <p className="text-blue-800 text-sm">
               Após executar o script, o erro desaparecerá e você poderá adicionar sacados vinculados a cedentes normalmente.
             </p>

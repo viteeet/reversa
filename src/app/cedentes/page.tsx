@@ -10,6 +10,8 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Badge from '@/components/ui/Badge';
+import PageHeader from '@/components/ui/PageHeader';
+import EmptyState from '@/components/ui/EmptyState';
 
 const ESTEIRA_OPTIONS = [
   { value: 'em_cobranca', label: 'Em Cobrança', color: 'bg-blue-100 text-blue-800 border-blue-300' },
@@ -306,24 +308,11 @@ export default function CedentesPage() {
   return (
     <main className="min-h-screen bg-gray-50">
       <div className="container max-w-7xl mx-auto px-4 py-6 space-y-4">
-        {/* Header */}
-        <header className="flex flex-col gap-4">
-          <div>
-            <button 
-              onClick={() => router.push('/menu/operacional')}
-              className="inline-flex items-center gap-2 px-3 py-1.5 mb-4 bg-white border border-gray-300 hover:bg-gray-50 text-[#0369a1] text-sm font-medium"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              Voltar
-            </button>
-            <div className="border-b-2 border-[#0369a1] pb-3">
-              <h1 className="text-3xl font-bold text-[#0369a1] mb-1">Cedentes</h1>
-              <p className="text-sm text-gray-600">Gestão completa de cedentes e relacionamentos</p>
-            </div>
-          </div>
-        </header>
+        <PageHeader
+          title="Cedentes"
+          subtitle="Gestão completa de cedentes e relacionamentos"
+          backHref="/menu/operacional"
+        />
 
         {/* Toolbar */}
         <div className="bg-white border border-gray-300 p-4">
@@ -332,7 +321,7 @@ export default function CedentesPage() {
             <div className="flex flex-col sm:flex-row gap-3 flex-1">
               <div className="relative flex-1">
                 <Input
-                  placeholder="🔍 Buscar por nome, CNPJ, email..."
+                  placeholder="Buscar por nome, CNPJ, email..."
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
                   className="w-full"
@@ -370,7 +359,7 @@ export default function CedentesPage() {
                 {viewMode === 'table' ? '⊞' : '≡'}
               </button>
               <Button variant="primary" onClick={() => setShowCreate(true)}>
-                ➕ Novo Cedente
+                Novo Cedente
               </Button>
             </div>
           </div>
@@ -597,10 +586,7 @@ export default function CedentesPage() {
                 <tbody>
                   {paginated.length === 0 ? (
                     <tr><td colSpan={7} className="p-8 text-center text-gray-600 border-b border-gray-300">
-                      <div className="flex flex-col items-center gap-3">
-                        <span className="text-4xl">📭</span>
-                        <p>Nenhum cedente encontrado.</p>
-                      </div>
+                      <EmptyState title="Nenhum cedente encontrado." />
                     </td></tr>
                   ) : paginated.map(c => {
                     const esteiraInfo = getEsteiraInfo(c.esteira);
@@ -658,18 +644,15 @@ export default function CedentesPage() {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 p-4">
               {paginated.length === 0 ? (
                 <div className="col-span-full p-8 text-center text-[#64748b]">
-                  <div className="flex flex-col items-center gap-3">
-                    <span className="text-4xl">📭</span>
-                    <p>Nenhum cedente encontrado.</p>
-                  </div>
+                  <EmptyState title="Nenhum cedente encontrado." />
                 </div>
               ) : paginated.map(c => {
                 const esteiraInfo = getEsteiraInfo(c.esteira);
                 return (
                 <div key={c.id} className="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-lg transition-all hover:-translate-y-1">
                   <div className="flex items-start justify-between mb-3">
-                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <span className="text-2xl">🏢</span>
+                    <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <span className="text-white font-bold">C</span>
                     </div>
                     <div className="flex flex-col items-end gap-1">
                       {c.situacao && (

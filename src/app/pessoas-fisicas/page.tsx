@@ -8,6 +8,8 @@ import { formatCpfCnpj } from '@/lib/format';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Badge from '@/components/ui/Badge';
+import PageHeader from '@/components/ui/PageHeader';
+import EmptyState from '@/components/ui/EmptyState';
 import { useToast } from '@/components/ui/ToastContainer';
 
 type PessoaFisica = {
@@ -663,28 +665,12 @@ export default function PessoasFisicasPage() {
   return (
     <main className="min-h-screen bg-gray-50">
       <div className="container max-w-7xl mx-auto px-4 py-6 space-y-4">
-        {/* Header */}
-        <header className="mb-4">
-          <button 
-            onClick={() => {
-              if (typeof window !== 'undefined' && window.history.length > 1) {
-                router.back();
-              } else {
-                router.push('/menu/operacional');
-              }
-            }}
-            className="inline-flex items-center gap-2 px-3 py-1.5 mb-4 bg-white border border-gray-300 hover:bg-gray-50 text-[#0369a1] text-sm font-medium"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Voltar
-          </button>
-          <div className="border-b-2 border-[#0369a1] pb-3">
-            <h1 className="text-3xl font-bold text-[#0369a1] mb-1">Pessoas Físicas</h1>
-            <p className="text-sm text-gray-600">Cadastro de pessoas físicas</p>
-          </div>
-        </header>
+        <PageHeader
+          title="Pessoas Físicas"
+          subtitle="Cadastro de pessoas físicas"
+          backHref="/menu/operacional"
+          className="mb-4"
+        />
 
         {/* Toolbar */}
         <div className="bg-white border border-gray-300">
@@ -823,10 +809,11 @@ export default function PessoasFisicasPage() {
               </div>
             )}
             {filtered.length === 0 && !err ? (
-              <div className="p-8 text-center text-gray-600">
-                <p className="mb-2">Nenhuma pessoa física encontrada</p>
-                <p className="text-xs text-gray-500">Clique em "+ Nova Pessoa Física" para cadastrar</p>
-              </div>
+              <EmptyState
+                title="Nenhuma pessoa física encontrada"
+                description="Clique em '+ Nova Pessoa Física' para cadastrar"
+                className="p-8"
+              />
             ) : filtered.length === 0 && err ? null : viewMode === 'table' ? (
               <table className="w-full border-collapse">
                 <thead className="bg-gray-100 border-b-2 border-gray-300">

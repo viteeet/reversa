@@ -225,7 +225,7 @@ export default function EditarEmpresaGrupoPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      <main className="min-h-screen bg-gray-50">
         <div className="container max-w-6xl mx-auto px-4 py-8">
           <div className="text-center py-12">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#0369a1]"></div>
@@ -238,7 +238,7 @@ export default function EditarEmpresaGrupoPage() {
 
   if (!grupo) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      <main className="min-h-screen bg-gray-50">
         <div className="container max-w-6xl mx-auto px-4 py-8">
           <Card>
             <div className="p-6 text-center">
@@ -256,7 +256,7 @@ export default function EditarEmpresaGrupoPage() {
   const empresasFiltradas = empresasDisponiveis.filter(e => e.tipo === formAdd.tipo_entidade);
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+    <main className="min-h-screen bg-gray-50">
       <div className="container max-w-6xl mx-auto px-4 py-8">
         <Card>
           <div className="p-6">
