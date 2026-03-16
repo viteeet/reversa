@@ -46,7 +46,7 @@ export default function RichTextEditor({ content, onChange, placeholder }: RichT
     },
     editorProps: {
       attributes: {
-        class: 'prose prose-sm max-w-none p-3 min-h-[120px] focus:outline-none text-sm',
+        class: 'prose prose-sm max-w-none p-3 min-h-[120px] focus:outline-none text-sm whitespace-pre-wrap break-words [overflow-wrap:anywhere]',
       },
     },
   });
@@ -58,6 +58,9 @@ export default function RichTextEditor({ content, onChange, placeholder }: RichT
   }, [content]);
 
   if (!editor) return null;
+
+  const currentTextColor = editor.getAttributes('textStyle').color as string | undefined;
+  const currentHighlightColor = editor.getAttributes('highlight').color as string | undefined;
 
   return (
     <div className="border border-gray-300 rounded bg-white">
@@ -95,41 +98,75 @@ export default function RichTextEditor({ content, onChange, placeholder }: RichT
 
         <span className="w-px bg-gray-300 mx-1" />
 
-        <select
-          onChange={(e) => {
-            if (e.target.value) {
-              editor.chain().focus().setColor(e.target.value).run();
-            } else {
-              editor.chain().focus().unsetColor().run();
+        <div className="flex items-center gap-1">
+          <span className="text-[11px] text-gray-500">Texto</span>
+          <span
+            className="w-4 h-4 rounded border border-gray-400"
+            style={
+              currentTextColor
+                ? { backgroundColor: currentTextColor }
+                : { background: 'repeating-linear-gradient(45deg, #f3f4f6, #f3f4f6 2px, #d1d5db 2px, #d1d5db 4px)' }
             }
-          }}
-          className="px-1 py-1 text-xs border border-gray-300 rounded bg-white cursor-pointer"
-          title="Cor do texto"
-          value=""
-        >
-          <option value="">Cor</option>
-          {COLORS.map(c => (
-            <option key={c.value} value={c.value}>{c.label}</option>
+            title={currentTextColor ? `Cor atual do texto: ${currentTextColor}` : 'Sem cor no texto'}
+            aria-label={currentTextColor ? `Cor atual do texto: ${currentTextColor}` : 'Sem cor no texto'}
+          />
+          {COLORS.map((c) => (
+            <button
+              key={c.value}
+              type="button"
+              onClick={() => editor.chain().focus().setColor(c.value).run()}
+              className={`w-5 h-5 rounded border transition-transform hover:scale-110 ${
+                editor.isActive('textStyle', { color: c.value }) ? 'border-[#0369a1] ring-1 ring-[#0369a1]' : 'border-gray-300'
+              }`}
+              style={{ backgroundColor: c.value }}
+              title={`Cor do texto: ${c.label}`}
+              aria-label={`Cor do texto: ${c.label}`}
+            />
           ))}
-        </select>
+          <button
+            type="button"
+            onClick={() => editor.chain().focus().unsetColor().run()}
+            className="px-1.5 py-1 text-[11px] rounded border border-gray-300 bg-white text-gray-700 hover:bg-gray-100"
+            title="Remover cor do texto"
+          >
+            Limpar
+          </button>
+        </div>
 
-        <select
-          onChange={(e) => {
-            if (e.target.value) {
-              editor.chain().focus().toggleHighlight({ color: e.target.value }).run();
-            } else {
-              editor.chain().focus().unsetHighlight().run();
+        <div className="flex items-center gap-1">
+          <span className="text-[11px] text-gray-500">Marca</span>
+          <span
+            className="w-4 h-4 rounded border border-gray-400"
+            style={
+              currentHighlightColor
+                ? { backgroundColor: currentHighlightColor }
+                : { background: 'repeating-linear-gradient(45deg, #f3f4f6, #f3f4f6 2px, #d1d5db 2px, #d1d5db 4px)' }
             }
-          }}
-          className="px-1 py-1 text-xs border border-gray-300 rounded bg-white cursor-pointer"
-          title="Destaque"
-          value=""
-        >
-          <option value="">Destaque</option>
-          {HIGHLIGHTS.map(h => (
-            <option key={h.value} value={h.value}>{h.label}</option>
+            title={currentHighlightColor ? `Cor atual do destaque: ${currentHighlightColor}` : 'Sem destaque no texto'}
+            aria-label={currentHighlightColor ? `Cor atual do destaque: ${currentHighlightColor}` : 'Sem destaque no texto'}
+          />
+          {HIGHLIGHTS.map((h) => (
+            <button
+              key={h.value}
+              type="button"
+              onClick={() => editor.chain().focus().toggleHighlight({ color: h.value }).run()}
+              className={`w-5 h-5 rounded border transition-transform hover:scale-110 ${
+                editor.isActive('highlight', { color: h.value }) ? 'border-[#0369a1] ring-1 ring-[#0369a1]' : 'border-gray-300'
+              }`}
+              style={{ backgroundColor: h.value }}
+              title={`Cor de destaque: ${h.label}`}
+              aria-label={`Cor de destaque: ${h.label}`}
+            />
           ))}
-        </select>
+          <button
+            type="button"
+            onClick={() => editor.chain().focus().unsetHighlight().run()}
+            className="px-1.5 py-1 text-[11px] rounded border border-gray-300 bg-white text-gray-700 hover:bg-gray-100"
+            title="Remover destaque"
+          >
+            Limpar
+          </button>
+        </div>
 
         <span className="w-px bg-gray-300 mx-1" />
 
@@ -142,6 +179,15 @@ export default function RichTextEditor({ content, onChange, placeholder }: RichT
           title="Lista"
         >
           Lista
+        </button>
+
+        <button
+          type="button"
+          onClick={() => editor.chain().focus().setHorizontalRule().run()}
+          className="px-2 py-1 text-xs rounded border transition-colors bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
+          title="Separador"
+        >
+          Separador
         </button>
       </div>
       <EditorContent editor={editor} />
