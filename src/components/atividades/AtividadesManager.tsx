@@ -632,9 +632,15 @@ export default function AtividadesManager({ tipo, id, nome }: AtividadesManagerP
       )}
 
       {/* Tabela Compacta Estilo Excel */}
-      <div className="border border-gray-300 bg-white">
+      <div className="compact-table-shell">
+        <div className="compact-table-title">
+          <div>
+            <h3 className="compact-table-title-main">Historico de Atividades</h3>
+            <p className="compact-table-title-sub">{atividadesFiltradas.length} registro(s) exibidos</p>
+          </div>
+        </div>
         {atividadesFiltradas.length === 0 ? (
-          <div className="text-center py-8 text-gray-500 text-sm border border-gray-200 bg-white">
+          <div className="text-center py-8 text-gray-500 text-sm bg-white">
             {atividades.length === 0 
               ? 'Nenhuma atividade registrada ainda.'
               : `Nenhuma atividade ${filtroStatus === 'pendente' ? 'pendente' : filtroStatus === 'concluida' ? 'realizada' : ''} encontrada.`
@@ -642,38 +648,38 @@ export default function AtividadesManager({ tipo, id, nome }: AtividadesManagerP
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead className="bg-gray-50 border-b border-gray-300 sticky top-0">
+            <table className="compact-table">
+              <thead>
                 <tr>
-                  <th className="px-2 py-1.5 text-left border-r border-gray-300 font-semibold text-gray-700 whitespace-nowrap">
+                  <th className="whitespace-nowrap">
                     Data/Hora
                   </th>
-                  <th className="px-2 py-1.5 text-left border-r border-gray-300 font-semibold text-gray-700 whitespace-nowrap">
+                  <th className="whitespace-nowrap">
                     Tipo
                   </th>
-                  <th className="px-2 py-1.5 text-left border-r border-gray-300 font-semibold text-gray-700 whitespace-nowrap">
+                  <th className="whitespace-nowrap">
                     Status
                   </th>
-                  <th className="px-2 py-1.5 text-left border-r border-gray-300 font-semibold text-gray-700 whitespace-nowrap">
-                    Título
+                  <th className="whitespace-nowrap">
+                    Titulo
                   </th>
-                  <th className="px-2 py-1.5 text-left border-r border-gray-300 font-semibold text-gray-700 whitespace-nowrap">
-                    Descrição
+                  <th className="whitespace-nowrap">
+                    Descricao
                   </th>
-                  <th className="px-2 py-1.5 text-left border-r border-gray-300 font-semibold text-gray-700 whitespace-nowrap">
-                    Próxima Ação
+                  <th className="whitespace-nowrap">
+                    Proxima Acao
                   </th>
-                  <th className="px-2 py-1.5 text-center font-semibold text-gray-700 whitespace-nowrap">
-                    Ações
+                  <th className="text-center whitespace-nowrap">
+                    Acoes
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody>
                 {atividadesFiltradas.map(atividade => {
                   const tipoInfo = tiposAtividade.find(t => t.value === atividade.tipo);
                   return (
-                    <tr key={atividade.id} className="hover:bg-blue-50 border-b border-gray-200">
-                      <td className="px-2 py-1 border-r border-gray-200">
+                    <tr key={atividade.id}>
+                      <td>
                         <div className="text-xs">
                           <div className="font-medium text-gray-900">
                             {new Date(atividade.data_hora).toLocaleDateString('pt-BR')}
@@ -683,7 +689,7 @@ export default function AtividadesManager({ tipo, id, nome }: AtividadesManagerP
                           </div>
                         </div>
                       </td>
-                      <td className="px-2 py-1 border-r border-gray-200">
+                      <td>
                         <Badge
                           variant={
                             atividade.tipo === 'ligacao' ? 'info' :
@@ -697,7 +703,7 @@ export default function AtividadesManager({ tipo, id, nome }: AtividadesManagerP
                           {tipoInfo?.label || atividade.tipo}
                         </Badge>
                       </td>
-                      <td className="px-2 py-1 border-r border-gray-200">
+                      <td>
                         <Badge
                           variant={
                             atividade.status === 'pendente' ? 'warning' :
@@ -710,7 +716,7 @@ export default function AtividadesManager({ tipo, id, nome }: AtividadesManagerP
                           {atividade.status === 'concluida' ? 'Realizada' : 'Pendente'}
                         </Badge>
                       </td>
-                      <td className="px-2 py-1 border-r border-gray-200">
+                      <td>
                         {atividade.origem === 'titulo' && atividade.titulo_numero ? (
                           <Badge variant="info" size="sm" className="text-xs">
                             #{atividade.titulo_numero}
@@ -719,7 +725,7 @@ export default function AtividadesManager({ tipo, id, nome }: AtividadesManagerP
                           <span className="text-gray-400">—</span>
                         )}
                       </td>
-                      <td className="px-2 py-1 border-r border-gray-200">
+                      <td>
                         <div className="text-xs text-gray-700 max-w-xs">
                           <div className="truncate" title={limparDescricao(atividade.descricao)}>
                             {limparDescricao(atividade.descricao)}
@@ -740,14 +746,14 @@ export default function AtividadesManager({ tipo, id, nome }: AtividadesManagerP
                           </div>
                         )}
                       </td>
-                      <td className="px-2 py-1 border-r border-gray-200">
+                      <td>
                         {atividade.proxima_acao ? (
                           <span className="text-xs text-gray-700">{atividade.proxima_acao}</span>
                         ) : (
                           <span className="text-gray-400">—</span>
                         )}
                       </td>
-                      <td className="px-2 py-1">
+                      <td>
                         <div className="flex gap-1 justify-center">
                           {atividade.status === 'pendente' && (
                             <button

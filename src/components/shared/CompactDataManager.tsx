@@ -487,8 +487,11 @@ export default function CompactDataManager({
   return (
     <div className="space-y-3">
       {/* Header compacto */}
-      <div className="flex items-center justify-between border-b border-gray-300 bg-gray-100 px-4 py-2 -mx-4 -mt-4 mb-4">
-        <h3 className="text-xs font-semibold text-gray-700 uppercase">{title}</h3>
+      <div className="compact-table-title -mx-4 -mt-4 mb-4">
+        <div>
+          <h3 className="compact-table-title-main">{title}</h3>
+          <p className="compact-table-title-sub">{items.length} registro(s) na visualizacao compacta</p>
+        </div>
         {!readOnly && (
           <div className="flex gap-2">
             {onFetchFromAPI && (
@@ -589,38 +592,38 @@ export default function CompactDataManager({
           <p className="text-xs mt-1 text-gray-400">Clique em "Novo" para adicionar</p>
         </div>
       ) : (
-        <div className="overflow-x-auto border border-gray-300">
-          <table className="w-full min-w-[860px] border-collapse bg-white">
-            <thead className="bg-gray-100 border-b border-gray-300">
+        <div className="compact-table-shell overflow-x-auto">
+          <table className="compact-table min-w-[860px]">
+            <thead>
               <tr>
                 {displayFields.map((field) => {
                   const fieldConfig = fields.find(f => f.key === field);
                   return (
-                    <th key={field} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">
+                    <th key={field}>
                       {fieldConfig?.label || field}
                     </th>
                   );
                 })}
-                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Origem</th>
+                <th>Origem</th>
                 {showActionsColumn && (
-                  <th className="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase w-[96px]">Ações</th>
+                  <th className="text-center w-[96px]">Acoes</th>
                 )}
               </tr>
             </thead>
             <tbody>
               {items.map((item, index) => (
                 <Fragment key={item.id ?? `row-${index}`}>
-                  <tr className={`${deletingId === item.id ? 'opacity-50 pointer-events-none' : ''} border-b border-gray-200 hover:bg-gray-50`}>
+                  <tr className={`${deletingId === item.id ? 'opacity-50 pointer-events-none' : ''}`}>
                     {displayFields.map((field) => {
                       const fieldConfig = fields.find(f => f.key === field);
                       const isEditable = isEditableField(field);
                       return (
-                        <td key={`${item.id}-${field}`} className="px-3 py-2 text-sm text-gray-900 align-top border-r border-gray-200">
+                        <td key={`${item.id}-${field}`} className="text-sm">
                           {isEditable ? renderEditableCell(item, field, fieldConfig) : (item[field] || '—')}
                         </td>
                       );
                     })}
-                    <td className="px-3 py-2 border-r border-gray-200 align-top">
+                    <td>
                       {item._from_pessoa_fisica ? (
                         <span title="Vinculada de Pessoas Físicas">
                           <Badge variant="success" size="sm">
@@ -638,22 +641,20 @@ export default function CompactDataManager({
                       )}
                     </td>
                     {showActionsColumn && (
-                      <td className="px-2 py-2 align-top">
+                      <td>
                       <div className="flex items-center justify-center gap-1.5">
                         {showDetailsButton && !readOnly && onOpenDetails && (
-                          onOpenDetails ? (
-                            <button
-                              onClick={() => onOpenDetails(item)}
-                              className="w-7 h-7 inline-flex items-center justify-center text-blue-700 bg-white border border-blue-300 rounded-md hover:bg-blue-50 transition-colors"
-                              title="Abrir detalhes"
-                              aria-label="Abrir detalhes"
-                            >
-                              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" />
-                                <circle cx="12" cy="12" r="3" />
-                              </svg>
-                            </button>
-                          )
+                          <button
+                            onClick={() => onOpenDetails(item)}
+                            className="w-7 h-7 inline-flex items-center justify-center text-blue-700 bg-white border border-blue-300 rounded-md hover:bg-blue-50 transition-colors"
+                            title="Abrir detalhes"
+                            aria-label="Abrir detalhes"
+                          >
+                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" />
+                              <circle cx="12" cy="12" r="3" />
+                            </svg>
+                          </button>
                         )}
 
                         {!readOnly && (
@@ -735,8 +736,8 @@ export default function CompactDataManager({
                   </tr>
 
                   {showDetailsButton && !onOpenDetails && item.observacoes && (
-                    <tr key={`${item.id}-observacoes`} className="border-b border-gray-200 bg-gray-50">
-                      <td colSpan={tableColSpan} className="px-3 py-2 text-sm text-gray-700 align-top">
+                    <tr key={`${item.id}-observacoes`} className="bg-gray-50">
+                      <td colSpan={tableColSpan} className="text-sm text-gray-700">
                         <span className="font-semibold text-blue-700">Observações:</span>
                         <div className="mt-1 whitespace-pre-wrap">{item.observacoes}</div>
                       </td>

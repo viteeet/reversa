@@ -470,11 +470,11 @@ export default function RelatorioVencidosPage() {
         </div>
 
         {/* Tabela Compacta Estilo Excel */}
-        <div className="bg-white border border-gray-300">
-          <div className="border-b border-gray-300 bg-gray-50 px-2 py-1.5">
+        <div className="compact-table-shell">
+          <div className="compact-table-title">
               <div className="flex items-center justify-between">
-              <h2 className="text-xs font-semibold text-gray-700 uppercase">
-                {tipoVisualizacao === 'cedentes' ? 'Cedentes com Dívidas' : 'Sacados com Dívidas'} 
+              <h2 className="compact-table-title-main">
+                {tipoVisualizacao === 'cedentes' ? 'Cedentes com Dividas' : 'Sacados com Dividas'} 
                 ({demandasAgrupadas.length})
               </h2>
               <div className="flex items-center gap-2">
@@ -524,10 +524,10 @@ export default function RelatorioVencidosPage() {
             />
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead className="bg-gray-50 border-b border-gray-300 sticky top-0">
+              <table className="compact-table">
+                <thead>
                   <tr>
-                    <th className="px-2 py-1.5 text-center border-r border-gray-300 font-semibold text-gray-700 whitespace-nowrap w-8">
+                    <th className="text-center whitespace-nowrap w-8">
                       <input
                         type="checkbox"
                         checked={titulosSelecionados.size === demandas.length && demandas.length > 0}
@@ -541,54 +541,54 @@ export default function RelatorioVencidosPage() {
                         className="cursor-pointer"
                       />
                     </th>
-                    <th className="px-2 py-1.5 text-left border-r border-gray-300 font-semibold text-gray-700 whitespace-nowrap">
+                    <th className="whitespace-nowrap">
                       {tipoVisualizacao === 'cedentes' ? 'Cedente' : 'Sacado'}
                     </th>
                     {tipoVisualizacao === 'cedentes' && (
-                      <th className="px-2 py-1.5 text-left border-r border-gray-300 font-semibold text-gray-700 whitespace-nowrap">
+                      <th className="whitespace-nowrap">
                         Sacado
                       </th>
                     )}
                     {tipoVisualizacao === 'cedentes' && (
-                      <th className="px-2 py-1.5 text-left border-r border-gray-300 font-semibold text-gray-700 whitespace-nowrap">
+                      <th className="whitespace-nowrap">
                         Fundo
                       </th>
                     )}
-                    <th className="px-2 py-1.5 text-left border-r border-gray-300 font-semibold text-gray-700 whitespace-nowrap">
+                    <th className="whitespace-nowrap">
                       Tipo
                     </th>
-                    <th className="px-2 py-1.5 text-left border-r border-gray-300 font-semibold text-gray-700 whitespace-nowrap">
-                      Título/Parcela
+                    <th className="whitespace-nowrap">
+                      Titulo/Parcela
                     </th>
-                    <th className="px-2 py-1.5 text-left border-r border-gray-300 font-semibold text-gray-700 whitespace-nowrap">
+                    <th className="whitespace-nowrap">
                       Vencimento
                     </th>
-                    <th className="px-2 py-1.5 text-right border-r border-gray-300 font-semibold text-gray-700 whitespace-nowrap">
+                    <th className="text-right whitespace-nowrap">
                       Valor
                     </th>
-                    <th className="px-2 py-1.5 text-center border-r border-gray-300 font-semibold text-gray-700 whitespace-nowrap">
+                    <th className="text-center whitespace-nowrap">
                       Dias
                     </th>
-                    <th className="px-2 py-1.5 text-left border-r border-gray-300 font-semibold text-gray-700 whitespace-nowrap">
-                      Crítica
+                    <th className="whitespace-nowrap">
+                      Critica
                     </th>
-                    <th className="px-2 py-1.5 text-center border-r border-gray-300 font-semibold text-gray-700 whitespace-nowrap">
+                    <th className="text-center whitespace-nowrap">
                       Atividades
                     </th>
-                    <th className="px-2 py-1.5 text-center font-semibold text-gray-700 whitespace-nowrap">
-                      Ações
+                    <th className="text-center whitespace-nowrap">
+                      Acoes
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody>
                   {demandasAgrupadas.flatMap((grupo) => 
                     grupo.items.map((demanda, index) => (
                       <tr 
                         key={demanda.id} 
-                        className={`hover:bg-blue-50 border-b border-gray-200 ${titulosSelecionados.has(demanda.titulo_id) ? 'bg-blue-100' : ''}`}
+                        className={titulosSelecionados.has(demanda.titulo_id) ? 'bg-blue-100' : ''}
                       >
                         {/* Checkbox */}
-                        <td className="px-2 py-1 border-r border-gray-200 text-center">
+                        <td className="text-center">
                           <input
                             type="checkbox"
                             checked={titulosSelecionados.has(demanda.titulo_id)}
@@ -605,7 +605,7 @@ export default function RelatorioVencidosPage() {
                           />
                         </td>
                         {/* Cedente/Sacado */}
-                        <td className="px-2 py-1 border-r border-gray-200">
+                        <td>
                           {index === 0 ? (
                             <div className="flex items-center gap-2">
                               <Link
@@ -643,7 +643,7 @@ export default function RelatorioVencidosPage() {
                         
                         {/* Sacado (apenas quando visualizando por cedentes) */}
                         {tipoVisualizacao === 'cedentes' && (
-                          <td className="px-2 py-1 border-r border-gray-200">
+                          <td>
                             <Link
                               href={`/sacados/${demanda.sacado_cnpj}`}
                               className="text-blue-600 hover:underline font-medium"
@@ -658,7 +658,7 @@ export default function RelatorioVencidosPage() {
                         
                         {/* Fundo (apenas para cedentes) */}
                         {tipoVisualizacao === 'cedentes' && (
-                          <td className="px-2 py-1 border-r border-gray-200">
+                          <td>
                             {index === 0 ? (
                               demanda.fundo ? (
                                 <Badge variant="info" size="sm" className="text-xs">
@@ -674,7 +674,7 @@ export default function RelatorioVencidosPage() {
                         )}
                         
                         {/* Tipo */}
-                        <td className="px-2 py-1 border-r border-gray-200">
+                        <td>
                           {demanda.numero_titulo.startsWith('Acordo -') ? (
                             <Badge variant="info" size="sm" className="text-xs">Acordo</Badge>
                           ) : (
@@ -683,24 +683,24 @@ export default function RelatorioVencidosPage() {
                         </td>
                         
                         {/* Título/Parcela */}
-                        <td className="px-2 py-1 border-r border-gray-200 font-medium">
+                        <td className="font-medium">
                           {demanda.numero_titulo.startsWith('Acordo -') 
                             ? demanda.numero_titulo 
                             : `#${demanda.numero_titulo}`}
                         </td>
                         
                         {/* Vencimento */}
-                        <td className="px-2 py-1 border-r border-gray-200">
+                        <td>
                           {new Date(demanda.data_vencimento).toLocaleDateString('pt-BR')}
                         </td>
                         
                         {/* Valor */}
-                        <td className="px-2 py-1 border-r border-gray-200 text-right font-semibold">
+                        <td className="text-right font-semibold">
                           {formatMoney(demanda.valor)}
                         </td>
                         
                         {/* Dias Vencido */}
-                        <td className="px-2 py-1 border-r border-gray-200 text-center">
+                        <td className="text-center">
                           {demanda.dias_vencido > 0 ? (
                             <Badge variant="error" size="sm" className="text-xs">
                               {demanda.dias_vencido}d
@@ -715,7 +715,7 @@ export default function RelatorioVencidosPage() {
                         </td>
                         
                         {/* Crítica */}
-                        <td className="px-2 py-1 border-r border-gray-200">
+                        <td>
                           {demanda.critica ? (
                             <Badge variant="warning" size="sm" className="text-xs">
                               {demanda.critica}
@@ -726,7 +726,7 @@ export default function RelatorioVencidosPage() {
                         </td>
                         
                         {/* Atividades */}
-                        <td className="px-2 py-1 border-r border-gray-200 text-center">
+                        <td className="text-center">
                           {demanda.atividades && demanda.atividades.length > 0 ? (
                             <span className="text-xs font-medium text-gray-700">
                               {demanda.atividades.length}
@@ -737,7 +737,7 @@ export default function RelatorioVencidosPage() {
                         </td>
                         
                         {/* Ações */}
-                        <td className="px-2 py-1">
+                        <td>
                           <div className="flex gap-1 justify-center">
                             <button
                               onClick={() => {

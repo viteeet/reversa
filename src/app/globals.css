@@ -172,6 +172,84 @@ input, button, textarea, select { font: inherit; color: inherit; }
 .table tbody tr { border-top: 1px solid var(--border); }
 .table tbody tr:hover { background: color-mix(in srgb, var(--muted) 60%, transparent); }
 
+/* Tabela compacta padronizada */
+.compact-table-shell {
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.compact-table-title {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.625rem 0.875rem;
+  border-bottom: 1px solid #cbd5e1;
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+.compact-table-title-main {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.compact-table-title-sub {
+  margin: 0.15rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: #475569;
+  font-weight: 500;
+}
+
+.compact-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.75rem;
+}
+
+.compact-table thead {
+  background: #e2e8f0;
+  border-bottom: 1px solid #94a3b8;
+}
+
+.compact-table th {
+  padding: 0.5rem 0.625rem;
+  text-align: left;
+  color: #0f172a;
+  font-size: 0.69rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-right: 1px solid #cbd5e1;
+}
+
+.compact-table th:last-child {
+  border-right: 0;
+}
+
+.compact-table td {
+  padding: 0.5rem 0.625rem;
+  border-bottom: 1px solid #e2e8f0;
+  border-right: 1px solid #e2e8f0;
+  color: #111827;
+  vertical-align: top;
+}
+
+.compact-table td:last-child {
+  border-right: 0;
+}
+
+.compact-table tbody tr:hover {
+  background: #eff6ff;
+}
+
 /* Textos utilitários */
 .muted { color: var(--muted-foreground); }
 

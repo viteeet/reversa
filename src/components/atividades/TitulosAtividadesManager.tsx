@@ -453,9 +453,12 @@ export default function TitulosAtividadesManager({
       {/* Seção de Crítica */}
       <div className="space-y-2">
         {/* Cabeçalho Compacto */}
-        <div className="flex items-center justify-between bg-gray-50 border border-gray-300 p-2">
+        <div className="compact-table-title">
           <div className="flex items-center gap-3">
-            <h3 className="text-sm font-semibold text-gray-900">Crítica do Título</h3>
+            <div>
+              <h3 className="compact-table-title-main">Critica do Titulo</h3>
+              <p className="compact-table-title-sub">Historico de alteracoes de critica</p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <Select
@@ -485,32 +488,32 @@ export default function TitulosAtividadesManager({
             Nenhuma alteração de crítica registrada ainda.
           </div>
         ) : (
-          <div className="border border-gray-300 bg-white">
+          <div className="compact-table-shell">
             <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead className="bg-gray-50 border-b border-gray-300 sticky top-0">
+              <table className="compact-table">
+                <thead>
                   <tr>
-                    <th className="px-2 py-1.5 text-left border-r border-gray-300 font-semibold text-gray-700 whitespace-nowrap">
+                    <th className="whitespace-nowrap">
                       Data/Hora
                     </th>
-                    <th className="px-2 py-1.5 text-left border-r border-gray-300 font-semibold text-gray-700 whitespace-nowrap">
-                      Usuário
+                    <th className="whitespace-nowrap">
+                      Usuario
                     </th>
-                    <th className="px-2 py-1.5 text-left border-r border-gray-300 font-semibold text-gray-700 whitespace-nowrap">
+                    <th className="whitespace-nowrap">
                       Crítica Anterior
                     </th>
-                    <th className="px-2 py-1.5 text-left border-r border-gray-300 font-semibold text-gray-700 whitespace-nowrap">
+                    <th className="whitespace-nowrap">
                       Crítica Nova
                     </th>
-                    <th className="px-2 py-1.5 text-center font-semibold text-gray-700 whitespace-nowrap">
-                      Ações
+                    <th className="text-center whitespace-nowrap">
+                      Acoes
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody>
                   {historicoCriticas.map((item) => (
-                    <tr key={item.id} className="hover:bg-blue-50 border-b border-gray-200">
-                      <td className="px-2 py-1 border-r border-gray-200">
+                    <tr key={item.id}>
+                      <td>
                         <div className="text-xs">
                           <div className="font-medium text-gray-900">
                             {new Date(item.created_at).toLocaleDateString('pt-BR')}
@@ -520,22 +523,22 @@ export default function TitulosAtividadesManager({
                           </div>
                         </div>
                       </td>
-                      <td className="px-2 py-1 border-r border-gray-200">
+                      <td>
                         <span className="text-xs text-gray-600 font-medium">
                           {item.usuario_nome || 'Usuário'}
                         </span>
                       </td>
-                      <td className="px-2 py-1 border-r border-gray-200">
+                      <td>
                         <Badge variant="neutral" size="sm" className="text-xs">
                           {item.critica_anterior || 'Sem crítica'}
                         </Badge>
                       </td>
-                      <td className="px-2 py-1 border-r border-gray-200">
+                      <td>
                         <Badge variant="warning" size="sm" className="text-xs">
                           {item.critica_nova || 'Sem crítica'}
                         </Badge>
                       </td>
-                      <td className="px-2 py-1 text-center">
+                      <td className="text-center">
                         <button
                           onClick={() => excluirCriticaHistorico(item.id)}
                           className="px-1.5 py-0.5 text-xs border border-red-300 bg-white hover:bg-red-50 text-red-600 font-medium"
@@ -554,11 +557,11 @@ export default function TitulosAtividadesManager({
       </div>
 
       {/* Cabeçalho Compacto */}
-      <div className="flex items-center justify-between bg-gray-50 border border-gray-300 p-2">
+      <div className="compact-table-title">
         <div className="flex items-center gap-3">
           <div>
-            <h3 className="text-sm font-semibold text-gray-900">Histórico de Cobrança</h3>
-            <p className="text-xs text-gray-600">
+            <h3 className="compact-table-title-main">Historico de Cobranca</h3>
+            <p className="compact-table-title-sub">
               Título #{numeroTitulo} - {sacadoNome}
             </p>
           </div>
@@ -603,43 +606,43 @@ export default function TitulosAtividadesManager({
           Nenhuma atividade registrada ainda.
         </div>
       ) : (
-        <div className="border border-gray-300 bg-white">
+        <div className="compact-table-shell">
           <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead className="bg-gray-50 border-b border-gray-300 sticky top-0">
+            <table className="compact-table">
+              <thead>
                 <tr>
-                  <th className="px-2 py-1.5 text-left border-r border-gray-300 font-semibold text-gray-700 whitespace-nowrap">
+                  <th className="whitespace-nowrap">
                     Data/Hora
                   </th>
-                  <th className="px-2 py-1.5 text-left border-r border-gray-300 font-semibold text-gray-700 whitespace-nowrap">
-                    Usuário
+                  <th className="whitespace-nowrap">
+                    Usuario
                   </th>
-                  <th className="px-2 py-1.5 text-left border-r border-gray-300 font-semibold text-gray-700 whitespace-nowrap">
+                  <th className="whitespace-nowrap">
                     Tipo
                   </th>
-                  <th className="px-2 py-1.5 text-left border-r border-gray-300 font-semibold text-gray-700 whitespace-nowrap">
+                  <th className="whitespace-nowrap">
                     Status
                   </th>
-                  <th className="px-2 py-1.5 text-left border-r border-gray-300 font-semibold text-gray-700 whitespace-nowrap">
-                    Descrição
+                  <th className="whitespace-nowrap">
+                    Descricao
                   </th>
-                  <th className="px-2 py-1.5 text-left border-r border-gray-300 font-semibold text-gray-700 whitespace-nowrap">
-                    Próxima Ação
+                  <th className="whitespace-nowrap">
+                    Proxima Acao
                   </th>
-                  <th className="px-2 py-1.5 text-left border-r border-gray-300 font-semibold text-gray-700 whitespace-nowrap">
+                  <th className="whitespace-nowrap">
                     Lembrete
                   </th>
-                  <th className="px-2 py-1.5 text-center font-semibold text-gray-700 whitespace-nowrap">
-                    Ações
+                  <th className="text-center whitespace-nowrap">
+                    Acoes
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody>
                 {atividadesFiltradas.map((atividade) => {
                   const tipoInfo = tiposAtividade.find(t => t.value === atividade.tipo);
                   return (
-                    <tr key={atividade.id} className="hover:bg-blue-50 border-b border-gray-200">
-                      <td className="px-2 py-1 border-r border-gray-200">
+                    <tr key={atividade.id}>
+                      <td>
                         <div className="text-xs">
                           <div className="font-medium text-gray-900">
                             {new Date(atividade.data_hora).toLocaleDateString('pt-BR')}
@@ -649,12 +652,12 @@ export default function TitulosAtividadesManager({
                           </div>
                         </div>
                       </td>
-                      <td className="px-2 py-1 border-r border-gray-200">
+                      <td>
                         <span className="text-xs text-gray-600 font-medium">
                           {atividade.usuario_nome || 'Usuário'}
                         </span>
                       </td>
-                      <td className="px-2 py-1 border-r border-gray-200">
+                      <td>
                         <Badge
                           variant={
                             atividade.tipo === 'ligacao' ? 'info' :
@@ -668,7 +671,7 @@ export default function TitulosAtividadesManager({
                           {tipoInfo?.label || atividade.tipo}
                         </Badge>
                       </td>
-                      <td className="px-2 py-1 border-r border-gray-200">
+                      <td>
                         <Badge
                           variant={
                             atividade.status === 'pendente' ? 'warning' :
@@ -683,7 +686,7 @@ export default function TitulosAtividadesManager({
                            'Cancelada'}
                         </Badge>
                       </td>
-                      <td className="px-2 py-1 border-r border-gray-200">
+                      <td>
                         <div className="text-xs text-gray-700 max-w-xs">
                           <div className="truncate" title={limparDescricao(atividade.descricao)}>
                             {limparDescricao(atividade.descricao)}
@@ -705,14 +708,14 @@ export default function TitulosAtividadesManager({
                           </div>
                         )}
                       </td>
-                      <td className="px-2 py-1 border-r border-gray-200">
+                      <td>
                         {atividade.proxima_acao ? (
                           <span className="text-xs text-gray-700">{atividade.proxima_acao}</span>
                         ) : (
                           <span className="text-gray-400">—</span>
                         )}
                       </td>
-                      <td className="px-2 py-1 border-r border-gray-200">
+                      <td>
                         {atividade.data_lembrete ? (
                           <div className="text-xs">
                             <div className="text-gray-700">
@@ -726,7 +729,7 @@ export default function TitulosAtividadesManager({
                           <span className="text-gray-400">—</span>
                         )}
                       </td>
-                      <td className="px-2 py-1">
+                      <td>
                         <div className="flex gap-1 justify-center">
                           <button
                             onClick={() => editarAtividade(atividade)}
