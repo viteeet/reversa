@@ -35,6 +35,7 @@ type CompactDataManagerProps = {
   showDetailsButton?: boolean;
   isLoading?: boolean;
   onOpenDetails?: (item: DataItem) => void;
+  readOnly?: boolean;
 };
 
 export default function CompactDataManager({
@@ -48,7 +49,8 @@ export default function CompactDataManager({
   onFetchFromAPI,
   showDetailsButton = false,
   isLoading = false,
-  onOpenDetails
+  onOpenDetails,
+  readOnly = false
 }: CompactDataManagerProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [newItemForm, setNewItemForm] = useState<Record<string, any>>({});
@@ -69,12 +71,14 @@ export default function CompactDataManager({
   };
 
   const handleAddNew = () => {
+    if (readOnly) return;
     resetNewForm();
     setShowNewForm(true);
     setEditingId(null);
   };
 
   const handleEdit = (item: DataItem) => {
+    if (readOnly) return;
     setEditForm(item);
     setEditingId(item.id || null);
     setShowNewForm(false);
@@ -91,6 +95,7 @@ export default function CompactDataManager({
   };
 
   const handleSaveNew = async () => {
+    if (readOnly) return;
     const missingFields = fields
       .filter(f => f.required && !newItemForm[f.key])
       .map(f => f.label);
@@ -161,6 +166,7 @@ export default function CompactDataManager({
   };
 
   const handleSaveEdit = async (id: string) => {
+    if (readOnly) return;
     setLoading(true);
     try {
       // Normaliza tipos para o banco (evita "" em campos numéricos/data)
@@ -217,6 +223,7 @@ export default function CompactDataManager({
   };
 
   const handleDelete = async (id: string) => {
+    if (readOnly) return;
     if (!confirm('Tem certeza que deseja excluir este item?')) return;
     
     setDeletingId(id);
@@ -234,6 +241,7 @@ export default function CompactDataManager({
   };
 
   const handleFetchAPI = async () => {
+    if (readOnly) return;
     if (!onFetchFromAPI) return;
     setFetchingAPI(true);
     try {
@@ -249,6 +257,7 @@ export default function CompactDataManager({
   };
 
   const handleCellSave = async (id: string, field: string, value: any) => {
+    if (readOnly) return;
     if (editingCell?.id !== id || editingCell?.field !== field) return;
     
     setLoading(true);
@@ -304,15 +313,16 @@ export default function CompactDataManager({
     if (!isEditing) {
       return (
         <span 
-          className="cursor-pointer hover:bg-blue-50 px-1 py-0.5 rounded text-sm text-gray-900 group relative"
+          className={`${readOnly ? 'text-gray-800' : 'cursor-pointer hover:bg-blue-50 group relative'} px-1 py-0.5 rounded text-sm text-gray-900`}
           onDoubleClick={() => {
+            if (readOnly) return;
             setEditingCell({ id: item.id!, field: fieldKey });
             setCellValue(value);
           }}
-          title="Duplo clique para editar"
+          title={readOnly ? undefined : 'Duplo clique para editar'}
         >
           {value || '—'}
-          <span className="absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 text-[8px] text-blue-500">✏️</span>
+          {!readOnly && <span className="absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 text-[8px] text-blue-500">✏️</span>}
         </span>
       );
     }
@@ -486,8 +496,9 @@ export default function CompactDataManager({
       {/* Header compacto */}
       <div className="flex items-center justify-between border-b border-gray-300 bg-gray-100 px-4 py-2 -mx-4 -mt-4 mb-4">
         <h3 className="text-xs font-semibold text-gray-700 uppercase">{title}</h3>
-        <div className="flex gap-2">
-          {onFetchFromAPI && (
+        {!readOnly && (
+          <div className="flex gap-2">
+            {onFetchFromAPI && (
             <button 
               onClick={handleFetchAPI}
               disabled={fetchingAPI}
@@ -505,22 +516,23 @@ export default function CompactDataManager({
                 </>
               )}
             </button>
-          )}
-          <button 
-            onClick={handleAddNew}
-            disabled={showNewForm || loading}
-            className="px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
-          >
-            <span>+</span>
-            <span>Novo</span>
-          </button>
-        </div>
+            )}
+            <button 
+              onClick={handleAddNew}
+              disabled={showNewForm || loading}
+              className="px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
+            >
+              <span>+</span>
+              <span>Novo</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Conteúdo com padding */}
       <div className="px-4">
       {/* Formulário de novo item - com animação */}
-      {showNewForm && (
+      {!readOnly && showNewForm && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 animate-fade-in transition-item">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-semibold text-blue-800">Novo Registro</span>
@@ -710,7 +722,7 @@ export default function CompactDataManager({
                           </button>
                         )
                       )}
-                      {item._from_pessoa_fisica || (item.cpf && onOpenDetails) ? (
+                      {!readOnly && (item._from_pessoa_fisica || (item.cpf && onOpenDetails)) ? (
                         <Tooltip content={item._from_pessoa_fisica ? "Esta pessoa é gerenciada em Pessoas Físicas → Vinculações" : "Ver perfil completo da pessoa física"}>
                           <span>
                             {item.cpf && onOpenDetails ? (
@@ -729,7 +741,7 @@ export default function CompactDataManager({
                               >
                                 Editar
                               </button>
-                            )}
+                            ) : !readOnly ? (
                           </span>
                         </Tooltip>
                       ) : (
@@ -737,27 +749,28 @@ export default function CompactDataManager({
                           onClick={() => handleEdit(item)} 
                           disabled={loading || deletingId === item.id}
                           className="px-2.5 py-1 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 transition-colors"
-                        >
-                          Editar
-                        </button>
-                      )}
-                      {item._from_pessoa_fisica ? (
-                        <Tooltip content="Esta pessoa é gerenciada em Pessoas Físicas → Vinculações">
-                          <span>
-                            <button 
-                              disabled
-                              className="px-2.5 py-1 text-xs font-medium text-gray-400 bg-gray-100 border border-gray-300 rounded-md cursor-not-allowed"
-                              title="Gerenciar em Pessoas Físicas"
-                            >
-                              Excluir
-                            </button>
-                          </span>
-                        </Tooltip>
-                      ) : (
-                        <button 
-                          onClick={() => handleDelete(item.id!)} 
-                          disabled={loading || deletingId === item.id}
-                          className="px-2.5 py-1 text-xs font-medium text-red-600 bg-white border border-red-300 rounded-md hover:bg-red-50 disabled:opacity-50 transition-colors"
+                            ) : null}
+                            {!readOnly && (item._from_pessoa_fisica ? (
+                              <Tooltip content="Esta pessoa é gerenciada em Pessoas Físicas → Vinculações">
+                                <span>
+                                  <button 
+                                    disabled
+                                    className="px-2.5 py-1 text-xs font-medium text-gray-400 bg-gray-100 border border-gray-300 rounded-md cursor-not-allowed"
+                                    title="Gerenciar em Pessoas Físicas"
+                                  >
+                                    Excluir
+                                  </button>
+                                </span>
+                              </Tooltip>
+                            ) : (
+                              <button 
+                                onClick={() => handleDelete(item.id!)} 
+                                disabled={loading || deletingId === item.id}
+                                className="px-2.5 py-1 text-xs font-medium text-red-600 bg-white border border-red-300 rounded-md hover:bg-red-50 disabled:opacity-50 transition-colors"
+                              >
+                                {deletingId === item.id ? '...' : 'Excluir'}
+                              </button>
+                            ))}
                         >
                           {deletingId === item.id ? '...' : 'Excluir'}
                         </button>

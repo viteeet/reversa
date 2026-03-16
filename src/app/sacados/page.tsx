@@ -329,7 +329,7 @@ export default function SacadosPage() {
                         <span className="ml-1 text-gray-500">{sortDir === 'asc' ? '▲' : '▼'}</span>
                       )}
                     </th>
-                    <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 uppercase w-40">Ações</th>
+                    <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 uppercase w-28">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -375,34 +375,6 @@ export default function SacadosPage() {
                               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" />
                                 <circle cx="12" cy="12" r="3" />
-                              </svg>
-                            </button>
-                          </Link>
-                          <Link href={`/sacados/${encodeURIComponent(s.cnpj)}/editar?mode=edit`}>
-                            <button
-                              className="w-8 h-8 border border-gray-300 bg-white hover:bg-gray-50 text-[#0369a1] flex items-center justify-center"
-                              title="Editar"
-                              aria-label="Editar"
-                            >
-                              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M12 20h9" />
-                                <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
-                              </svg>
-                            </button>
-                          </Link>
-                          <Link href={`/sacados/${encodeURIComponent(s.cnpj)}/cobranca`}>
-                            <button
-                              className="w-8 h-8 border border-gray-300 bg-white hover:bg-gray-50 text-[#0369a1] flex items-center justify-center"
-                              title="Ficha"
-                              aria-label="Ficha"
-                            >
-                              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M8 6h13" />
-                                <path d="M8 12h13" />
-                                <path d="M8 18h13" />
-                                <path d="M3 6h.01" />
-                                <path d="M3 12h.01" />
-                                <path d="M3 18h.01" />
                               </svg>
                             </button>
                           </Link>

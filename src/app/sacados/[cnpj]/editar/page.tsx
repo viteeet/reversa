@@ -1136,7 +1136,7 @@ export default function EditarSacadoPage() {
                     </button>
                     <h2 className="text-xl font-semibold text-[#0369a1]">Informações Básicas</h2>
                   </div>
-                  {!infoBasicasCollapsed && (
+                  {!infoBasicasCollapsed && isEditMode && (
                     <Button
                       variant="primary"
                       size="sm"
@@ -1339,40 +1339,44 @@ export default function EditarSacadoPage() {
                       <p className="text-sm text-gray-600">{grupoInfo.cnpjs_count} CNPJ(s) no grupo</p>
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => router.push(`/empresas-grupo/${grupoInfo.id}/editar`)}
-                    >
-                      Ver Grupo
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => {
-                        if (confirm('Tem certeza que deseja remover este sacado do grupo?')) {
-                          removerDoGrupo();
-                        }
-                      }}
-                    >
-                      Remover do Grupo
-                    </Button>
-                  </div>
+                  {isEditMode && (
+                    <div className="flex gap-2">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => router.push(`/empresas-grupo/${grupoInfo.id}/editar`)}
+                      >
+                        Ver Grupo
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => {
+                          if (confirm('Tem certeza que deseja remover este sacado do grupo?')) {
+                            removerDoGrupo();
+                          }
+                        }}
+                      >
+                        Remover do Grupo
+                      </Button>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <p className="text-sm text-gray-600 mb-3">Este sacado não está em nenhum grupo.</p>
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={() => {
-                      setShowGrupoModal(true);
-                      loadGruposDisponiveis();
-                    }}
-                  >
-                    + Adicionar a um Grupo
-                  </Button>
+                  {isEditMode && (
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => {
+                        setShowGrupoModal(true);
+                        loadGruposDisponiveis();
+                      }}
+                    >
+                      + Adicionar a um Grupo
+                    </Button>
+                  )}
                 </div>
               )}
             </div>
@@ -1433,6 +1437,7 @@ export default function EditarSacadoPage() {
                             fields={categoria.fields}
                             displayFields={categoria.displayFields}
                             isLoading={loadingCategorias[categoria.id]}
+                            readOnly={!isEditMode}
                           />
                         </Card>
                       </div>
@@ -1476,7 +1481,7 @@ export default function EditarSacadoPage() {
                         {categoriaQsa.title}
                       </h3>
                       <div className="flex gap-2">
-                        {sacado.cnpj && categoriaQsa.apiType && (
+                        {isEditMode && sacado.cnpj && categoriaQsa.apiType && (
                           <button
                             onClick={() => fetchFromAPI(categoriaQsa.apiType!).then(() => loadCategoria('qsa', sacadoTableMapping[categoriaQsa.tableName] || categoriaQsa.tableName.replace('cedentes_', 'sacados_')))}
                             className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded border border-gray-300"
@@ -1498,6 +1503,7 @@ export default function EditarSacadoPage() {
                       showDetailsButton={categoriaQsa.showDetailsButton}
                       isLoading={loadingCategorias['qsa']}
                       onOpenDetails={openQsaDetails}
+                      readOnly={!isEditMode}
                     />
                   </div>
                 </Card>
@@ -1525,17 +1531,17 @@ export default function EditarSacadoPage() {
           </fieldset>
 
           {/* Botões de Ação */}
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-            <Button variant="secondary" onClick={() => {
+          {isEditMode && (
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+              <Button variant="secondary" onClick={() => {
               if (typeof window !== 'undefined' && window.history.length > 1) {
                 router.back();
               } else {
                 router.push(`/sacados/${encodeURIComponent(cnpj)}`);
               }
             }}>
-              Voltar
-            </Button>
-            {isEditMode ? (
+                Voltar
+              </Button>
               <Button 
                 variant="primary" 
                 onClick={async () => {
@@ -1550,12 +1556,8 @@ export default function EditarSacadoPage() {
               >
                 Salvar Tudo
               </Button>
-            ) : (
-              <Button variant="primary" onClick={() => setEditingMode(true)}>
-                Editar
-              </Button>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </main>
 

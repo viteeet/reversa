@@ -1141,7 +1141,7 @@ export default function EditarCedentePage() {
                     </button>
                     <h2 className="text-xl font-semibold text-[#0369a1]">Informações Básicas</h2>
                   </div>
-                  {!infoBasicasCollapsed && (
+                  {!infoBasicasCollapsed && isEditMode && (
                     <Button
                       variant="primary"
                       size="sm"
@@ -1405,6 +1405,7 @@ export default function EditarCedentePage() {
                             showDetailsButton={categoria.showDetailsButton}
                             isLoading={loadingCategorias[categoria.id]}
                             onOpenDetails={categoria.id === 'pessoas_ligadas' ? openQsaDetails : undefined}
+                            readOnly={!isEditMode}
                           />
                         </div>
                       </div>
@@ -1445,7 +1446,7 @@ export default function EditarCedentePage() {
                   <div className="border-b border-gray-300 bg-gray-100 px-4 py-2 flex items-center justify-between">
                     <h2 className="text-xs font-semibold text-gray-700 uppercase">{categoriaQsa.title}</h2>
                     <div className="flex gap-2">
-                      {cedente.cnpj && categoriaQsa.apiType && (
+                      {isEditMode && cedente.cnpj && categoriaQsa.apiType && (
                         <button
                           onClick={() => fetchFromAPI(categoriaQsa.apiType!).then(() => loadCategoria('qsa', categoriaQsa.tableName))}
                           className="px-2 py-1 text-xs border border-gray-300 bg-white hover:bg-gray-50 text-[#0369a1] font-medium"
@@ -1468,6 +1469,7 @@ export default function EditarCedentePage() {
                       showDetailsButton={categoriaQsa.showDetailsButton}
                       isLoading={loadingCategorias['qsa']}
                       onOpenDetails={openQsaDetails}
+                      readOnly={!isEditMode}
                     />
                   </div>
                 </div>
@@ -1490,12 +1492,14 @@ export default function EditarCedentePage() {
                     placeholder="Buscar sacado (nome, CNPJ)"
                     className="px-3 py-1.5 text-sm border border-gray-300 w-64"
                   />
-                  <button 
-                    className="px-3 py-1.5 text-sm font-medium bg-[#0369a1] text-white hover:bg-[#075985]"
-                    onClick={() => setShowAddSacado(true)}
-                  >
-                    + Adicionar
-                  </button>
+                  {isEditMode && (
+                    <button 
+                      className="px-3 py-1.5 text-sm font-medium bg-[#0369a1] text-white hover:bg-[#075985]"
+                      onClick={() => setShowAddSacado(true)}
+                    >
+                      + Adicionar
+                    </button>
+                  )}
                 </div>
               </div>
               <div className="p-4 space-y-4">
@@ -1503,12 +1507,14 @@ export default function EditarCedentePage() {
             {sacados.length === 0 ? (
               <div className="text-center py-8 bg-gray-50 border border-gray-300">
                 <p className="text-gray-600 text-sm mb-2">Nenhum sacado cadastrado ainda</p>
-                <button 
-                  className="px-3 py-1.5 text-sm font-medium bg-[#0369a1] text-white hover:bg-[#075985]"
-                  onClick={() => setShowAddSacado(true)}
-                >
-                  + Adicionar Primeiro Sacado
-                </button>
+                {isEditMode && (
+                  <button 
+                    className="px-3 py-1.5 text-sm font-medium bg-[#0369a1] text-white hover:bg-[#075985]"
+                    onClick={() => setShowAddSacado(true)}
+                  >
+                    + Adicionar Primeiro Sacado
+                  </button>
+                )}
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -1555,28 +1561,22 @@ export default function EditarCedentePage() {
                                 </svg>
                               </button>
                             </Link>
-                            <Link href={`/sacados/${encodeURIComponent(sacado.cnpj)}/editar?mode=edit`}>
-                              <button className="w-8 h-8 border border-gray-300 bg-white hover:bg-gray-50 text-[#0369a1] flex items-center justify-center" title="Editar" aria-label="Editar">
+                            {isEditMode && (
+                              <button 
+                                onClick={() => removerSacado(sacado.cnpj)}
+                                className="w-8 h-8 border border-red-300 bg-white hover:bg-red-50 text-red-600 flex items-center justify-center" 
+                                title="Remover"
+                                aria-label="Remover"
+                              >
                                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                  <path d="M12 20h9" />
-                                  <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+                                  <path d="M3 6h18" />
+                                  <path d="M8 6V4h8v2" />
+                                  <path d="M19 6l-1 14H6L5 6" />
+                                  <path d="M10 11v6" />
+                                  <path d="M14 11v6" />
                                 </svg>
                               </button>
-                            </Link>
-                            <button 
-                              onClick={() => removerSacado(sacado.cnpj)}
-                              className="w-8 h-8 border border-red-300 bg-white hover:bg-red-50 text-red-600 flex items-center justify-center" 
-                              title="Remover"
-                              aria-label="Remover"
-                            >
-                              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M3 6h18" />
-                                <path d="M8 6V4h8v2" />
-                                <path d="M19 6l-1 14H6L5 6" />
-                                <path d="M10 11v6" />
-                                <path d="M14 11v6" />
-                              </svg>
-                            </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -1609,17 +1609,17 @@ export default function EditarCedentePage() {
           </fieldset>
 
           {/* Botões de Ação */}
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-            <Button variant="secondary" onClick={() => {
+          {isEditMode && (
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+              <Button variant="secondary" onClick={() => {
   if (typeof window !== 'undefined' && window.history.length > 1) {
     router.back();
   } else {
     router.push(`/cedentes/${id}`);
   }
 }}>
-              Voltar
-            </Button>
-            {isEditMode ? (
+                Voltar
+              </Button>
               <Button 
                 variant="primary" 
                 onClick={async () => {
@@ -1634,12 +1634,8 @@ export default function EditarCedentePage() {
               >
                 Salvar Tudo
               </Button>
-            ) : (
-              <Button variant="primary" onClick={() => setEditingMode(true)}>
-                Editar
-              </Button>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </main>
 
