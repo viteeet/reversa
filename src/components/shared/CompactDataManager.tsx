@@ -722,58 +722,62 @@ export default function CompactDataManager({
                           </button>
                         )
                       )}
-                      {!readOnly && (item._from_pessoa_fisica || (item.cpf && onOpenDetails)) ? (
-                        <Tooltip content={item._from_pessoa_fisica ? "Esta pessoa é gerenciada em Pessoas Físicas → Vinculações" : "Ver perfil completo da pessoa física"}>
-                          <span>
-                            {item.cpf && onOpenDetails ? (
-                              <button 
-                                onClick={() => onOpenDetails(item)}
-                                className="px-2.5 py-1 text-xs font-medium text-green-600 bg-white border border-green-300 rounded-md hover:bg-green-50 transition-colors"
-                                title="Ver Perfil Completo"
-                              >
-                                Perfil Completo
-                              </button>
-                            ) : (
-                              <button 
-                                disabled
-                                className="px-2.5 py-1 text-xs font-medium text-gray-400 bg-gray-100 border border-gray-300 rounded-md cursor-not-allowed"
-                                title="Gerenciar em Pessoas Físicas"
-                              >
-                                Editar
-                              </button>
-                            ) : !readOnly ? (
-                          </span>
-                        </Tooltip>
-                      ) : (
-                        <button 
-                          onClick={() => handleEdit(item)} 
-                          disabled={loading || deletingId === item.id}
-                          className="px-2.5 py-1 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 transition-colors"
-                            ) : null}
-                            {!readOnly && (item._from_pessoa_fisica ? (
-                              <Tooltip content="Esta pessoa é gerenciada em Pessoas Físicas → Vinculações">
-                                <span>
-                                  <button 
+                      {!readOnly && (
+                        <>
+                          {item._from_pessoa_fisica || (item.cpf && onOpenDetails) ? (
+                            <Tooltip content={item._from_pessoa_fisica ? "Esta pessoa é gerenciada em Pessoas Físicas → Vinculações" : "Ver perfil completo da pessoa física"}>
+                              <span>
+                                {item.cpf && onOpenDetails ? (
+                                  <button
+                                    onClick={() => onOpenDetails(item)}
+                                    className="px-2.5 py-1 text-xs font-medium text-green-600 bg-white border border-green-300 rounded-md hover:bg-green-50 transition-colors"
+                                    title="Ver Perfil Completo"
+                                  >
+                                    Perfil Completo
+                                  </button>
+                                ) : (
+                                  <button
                                     disabled
                                     className="px-2.5 py-1 text-xs font-medium text-gray-400 bg-gray-100 border border-gray-300 rounded-md cursor-not-allowed"
                                     title="Gerenciar em Pessoas Físicas"
                                   >
-                                    Excluir
+                                    Editar
                                   </button>
-                                </span>
-                              </Tooltip>
-                            ) : (
-                              <button 
-                                onClick={() => handleDelete(item.id!)} 
-                                disabled={loading || deletingId === item.id}
-                                className="px-2.5 py-1 text-xs font-medium text-red-600 bg-white border border-red-300 rounded-md hover:bg-red-50 disabled:opacity-50 transition-colors"
-                              >
-                                {deletingId === item.id ? '...' : 'Excluir'}
-                              </button>
-                            ))}
-                        >
-                          {deletingId === item.id ? '...' : 'Excluir'}
-                        </button>
+                                )}
+                              </span>
+                            </Tooltip>
+                          ) : (
+                            <button
+                              onClick={() => handleEdit(item)}
+                              disabled={loading || deletingId === item.id}
+                              className="px-2.5 py-1 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                            >
+                              Editar
+                            </button>
+                          )}
+
+                          {item._from_pessoa_fisica ? (
+                            <Tooltip content="Esta pessoa é gerenciada em Pessoas Físicas → Vinculações">
+                              <span>
+                                <button
+                                  disabled
+                                  className="px-2.5 py-1 text-xs font-medium text-gray-400 bg-gray-100 border border-gray-300 rounded-md cursor-not-allowed"
+                                  title="Gerenciar em Pessoas Físicas"
+                                >
+                                  Excluir
+                                </button>
+                              </span>
+                            </Tooltip>
+                          ) : (
+                            <button
+                              onClick={() => handleDelete(item.id!)}
+                              disabled={loading || deletingId === item.id}
+                              className="px-2.5 py-1 text-xs font-medium text-red-600 bg-white border border-red-300 rounded-md hover:bg-red-50 disabled:opacity-50 transition-colors"
+                            >
+                              {deletingId === item.id ? '...' : 'Excluir'}
+                            </button>
+                          )}
+                        </>
                       )}
                     </div>
                   </div>
