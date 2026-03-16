@@ -317,11 +317,12 @@ export default function SacadoDetailPage() {
             {activeTab === 'info' ? (
               <div className="space-y-4">
                 {/* Informações Básicas */}
-                <div className="bg-white border border-gray-300 p-4">
-                  <div className="border-b border-gray-300 bg-gray-100 -mx-4 -mt-4 px-4 py-2 mb-4">
-                    <h2 className="text-xs font-semibold text-gray-700 uppercase">Informações Básicas</h2>
+                <div className="compact-table-shell">
+                  <div className="compact-table-title">
+                    <h2 className="compact-table-title-main">Informacoes Basicas</h2>
                   </div>
-                  <div className="info-basic-layout">
+                  <div className="px-2 py-2">
+                    <div className="info-basic-layout">
                     <div className="info-basic-block">
                       <div className="info-basic-block-title">Identificacao</div>
                       <table className="info-basic-kv">
@@ -432,6 +433,7 @@ export default function SacadoDetailPage() {
                           )}
                         </tbody>
                       </table>
+                    </div>
                     </div>
                   </div>
                 </div>
