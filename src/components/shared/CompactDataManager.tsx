@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Tooltip from '@/components/ui/Tooltip';
@@ -467,7 +467,7 @@ export default function CompactDataManager({
         </div>
         <div className="space-y-2">
           {[1, 2, 3].map(i => (
-            <div key={i} className="border rounded-lg p-3 bg-white">
+            <div key={i} className="border border-gray-300 p-3 bg-white">
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                 {displayFields.slice(0, 4).map((_, idx) => (
                   <div key={idx}>
@@ -525,7 +525,7 @@ export default function CompactDataManager({
       <div className="px-4">
       {/* Formulário de novo item - com animação */}
       {!readOnly && showNewForm && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 animate-fade-in transition-item">
+        <div className="bg-blue-50 border border-blue-200 p-4 animate-fade-in transition-item">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-semibold text-blue-800">Novo Registro</span>
             <div className="flex gap-2">
@@ -581,204 +581,147 @@ export default function CompactDataManager({
         </div>
       )}
 
-      {/* Lista de items - com transições */}
+      {/* Lista de items - tabela compacta */}
       {items.length === 0 ? (
-        <div className="text-center py-8 text-sm text-gray-400 border border-dashed border-gray-300 rounded-lg bg-gray-50">
+        <div className="text-center py-8 text-sm text-gray-400 border border-dashed border-gray-300 bg-gray-50">
           <p>Nenhum registro encontrado</p>
           <p className="text-xs mt-1 text-gray-400">Clique em "Novo" para adicionar</p>
         </div>
       ) : (
-        <div className="space-y-2">
-          {items.map((item, index) => (
-            <div 
-              key={item.id} 
-              className={`border rounded-lg p-3 transition-all duration-300 animate-fade-in ${
-                editingId === item.id 
-                  ? 'bg-yellow-50 border-yellow-300 shadow-md' 
-                  : 'bg-white border-gray-200 hover:border-gray-300 hover:shadow-sm'
-              } ${deletingId === item.id ? 'opacity-50 pointer-events-none' : ''}`}
-              style={{ animationDelay: `${index * 50}ms` }}
-            >
-              {editingId === item.id ? (
-                // Modo edição
-                <div className="animate-fade-in">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs font-semibold text-yellow-800">Editando Registro</span>
-                    <div className="flex gap-2">
-                      <button 
-                        onClick={() => handleSaveEdit(item.id!)} 
-                        disabled={loading} 
-                        className="px-3 py-1.5 text-xs font-medium text-white bg-yellow-600 rounded-md hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
-                      >
-                        {loading ? (
-                          <>
-                            <div className="animate-spin rounded-full h-3 w-3 border-2 border-white border-t-transparent"></div>
-                            <span>Salvando...</span>
-                          </>
-                        ) : (
-                          <>
-                            <span>✓</span>
-                            <span>Salvar</span>
-                          </>
-                        )}
-                      </button>
-                      <button 
-                        onClick={handleCancelEdit} 
-                        disabled={loading}
-                        className="px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 transition-colors"
-                      >
-                        Cancelar
-                      </button>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {fields.map(field => (
-                      <div 
-                        key={field.key} 
-                        className={field.width === 'full' ? 'md:col-span-2 lg:col-span-3' : field.width === 'half' ? 'md:col-span-1 lg:col-span-2' : ''}
-                      >
-                        {renderFieldLabel(field)}
-                        {renderField(
-                          field, 
-                          editForm[field.key], 
-                          (val: any) => {
-                            const updated = { ...editForm, [field.key]: val };
-                            setEditForm(updated);
-                          },
-                          {
-                            setNome: (nome: string) => {
-                              setEditForm({ ...editForm, nome });
-                            }
-                          }
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                // Modo visualização - compacto
-                <>
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex-1 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-1.5">
-                      {displayFields.map(field => {
-                        const fieldConfig = fields.find(f => f.key === field);
-                        const isEditable = isEditableField(field);
-                        return (
-                          <div key={field} className="flex items-start gap-1.5 min-w-0">
-                            <span className="text-xs font-medium text-gray-500 shrink-0">{fieldConfig?.label}:</span>
-                            {isEditable ? (
-                              <div className="flex-1 min-w-0">
-                                {renderEditableCell(item, field, fieldConfig)}
-                              </div>
-                            ) : (
-                              <span className="text-sm text-gray-900 break-words whitespace-normal">{item[field] || '—'}</span>
-                            )}
-                          </div>
-                        );
-                      })}
-                      <div className="flex items-baseline gap-1.5">
-                        {item._from_pessoa_fisica ? (
-                          <span title="Vinculada de Pessoas Físicas">
-                            <Badge variant="success" size="sm">
-                              👤 Pessoa Física
-                            </Badge>
-                          </span>
-                        ) : item.origem === 'api' ? (
-                          <Badge variant="info" size="sm">
-                            API
+        <div className="overflow-x-auto border border-gray-300">
+          <table className="w-full min-w-[920px] border-collapse bg-white">
+            <thead className="bg-gray-100 border-b border-gray-300">
+              <tr>
+                {displayFields.map((field) => {
+                  const fieldConfig = fields.find(f => f.key === field);
+                  return (
+                    <th key={field} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">
+                      {fieldConfig?.label || field}
+                    </th>
+                  );
+                })}
+                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Origem</th>
+                <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 uppercase w-[230px]">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item, index) => (
+                <Fragment key={item.id ?? `row-${index}`}>
+                  <tr className={`${deletingId === item.id ? 'opacity-50 pointer-events-none' : ''} border-b border-gray-200 hover:bg-gray-50`}>
+                    {displayFields.map((field) => {
+                      const fieldConfig = fields.find(f => f.key === field);
+                      const isEditable = isEditableField(field);
+                      return (
+                        <td key={`${item.id}-${field}`} className="px-3 py-2 text-sm text-gray-900 align-top border-r border-gray-200">
+                          {isEditable ? renderEditableCell(item, field, fieldConfig) : (item[field] || '—')}
+                        </td>
+                      );
+                    })}
+                    <td className="px-3 py-2 border-r border-gray-200 align-top">
+                      {item._from_pessoa_fisica ? (
+                        <span title="Vinculada de Pessoas Físicas">
+                          <Badge variant="success" size="sm">
+                            Pessoa Física
                           </Badge>
-                        ) : (
-                          <Badge variant="neutral" size="sm">
-                            Manual
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex gap-1.5 shrink-0">
-                      {showDetailsButton && (
-                        onOpenDetails ? (
-                          <button
-                            onClick={() => onOpenDetails(item)}
-                            className="px-2.5 py-1 text-xs font-medium text-blue-700 bg-white border border-blue-300 rounded-md hover:bg-blue-50 transition-colors"
-                            title="Abrir detalhes"
-                          >
-                            Detalhes
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => setShowDetailsId(showDetailsId === item.id ? null : item.id!)}
-                            className="px-2.5 py-1 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-                            title={showDetailsId === item.id ? "Ocultar Observações" : "Ver Observações"}
-                          >
-                            {showDetailsId === item.id ? '▲' : '▼'}
-                          </button>
-                        )
+                        </span>
+                      ) : item.origem === 'api' ? (
+                        <Badge variant="info" size="sm">
+                          API
+                        </Badge>
+                      ) : (
+                        <Badge variant="neutral" size="sm">
+                          Manual
+                        </Badge>
                       )}
-                      {!readOnly && (
-                        <>
-                          {item._from_pessoa_fisica || (item.cpf && onOpenDetails) ? (
-                            <Tooltip content={item._from_pessoa_fisica ? "Esta pessoa é gerenciada em Pessoas Físicas → Vinculações" : "Ver perfil completo da pessoa física"}>
-                              <span>
-                                {item.cpf && onOpenDetails ? (
-                                  <button
-                                    onClick={() => onOpenDetails(item)}
-                                    className="px-2.5 py-1 text-xs font-medium text-green-600 bg-white border border-green-300 rounded-md hover:bg-green-50 transition-colors"
-                                    title="Ver Perfil Completo"
-                                  >
-                                    Perfil Completo
-                                  </button>
-                                ) : (
+                    </td>
+                    <td className="px-3 py-2 align-top">
+                      <div className="flex flex-wrap items-center justify-center gap-1.5">
+                        {showDetailsButton && (
+                          onOpenDetails ? (
+                            <button
+                              onClick={() => onOpenDetails(item)}
+                              className="px-2.5 py-1 text-xs font-medium text-blue-700 bg-white border border-blue-300 rounded-md hover:bg-blue-50 transition-colors"
+                              title="Abrir detalhes"
+                            >
+                              Detalhes
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => setShowDetailsId(showDetailsId === item.id ? null : item.id!)}
+                              className="px-2.5 py-1 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                              title={showDetailsId === item.id ? 'Ocultar Observações' : 'Ver Observações'}
+                            >
+                              {showDetailsId === item.id ? 'Ocultar' : 'Observações'}
+                            </button>
+                          )
+                        )}
+
+                        {!readOnly && (
+                          <>
+                            {item._from_pessoa_fisica || (item.cpf && onOpenDetails) ? (
+                              <Tooltip content={item._from_pessoa_fisica ? 'Esta pessoa é gerenciada em Pessoas Físicas → Vinculações' : 'Ver perfil completo da pessoa física'}>
+                                <span>
+                                  {item.cpf && onOpenDetails ? (
+                                    <button
+                                      onClick={() => onOpenDetails(item)}
+                                      className="px-2.5 py-1 text-xs font-medium text-green-600 bg-white border border-green-300 rounded-md hover:bg-green-50 transition-colors"
+                                      title="Ver Perfil Completo"
+                                    >
+                                      Perfil
+                                    </button>
+                                  ) : (
+                                    <button
+                                      disabled
+                                      className="px-2.5 py-1 text-xs font-medium text-gray-400 bg-gray-100 border border-gray-300 rounded-md cursor-not-allowed"
+                                      title="Gerenciar em Pessoas Físicas"
+                                    >
+                                      Gerenciado
+                                    </button>
+                                  )}
+                                </span>
+                              </Tooltip>
+                            ) : null}
+
+                            {item._from_pessoa_fisica ? (
+                              <Tooltip content="Esta pessoa é gerenciada em Pessoas Físicas → Vinculações">
+                                <span>
                                   <button
                                     disabled
                                     className="px-2.5 py-1 text-xs font-medium text-gray-400 bg-gray-100 border border-gray-300 rounded-md cursor-not-allowed"
                                     title="Gerenciar em Pessoas Físicas"
                                   >
-                                    Gerenciado em Pessoas Físicas
+                                    Excluir
                                   </button>
-                                )}
-                              </span>
-                            </Tooltip>
-                          ) : null}
-
-                          {item._from_pessoa_fisica ? (
-                            <Tooltip content="Esta pessoa é gerenciada em Pessoas Físicas → Vinculações">
-                              <span>
-                                <button
-                                  disabled
-                                  className="px-2.5 py-1 text-xs font-medium text-gray-400 bg-gray-100 border border-gray-300 rounded-md cursor-not-allowed"
-                                  title="Gerenciar em Pessoas Físicas"
-                                >
-                                  Excluir
-                                </button>
-                              </span>
-                            </Tooltip>
-                          ) : (
-                            <button
-                              onClick={() => handleDelete(item.id!)}
-                              disabled={loading || deletingId === item.id}
-                              className="px-2.5 py-1 text-xs font-medium text-red-600 bg-white border border-red-300 rounded-md hover:bg-red-50 disabled:opacity-50 transition-colors"
-                            >
-                              {deletingId === item.id ? '...' : 'Excluir'}
-                            </button>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  {showDetailsButton && showDetailsId === item.id && item.observacoes && (
-                    <div className="mt-3 pt-3 border-t border-gray-200 animate-fade-in">
-                      <div className="text-sm">
-                        <span className="font-semibold text-blue-700">Observações:</span>
-                        <div className="mt-1.5 text-gray-700 whitespace-pre-wrap bg-gray-50 p-3 rounded-md border border-gray-200">
-                          {item.observacoes}
-                        </div>
+                                </span>
+                              </Tooltip>
+                            ) : (
+                              <button
+                                onClick={() => handleDelete(item.id!)}
+                                disabled={loading || deletingId === item.id}
+                                className="px-2.5 py-1 text-xs font-medium text-red-600 bg-white border border-red-300 rounded-md hover:bg-red-50 disabled:opacity-50 transition-colors"
+                              >
+                                {deletingId === item.id ? '...' : 'Excluir'}
+                              </button>
+                            )}
+                          </>
+                        )}
                       </div>
-                    </div>
+                    </td>
+                  </tr>
+
+                  {showDetailsButton && showDetailsId === item.id && item.observacoes && (
+                    <tr key={`${item.id}-observacoes`} className="border-b border-gray-200 bg-gray-50">
+                      <td colSpan={displayFields.length + 2} className="px-3 py-2 text-sm text-gray-700 border-r border-gray-200 align-top">
+                        <span className="font-semibold text-blue-700">Observações:</span>
+                        <div className="mt-1 whitespace-pre-wrap">{item.observacoes}</div>
+                      </td>
+                      <td className="px-3 py-2"></td>
+                    </tr>
                   )}
-                </>
-              )}
-            </div>
-          ))}
+                </Fragment>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
       </div>

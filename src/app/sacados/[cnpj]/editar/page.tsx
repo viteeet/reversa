@@ -1146,7 +1146,7 @@ export default function EditarSacadoPage() {
           <fieldset disabled={!isEditMode} className="space-y-4 border-0 p-0 m-0 min-w-0">
           {/* Informações Básicas - Formulário de Edição */}
           <div id="informacoes_basicas" ref={(el) => { sectionRefs.current['informacoes_basicas'] = el; }}>
-            <Card>
+            <div className="bg-white border border-gray-300">
               <div className="space-y-4">
                 <div className="flex items-center justify-between pb-2 border-b border-gray-200">
                   <div className="flex items-center gap-2">
@@ -1347,7 +1347,7 @@ export default function EditarSacadoPage() {
                 </div>
                 )}
               </div>
-            </Card>
+            </div>
           </div>
 
           {/* Sócios (QSA) */}
@@ -1357,24 +1357,23 @@ export default function EditarSacadoPage() {
             
             return (
               <div id="qsa" ref={(el) => { sectionRefs.current['qsa'] = el; }}>
-                <Card>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between pb-2 border-b border-gray-200">
-                      <h3 className="text-base font-semibold text-gray-900">
-                        {categoriaQsa.title}
-                      </h3>
+                <div className="bg-white border border-gray-300">
+                  <div className="border-b border-gray-300 bg-gray-100 px-4 py-2 flex items-center justify-between">
+                    <h3 className="text-xs font-semibold text-gray-700 uppercase">
+                      {categoriaQsa.title}
+                    </h3>
                       <div className="flex gap-2">
                         {isEditMode && sacado.cnpj && categoriaQsa.apiType && (
                           <button
                             onClick={() => fetchFromAPI(categoriaQsa.apiType!).then(() => loadCategoria('qsa', sacadoTableMapping[categoriaQsa.tableName] || categoriaQsa.tableName.replace('cedentes_', 'sacados_')))}
-                            className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded border border-gray-300"
+                            className="px-2 py-1 text-xs border border-gray-300 bg-white hover:bg-gray-50 text-[#0369a1] font-medium"
                           >
                             API
                           </button>
                         )}
                       </div>
                     </div>
-
+                    <div className="p-4">
                     <CompactDataManager
                       title=""
                       entityId={cnpj}
@@ -1388,22 +1387,22 @@ export default function EditarSacadoPage() {
                       onOpenDetails={openQsaDetails}
                       readOnly={!isEditMode}
                     />
+                    </div>
                   </div>
-                </Card>
               </div>
             );
           })()}
 
           {/* Gerenciamento de Grupo */}
           <div id="grupo_empresas" ref={(el) => { sectionRefs.current['grupo_empresas'] = el; }}>
-            <Card>
+            <div className="bg-white border border-gray-300">
               <div className="space-y-4">
-                <div className="flex items-center justify-between pb-2 border-b border-gray-200">
-                  <h3 className="text-lg font-semibold text-gray-800">Grupo de Empresas</h3>
+                <div className="border-b border-gray-300 bg-gray-100 px-4 py-2">
+                  <h3 className="text-xs font-semibold text-gray-700 uppercase">Grupo de Empresas</h3>
                 </div>
                 
                 {grupoInfo ? (
-                  <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="flex items-center justify-between p-4 bg-blue-50 border border-blue-200 mx-4 mb-4">
                     <div className="flex items-center gap-3">
                       <Badge variant="info" size="md">Grupo</Badge>
                       <div>
@@ -1435,7 +1434,7 @@ export default function EditarSacadoPage() {
                     )}
                   </div>
                 ) : (
-                  <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="p-4 bg-gray-50 border border-gray-200 mx-4 mb-4">
                     <p className="text-sm text-gray-600 mb-3">Este sacado não está em nenhum grupo.</p>
                     {isEditMode && (
                       <Button
@@ -1452,7 +1451,7 @@ export default function EditarSacadoPage() {
                   </div>
                 )}
               </div>
-            </Card>
+            </div>
           </div>
 
           {/* Categorias dinâmicas (baseadas na configuração) - Agrupadas */}
@@ -1511,7 +1510,7 @@ export default function EditarSacadoPage() {
                         id={categoria.id}
                         ref={(el) => { sectionRefs.current[categoria.id] = el; }}
                       >
-                        <Card>
+                        <div className="bg-white border border-gray-300">
                           <CompactDataManager
                             title={categoria.title}
                             entityId={cnpj}
@@ -1524,7 +1523,7 @@ export default function EditarSacadoPage() {
                             isLoading={loadingCategorias[categoria.id]}
                             readOnly={!isEditMode}
                           />
-                        </Card>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -1535,11 +1534,11 @@ export default function EditarSacadoPage() {
 
           {/* Observações Gerais da Empresa */}
           <div id="observacoes" ref={(el) => { sectionRefs.current['observacoes'] = el; }}>
-            <Card>
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-gray-800">
-                  Observações Gerais - {sacado.razao_social}
-                </label>
+            <div className="bg-white border border-gray-300">
+              <div className="border-b border-gray-300 bg-gray-100 px-4 py-2">
+                <h2 className="text-xs font-semibold text-gray-700 uppercase">Observações Gerais - {sacado.razao_social}</h2>
+              </div>
+              <div className="p-4">
                 <RichTextEditor
                   content={observacoesGerais}
                   onChange={(html) => setObservacoesGerais(html)}
@@ -1547,18 +1546,18 @@ export default function EditarSacadoPage() {
                   readOnly={!isEditMode}
                 />
               </div>
-            </Card>
+            </div>
           </div>
 
           {/* Processos Judiciais - SIMPLIFICADO */}
           <div id="processos" ref={(el) => { sectionRefs.current['processos'] = el; }}>
-            <Card>
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-gray-800">
-                  Processos Judiciais e Informações Relevantes
-                </label>
+            <div className="bg-white border border-gray-300">
+              <div className="border-b border-gray-300 bg-gray-100 px-4 py-2">
+                <h2 className="text-xs font-semibold text-gray-700 uppercase">Processos Judiciais e Informações Relevantes</h2>
+              </div>
+              <div className="p-4">
                 <textarea
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[300px] resize-y font-mono"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[300px] resize-y font-mono"
                   value={processosTexto}
                   onChange={e => {
                     setProcessosTexto(e.target.value);
@@ -1566,7 +1565,7 @@ export default function EditarSacadoPage() {
                   placeholder="Cole aqui todos os processos e informações relevantes encontradas...&#10;&#10;Exemplo:&#10;PROCESSOS: 13&#10;&#10;Processo 1: ...&#10;Processo 2: ...&#10;&#10;INFORMAÇÕES:&#10;- Detalhes importantes&#10;- Endereços relacionados&#10;- Contatos úteis"
                 />
               </div>
-            </Card>
+            </div>
           </div>
 
           </fieldset>
