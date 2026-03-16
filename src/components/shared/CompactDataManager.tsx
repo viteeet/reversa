@@ -301,9 +301,8 @@ export default function CompactDataManager({
   };
 
   const isEditableField = (fieldKey: string): boolean => {
-    // Campos simples que podem ser editados inline
-    const editableFields = ['tipo', 'status', 'qualificacao', 'participacao', 'nome_contato', 'cep', 'cidade', 'estado'];
-    return editableFields.includes(fieldKey);
+    // Edição é controlada na página inteira, não por célula/item.
+    return false;
   };
 
   const renderEditableCell = (item: DataItem, fieldKey: string, fieldConfig: any) => {
@@ -313,16 +312,9 @@ export default function CompactDataManager({
     if (!isEditing) {
       return (
         <span 
-          className={`${readOnly ? 'text-gray-800' : 'cursor-pointer hover:bg-blue-50'} inline-flex items-center gap-1 px-1 py-0.5 rounded text-sm text-gray-900 break-words whitespace-normal`}
-          onDoubleClick={() => {
-            if (readOnly) return;
-            setEditingCell({ id: item.id!, field: fieldKey });
-            setCellValue(value);
-          }}
-          title={readOnly ? undefined : 'Duplo clique para editar'}
+          className="inline-flex items-center gap-1 px-1 py-0.5 rounded text-sm text-gray-900 break-words whitespace-normal"
         >
           <span>{value || '—'}</span>
-          {!readOnly && <span className="text-[10px] text-blue-500 leading-none" aria-hidden="true">✏️</span>}
         </span>
       );
     }
@@ -741,19 +733,11 @@ export default function CompactDataManager({
                                     className="px-2.5 py-1 text-xs font-medium text-gray-400 bg-gray-100 border border-gray-300 rounded-md cursor-not-allowed"
                                     title="Gerenciar em Pessoas Físicas"
                                   >
-                                    Editar
+                                    Gerenciado em Pessoas Físicas
                                   </button>
                                 )}
                               </span>
                             </Tooltip>
-                          ) : (
-                            <button
-                              onClick={() => handleEdit(item)}
-                              disabled={loading || deletingId === item.id}
-                              className="px-2.5 py-1 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 transition-colors"
-                            >
-                              Editar
-                            </button>
                           )}
 
                           {item._from_pessoa_fisica ? (

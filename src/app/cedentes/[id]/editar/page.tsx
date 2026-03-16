@@ -1109,12 +1109,40 @@ export default function EditarCedentePage() {
                 {cedente.razao_social && <p className="text-sm text-gray-600">{cedente.razao_social}</p>}
                 {cedente.cnpj && <p className="text-xs text-gray-500 font-mono">{formatCpfCnpj(cedente.cnpj)}</p>}
               </div>
-              <Button
-                variant={isEditMode ? 'secondary' : 'primary'}
-                onClick={() => setEditingMode(!isEditMode)}
-              >
-                {isEditMode ? 'Modo Visualizacao' : 'Editar'}
-              </Button>
+              {!isEditMode ? (
+                <Button
+                  variant="primary"
+                  onClick={() => setEditingMode(true)}
+                >
+                  Editar
+                </Button>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="secondary"
+                    onClick={async () => {
+                      await loadAllData();
+                      setEditingMode(false);
+                    }}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    variant="primary"
+                    onClick={async () => {
+                      await Promise.all([
+                        saveInfoBasicas(),
+                        saveObservacaoGeral(observacoesGerais),
+                        saveProcessosTexto(processosTexto)
+                      ]);
+                      showToast('Dados salvos com sucesso!', 'success');
+                      setEditingMode(false);
+                    }}
+                  >
+                    Salvar
+                  </Button>
+                </div>
+              )}
             </div>
           </header>
 
@@ -1125,8 +1153,16 @@ export default function EditarCedentePage() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between pb-2 border-b border-gray-200">
                   <div className="flex items-center gap-2">
-                    <button
+                    <div
+                      role="button"
+                      tabIndex={0}
                       onClick={() => setInfoBasicasCollapsed(!infoBasicasCollapsed)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          setInfoBasicasCollapsed(!infoBasicasCollapsed);
+                        }
+                      }}
                       className="p-1 hover:bg-gray-100 rounded transition-colors"
                       aria-label={infoBasicasCollapsed ? "Expandir" : "Recolher"}
                     >
@@ -1138,20 +1174,9 @@ export default function EditarCedentePage() {
                       >
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                       </svg>
-                    </button>
+                    </div>
                     <h2 className="text-xl font-semibold text-[#0369a1]">Informações Básicas</h2>
                   </div>
-                  {!infoBasicasCollapsed && isEditMode && (
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={saveInfoBasicas}
-                      loading={savingInfoBasicas}
-                      disabled={!infoBasicas.nome.trim()}
-                    >
-                      Salvar Informações
-                    </Button>
-                  )}
                 </div>
                 
                 {!infoBasicasCollapsed && (
@@ -1620,34 +1645,6 @@ export default function EditarCedentePage() {
 
           </fieldset>
 
-          {/* Botões de Ação */}
-          {isEditMode && (
-            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-              <Button variant="secondary" onClick={() => {
-  if (typeof window !== 'undefined' && window.history.length > 1) {
-    router.back();
-  } else {
-    router.push(`/cedentes/${id}`);
-  }
-}}>
-                Voltar
-              </Button>
-              <Button 
-                variant="primary" 
-                onClick={async () => {
-                  // Salva informações básicas, observações e processos
-                  await Promise.all([
-                    saveInfoBasicas(),
-                    saveObservacaoGeral(observacoesGerais),
-                    saveProcessosTexto(processosTexto)
-                  ]);
-                  showToast('Dados salvos com sucesso!', 'success');
-                }}
-              >
-                Salvar Tudo
-              </Button>
-            </div>
-          )}
         </div>
       </main>
 
