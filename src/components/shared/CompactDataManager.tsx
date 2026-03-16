@@ -738,7 +738,7 @@ export default function CompactDataManager({
                                 )}
                               </span>
                             </Tooltip>
-                          )}
+                          ) : null}
 
                           {item._from_pessoa_fisica ? (
                             <Tooltip content="Esta pessoa é gerenciada em Pessoas Físicas → Vinculações">
