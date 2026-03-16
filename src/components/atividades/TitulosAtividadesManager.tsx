@@ -455,10 +455,8 @@ export default function TitulosAtividadesManager({
         {/* Cabeçalho Compacto */}
         <div className="compact-table-title">
           <div className="flex items-center gap-3">
-            <div>
-              <h3 className="compact-table-title-main">Critica do Titulo</h3>
-              <p className="compact-table-title-sub">Historico de alteracoes de critica</p>
-            </div>
+            <h3 className="compact-table-title-main">Critica do Titulo</h3>
+            <span className="compact-table-count">{historicoCriticas.length}</span>
           </div>
           <div className="flex items-center gap-2">
             <Select
@@ -559,12 +557,9 @@ export default function TitulosAtividadesManager({
       {/* Cabeçalho Compacto */}
       <div className="compact-table-title">
         <div className="flex items-center gap-3">
-          <div>
-            <h3 className="compact-table-title-main">Historico de Cobranca</h3>
-            <p className="compact-table-title-sub">
-              Título #{numeroTitulo} - {sacadoNome}
-            </p>
-          </div>
+          <h3 className="compact-table-title-main">Historico de Cobranca</h3>
+          <span className="compact-table-count">#{numeroTitulo}</span>
+          <span className="text-xs font-medium text-slate-600 truncate max-w-[320px]">{sacadoNome}</span>
           {atividadesPendentes > 0 && (
             <Badge variant="warning" size="sm" className="text-xs">
               {atividadesPendentes}P

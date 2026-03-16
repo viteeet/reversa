@@ -432,99 +432,126 @@ export default function CedentePage() {
                   <div className="border-b border-gray-300 bg-gray-100 -mx-4 -mt-4 px-4 py-2 mb-4">
                     <h2 className="text-xs font-semibold text-gray-700 uppercase">Informações Básicas</h2>
                   </div>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div>
-                      <p className="text-xs text-gray-500 uppercase mb-1">Nome</p>
-                      <p className="text-sm text-gray-900">{cedente.nome}</p>
+                  <div className="info-basic-layout">
+                    <div className="info-basic-block">
+                      <div className="info-basic-block-title">Identificacao</div>
+                      <table className="info-basic-kv">
+                        <tbody>
+                          <tr>
+                            <td className="info-basic-kv-label">Nome</td>
+                            <td className="info-basic-kv-value">{cedente.nome}</td>
+                          </tr>
+                          {cedente.razao_social && (
+                            <tr>
+                              <td className="info-basic-kv-label">Razao Social</td>
+                              <td className="info-basic-kv-value">{cedente.razao_social}</td>
+                            </tr>
+                          )}
+                          {cedente.cnpj && (
+                            <tr>
+                              <td className="info-basic-kv-label">CNPJ</td>
+                              <td className="info-basic-kv-value font-mono">{formatCpfCnpj(cedente.cnpj)}</td>
+                            </tr>
+                          )}
+                          {cedente.porte && (
+                            <tr>
+                              <td className="info-basic-kv-label">Porte</td>
+                              <td className="info-basic-kv-value">{cedente.porte}</td>
+                            </tr>
+                          )}
+                          {cedente.natureza_juridica && (
+                            <tr>
+                              <td className="info-basic-kv-label">Natureza Juridica</td>
+                              <td className="info-basic-kv-value">{cedente.natureza_juridica}</td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
                     </div>
-                    {cedente.razao_social && (
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase mb-1">Razão Social</p>
-                        <p className="text-sm text-gray-900">{cedente.razao_social}</p>
-                      </div>
-                    )}
-                    {cedente.cnpj && (
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase mb-1">CNPJ</p>
-                        <p className="text-sm text-gray-900 font-mono">{formatCpfCnpj(cedente.cnpj)}</p>
-                      </div>
-                    )}
-                    {cedente.situacao && (
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase mb-1">Situação</p>
-                        <Badge variant={cedente.situacao === 'ATIVA' ? 'success' : cedente.situacao === 'INATIVA' ? 'error' : 'neutral'} size="sm">
-                          {cedente.situacao}
-                        </Badge>
-                      </div>
-                    )}
-                    {cedente.porte && (
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase mb-1">Porte</p>
-                        <p className="text-sm text-gray-900">{cedente.porte}</p>
-                      </div>
-                    )}
-                    {cedente.natureza_juridica && (
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase mb-1">Natureza Jurídica</p>
-                        <p className="text-sm text-gray-900">{cedente.natureza_juridica}</p>
-                      </div>
-                    )}
-                    {cedente.data_abertura && (
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase mb-1">Data de Abertura</p>
-                        <p className="text-sm text-gray-900">{new Date(cedente.data_abertura).toLocaleDateString('pt-BR')}</p>
-                      </div>
-                    )}
-                    {cedente.capital_social && (
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase mb-1">Capital Social</p>
-                        <p className="text-sm text-gray-900">R$ {cedente.capital_social.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                      </div>
-                    )}
-                    {cedente.simples_nacional !== null && (
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase mb-1">Simples Nacional</p>
-                        <Badge variant={cedente.simples_nacional ? 'success' : 'neutral'} size="sm">
-                          {cedente.simples_nacional ? 'Sim' : 'Não'}
-                        </Badge>
-                      </div>
-                    )}
-                    {cedente.telefone && (
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase mb-1">Telefone</p>
-                        <p className="text-sm text-gray-900">{cedente.telefone}</p>
-                      </div>
-                    )}
-                    {cedente.email && (
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase mb-1">E-mail</p>
-                        <p className="text-sm text-gray-900">{cedente.email}</p>
-                      </div>
-                    )}
-                    {cedente.endereco && (
-                      <div className="md:col-span-2">
-                        <p className="text-xs text-gray-500 uppercase mb-1">Endereço</p>
-                        <p className="text-sm text-gray-900">{cedente.endereco}</p>
-                      </div>
-                    )}
-                    {cedente.atividade_principal_codigo && (
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase mb-1">Código da Atividade Principal</p>
-                        <p className="text-sm text-gray-900 font-mono">{cedente.atividade_principal_codigo}</p>
-                      </div>
-                    )}
-                    {cedente.atividade_principal_descricao && (
-                      <div className="md:col-span-2">
-                        <p className="text-xs text-gray-500 uppercase mb-1">Atividade Principal</p>
-                        <p className="text-sm text-gray-900">{cedente.atividade_principal_descricao}</p>
-                      </div>
-                    )}
-                    {cedente.atividades_secundarias && (
-                      <div className="md:col-span-2">
-                        <p className="text-xs text-gray-500 uppercase mb-1">Atividades Secundárias</p>
-                        <p className="text-sm text-gray-900 whitespace-pre-line">{cedente.atividades_secundarias}</p>
-                      </div>
-                    )}
+
+                    <div className="info-basic-block">
+                      <div className="info-basic-block-title">Situacao e Registro</div>
+                      <table className="info-basic-kv">
+                        <tbody>
+                          {cedente.situacao && (
+                            <tr>
+                              <td className="info-basic-kv-label">Situacao</td>
+                              <td className="info-basic-kv-value">
+                                <Badge variant={cedente.situacao === 'ATIVA' ? 'success' : cedente.situacao === 'INATIVA' ? 'error' : 'neutral'} size="sm">
+                                  {cedente.situacao}
+                                </Badge>
+                              </td>
+                            </tr>
+                          )}
+                          {cedente.data_abertura && (
+                            <tr>
+                              <td className="info-basic-kv-label">Data Abertura</td>
+                              <td className="info-basic-kv-value">{new Date(cedente.data_abertura).toLocaleDateString('pt-BR')}</td>
+                            </tr>
+                          )}
+                          {cedente.capital_social && (
+                            <tr>
+                              <td className="info-basic-kv-label">Capital Social</td>
+                              <td className="info-basic-kv-value">R$ {cedente.capital_social.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                            </tr>
+                          )}
+                          {cedente.simples_nacional !== null && (
+                            <tr>
+                              <td className="info-basic-kv-label">Simples Nacional</td>
+                              <td className="info-basic-kv-value">
+                                <Badge variant={cedente.simples_nacional ? 'success' : 'neutral'} size="sm">
+                                  {cedente.simples_nacional ? 'Sim' : 'Nao'}
+                                </Badge>
+                              </td>
+                            </tr>
+                          )}
+                          {cedente.atividade_principal_codigo && (
+                            <tr>
+                              <td className="info-basic-kv-label">Cod. Atividade</td>
+                              <td className="info-basic-kv-value font-mono">{cedente.atividade_principal_codigo}</td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div className="info-basic-block">
+                      <div className="info-basic-block-title">Contato e Endereco</div>
+                      <table className="info-basic-kv">
+                        <tbody>
+                          {cedente.telefone && (
+                            <tr>
+                              <td className="info-basic-kv-label">Telefone</td>
+                              <td className="info-basic-kv-value">{cedente.telefone}</td>
+                            </tr>
+                          )}
+                          {cedente.email && (
+                            <tr>
+                              <td className="info-basic-kv-label">E-mail</td>
+                              <td className="info-basic-kv-value">{cedente.email}</td>
+                            </tr>
+                          )}
+                          {cedente.endereco && (
+                            <tr>
+                              <td className="info-basic-kv-label">Endereco</td>
+                              <td className="info-basic-kv-value">{cedente.endereco}</td>
+                            </tr>
+                          )}
+                          {cedente.atividade_principal_descricao && (
+                            <tr>
+                              <td className="info-basic-kv-label">Atividade Principal</td>
+                              <td className="info-basic-kv-value">{cedente.atividade_principal_descricao}</td>
+                            </tr>
+                          )}
+                          {cedente.atividades_secundarias && (
+                            <tr>
+                              <td className="info-basic-kv-label">Ativ. Secundarias</td>
+                              <td className="info-basic-kv-value whitespace-pre-line">{cedente.atividades_secundarias}</td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 </div>
 

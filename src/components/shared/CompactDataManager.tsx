@@ -488,9 +488,9 @@ export default function CompactDataManager({
     <div className="space-y-3">
       {/* Header compacto */}
       <div className="compact-table-title -mx-4 -mt-4 mb-4">
-        <div>
+        <div className="flex items-center gap-2">
           <h3 className="compact-table-title-main">{title}</h3>
-          <p className="compact-table-title-sub">{items.length} registro(s) na visualizacao compacta</p>
+          <span className="compact-table-count">{items.length}</span>
         </div>
         {!readOnly && (
           <div className="flex gap-2">

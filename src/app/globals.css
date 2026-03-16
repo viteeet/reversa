@@ -182,7 +182,7 @@ input, button, textarea, select { font: inherit; color: inherit; }
 
 .compact-table-title {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
   padding: 0.625rem 0.875rem;
@@ -206,6 +206,22 @@ input, button, textarea, select { font: inherit; color: inherit; }
   line-height: 1rem;
   color: #475569;
   font-weight: 500;
+}
+
+.compact-table-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.75rem;
+  height: 1.25rem;
+  padding: 0 0.4rem;
+  border: 1px solid #94a3b8;
+  border-radius: 9999px;
+  background: #f8fafc;
+  color: #1e293b;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .compact-table {
@@ -248,6 +264,70 @@ input, button, textarea, select { font: inherit; color: inherit; }
 
 .compact-table tbody tr:hover {
   background: #eff6ff;
+}
+
+/* Informacoes basicas em estilo planilha compacta */
+.info-basic-layout {
+  display: grid;
+  gap: 0.625rem;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 320px));
+  justify-content: start;
+  align-items: start;
+}
+
+.info-basic-block {
+  border: 1px solid #cbd5e1;
+  border-radius: 0.35rem;
+  overflow: hidden;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.info-basic-block-title {
+  padding: 0.38rem 0.55rem;
+  border-bottom: 1px solid #cbd5e1;
+  background: #f1f5f9;
+  color: #0f172a;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.info-basic-kv {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.72rem;
+}
+
+.info-basic-kv td {
+  padding: 0.34rem 0.5rem;
+  border-bottom: 1px solid #e2e8f0;
+  vertical-align: top;
+}
+
+.info-basic-kv tr:nth-child(even) td {
+  background: #f8fafc;
+}
+
+.info-basic-kv tr:last-child td {
+  border-bottom: 0;
+}
+
+.info-basic-kv-label {
+  width: 34%;
+  color: #475569;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-size: 0.62rem;
+  white-space: nowrap;
+}
+
+.info-basic-kv-value {
+  color: #111827;
+  font-weight: 500;
+  line-height: 1.35;
 }
 
 /* Textos utilitários */

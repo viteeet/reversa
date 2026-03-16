@@ -634,9 +634,9 @@ export default function AtividadesManager({ tipo, id, nome }: AtividadesManagerP
       {/* Tabela Compacta Estilo Excel */}
       <div className="compact-table-shell">
         <div className="compact-table-title">
-          <div>
+          <div className="flex items-center gap-2">
             <h3 className="compact-table-title-main">Historico de Atividades</h3>
-            <p className="compact-table-title-sub">{atividadesFiltradas.length} registro(s) exibidos</p>
+            <span className="compact-table-count">{atividadesFiltradas.length}</span>
           </div>
         </div>
         {atividadesFiltradas.length === 0 ? (
