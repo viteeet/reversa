@@ -329,7 +329,7 @@ export default function SacadosPage() {
                         <span className="ml-1 text-gray-500">{sortDir === 'asc' ? '▲' : '▼'}</span>
                       )}
                     </th>
-                    <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 uppercase w-28">Ações</th>
+                    <th className="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase w-20">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -364,13 +364,13 @@ export default function SacadosPage() {
                         )}
                       </td>
                       <td className="px-4 py-2 text-sm text-gray-600 text-center border-r border-gray-300">{s.porte ?? '—'}</td>
-                      <td className="px-3 py-2">
+                      <td className="px-2 py-2">
                         <div className="flex gap-1 justify-center">
                           <Link href={`/sacados/${encodeURIComponent(s.cnpj)}/editar`}>
                             <button
-                              className="w-8 h-8 border border-gray-300 bg-white hover:bg-gray-50 text-[#0369a1] flex items-center justify-center"
-                              title="Visualizar"
-                              aria-label="Visualizar"
+                              className="w-7 h-7 border border-gray-300 bg-white hover:bg-gray-50 text-[#0369a1] flex items-center justify-center"
+                              title="Detalhes"
+                              aria-label="Detalhes"
                             >
                               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" />
@@ -380,7 +380,7 @@ export default function SacadosPage() {
                           </Link>
                           <button 
                             onClick={() => excluirSacado(s.cnpj, s.razao_social)}
-                            className="w-8 h-8 border border-red-300 bg-white hover:bg-red-50 text-red-600 flex items-center justify-center"
+                            className="w-7 h-7 border border-red-300 bg-white hover:bg-red-50 text-red-600 flex items-center justify-center"
                             title="Excluir sacado"
                             aria-label="Excluir sacado"
                           >

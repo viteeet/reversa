@@ -58,10 +58,11 @@ export default function CompactDataManager({
   const [showNewForm, setShowNewForm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [fetchingAPI, setFetchingAPI] = useState(false);
-  const [showDetailsId, setShowDetailsId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [editingCell, setEditingCell] = useState<{id: string, field: string} | null>(null);
   const [cellValue, setCellValue] = useState('');
+  const showActionsColumn = !readOnly;
+  const tableColSpan = displayFields.length + 1 + (showActionsColumn ? 1 : 0);
   const { showToast } = useToast();
 
   const resetNewForm = () => {
@@ -589,7 +590,7 @@ export default function CompactDataManager({
         </div>
       ) : (
         <div className="overflow-x-auto border border-gray-300">
-          <table className="w-full min-w-[920px] border-collapse bg-white">
+          <table className="w-full min-w-[860px] border-collapse bg-white">
             <thead className="bg-gray-100 border-b border-gray-300">
               <tr>
                 {displayFields.map((field) => {
@@ -601,7 +602,9 @@ export default function CompactDataManager({
                   );
                 })}
                 <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Origem</th>
-                <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 uppercase w-[230px]">Ações</th>
+                {showActionsColumn && (
+                  <th className="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase w-[96px]">Ações</th>
+                )}
               </tr>
             </thead>
             <tbody>
@@ -634,24 +637,21 @@ export default function CompactDataManager({
                         </Badge>
                       )}
                     </td>
-                    <td className="px-3 py-2 align-top">
-                      <div className="flex flex-wrap items-center justify-center gap-1.5">
-                        {showDetailsButton && (
+                    {showActionsColumn && (
+                      <td className="px-2 py-2 align-top">
+                      <div className="flex items-center justify-center gap-1.5">
+                        {showDetailsButton && !readOnly && onOpenDetails && (
                           onOpenDetails ? (
                             <button
                               onClick={() => onOpenDetails(item)}
-                              className="px-2.5 py-1 text-xs font-medium text-blue-700 bg-white border border-blue-300 rounded-md hover:bg-blue-50 transition-colors"
+                              className="w-7 h-7 inline-flex items-center justify-center text-blue-700 bg-white border border-blue-300 rounded-md hover:bg-blue-50 transition-colors"
                               title="Abrir detalhes"
+                              aria-label="Abrir detalhes"
                             >
-                              Detalhes
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => setShowDetailsId(showDetailsId === item.id ? null : item.id!)}
-                              className="px-2.5 py-1 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-                              title={showDetailsId === item.id ? 'Ocultar Observações' : 'Ver Observações'}
-                            >
-                              {showDetailsId === item.id ? 'Ocultar' : 'Observações'}
+                              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" />
+                                <circle cx="12" cy="12" r="3" />
+                              </svg>
                             </button>
                           )
                         )}
@@ -664,18 +664,26 @@ export default function CompactDataManager({
                                   {item.cpf && onOpenDetails ? (
                                     <button
                                       onClick={() => onOpenDetails(item)}
-                                      className="px-2.5 py-1 text-xs font-medium text-green-600 bg-white border border-green-300 rounded-md hover:bg-green-50 transition-colors"
+                                      className="w-7 h-7 inline-flex items-center justify-center text-green-600 bg-white border border-green-300 rounded-md hover:bg-green-50 transition-colors"
                                       title="Ver Perfil Completo"
+                                      aria-label="Ver perfil completo"
                                     >
-                                      Perfil
+                                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M20 21a8 8 0 10-16 0" />
+                                        <circle cx="12" cy="7" r="4" />
+                                      </svg>
                                     </button>
                                   ) : (
                                     <button
                                       disabled
-                                      className="px-2.5 py-1 text-xs font-medium text-gray-400 bg-gray-100 border border-gray-300 rounded-md cursor-not-allowed"
+                                      className="w-7 h-7 inline-flex items-center justify-center text-gray-400 bg-gray-100 border border-gray-300 rounded-md cursor-not-allowed"
                                       title="Gerenciar em Pessoas Físicas"
+                                      aria-label="Gerenciado em pessoas fisicas"
                                     >
-                                      Gerenciado
+                                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                                        <path d="M7 11V7a5 5 0 0110 0v4" />
+                                      </svg>
                                     </button>
                                   )}
                                 </span>
@@ -687,10 +695,14 @@ export default function CompactDataManager({
                                 <span>
                                   <button
                                     disabled
-                                    className="px-2.5 py-1 text-xs font-medium text-gray-400 bg-gray-100 border border-gray-300 rounded-md cursor-not-allowed"
+                                    className="w-7 h-7 inline-flex items-center justify-center text-gray-400 bg-gray-100 border border-gray-300 rounded-md cursor-not-allowed"
                                     title="Gerenciar em Pessoas Físicas"
+                                    aria-label="Gerenciado em pessoas fisicas"
                                   >
-                                    Excluir
+                                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                                      <path d="M7 11V7a5 5 0 0110 0v4" />
+                                    </svg>
                                   </button>
                                 </span>
                               </Tooltip>
@@ -698,24 +710,36 @@ export default function CompactDataManager({
                               <button
                                 onClick={() => handleDelete(item.id!)}
                                 disabled={loading || deletingId === item.id}
-                                className="px-2.5 py-1 text-xs font-medium text-red-600 bg-white border border-red-300 rounded-md hover:bg-red-50 disabled:opacity-50 transition-colors"
+                                className="w-7 h-7 inline-flex items-center justify-center text-red-600 bg-white border border-red-300 rounded-md hover:bg-red-50 disabled:opacity-50 transition-colors"
+                                title="Excluir"
+                                aria-label="Excluir"
                               >
-                                {deletingId === item.id ? '...' : 'Excluir'}
+                                {deletingId === item.id ? (
+                                  <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-red-400 border-t-transparent"></div>
+                                ) : (
+                                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M3 6h18" />
+                                    <path d="M8 6V4h8v2" />
+                                    <path d="M19 6l-1 14H6L5 6" />
+                                    <path d="M10 11v6" />
+                                    <path d="M14 11v6" />
+                                  </svg>
+                                )}
                               </button>
                             )}
                           </>
                         )}
                       </div>
                     </td>
+                    )}
                   </tr>
 
-                  {showDetailsButton && showDetailsId === item.id && item.observacoes && (
+                  {showDetailsButton && !onOpenDetails && item.observacoes && (
                     <tr key={`${item.id}-observacoes`} className="border-b border-gray-200 bg-gray-50">
-                      <td colSpan={displayFields.length + 2} className="px-3 py-2 text-sm text-gray-700 border-r border-gray-200 align-top">
+                      <td colSpan={tableColSpan} className="px-3 py-2 text-sm text-gray-700 align-top">
                         <span className="font-semibold text-blue-700">Observações:</span>
                         <div className="mt-1 whitespace-pre-wrap">{item.observacoes}</div>
                       </td>
-                      <td className="px-3 py-2"></td>
                     </tr>
                   )}
                 </Fragment>
