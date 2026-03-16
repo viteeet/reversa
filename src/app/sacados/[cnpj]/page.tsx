@@ -321,121 +321,98 @@ export default function SacadoDetailPage() {
                   <div className="compact-table-title">
                     <h2 className="compact-table-title-main">Informacoes Basicas</h2>
                   </div>
-                  <div className="px-2 py-2">
-                    <div className="info-basic-layout">
-                    <div className="info-basic-block">
-                      <div className="info-basic-block-title">Identificacao</div>
-                      <table className="info-basic-kv">
-                        <tbody>
-                          <tr>
-                            <td className="info-basic-kv-label">Razao Social</td>
-                            <td className="info-basic-kv-value">{sacado.razao_social}</td>
-                          </tr>
-                          {sacado.nome_fantasia && (
-                            <tr>
-                              <td className="info-basic-kv-label">Nome Fantasia</td>
-                              <td className="info-basic-kv-value">{sacado.nome_fantasia}</td>
-                            </tr>
-                          )}
-                          <tr>
-                            <td className="info-basic-kv-label">CNPJ</td>
-                            <td className="info-basic-kv-value font-mono">{formatCpfCnpj(sacado.cnpj)}</td>
-                          </tr>
-                          {sacado.porte && (
-                            <tr>
-                              <td className="info-basic-kv-label">Porte</td>
-                              <td className="info-basic-kv-value">{sacado.porte}</td>
-                            </tr>
-                          )}
-                          {sacado.natureza_juridica && (
-                            <tr>
-                              <td className="info-basic-kv-label">Natureza Juridica</td>
-                              <td className="info-basic-kv-value">{sacado.natureza_juridica}</td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-
-                    <div className="info-basic-block">
-                      <div className="info-basic-block-title">Situacao e Registro</div>
-                      <table className="info-basic-kv">
-                        <tbody>
-                          {sacado.situacao && (
-                            <tr>
-                              <td className="info-basic-kv-label">Situacao</td>
-                              <td className="info-basic-kv-value">
-                                <Badge variant={sacado.situacao === 'ATIVA' ? 'success' : sacado.situacao === 'INATIVA' ? 'error' : 'neutral'} size="sm">
-                                  {sacado.situacao}
-                                </Badge>
-                              </td>
-                            </tr>
-                          )}
-                          {sacado.data_abertura && (
-                            <tr>
-                              <td className="info-basic-kv-label">Data Abertura</td>
-                              <td className="info-basic-kv-value">{new Date(sacado.data_abertura).toLocaleDateString('pt-BR')}</td>
-                            </tr>
-                          )}
-                          {sacado.capital_social !== null && (
-                            <tr>
-                              <td className="info-basic-kv-label">Capital Social</td>
-                              <td className="info-basic-kv-value">R$ {sacado.capital_social.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
-                            </tr>
-                          )}
-                          {sacado.simples_nacional !== null && (
-                            <tr>
-                              <td className="info-basic-kv-label">Simples Nacional</td>
-                              <td className="info-basic-kv-value">
-                                <Badge variant={sacado.simples_nacional ? 'success' : 'neutral'} size="sm">
-                                  {sacado.simples_nacional ? 'Sim' : 'Nao'}
-                                </Badge>
-                              </td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-
-                    <div className="info-basic-block">
-                      <div className="info-basic-block-title">Contato e Endereco</div>
-                      <table className="info-basic-kv">
-                        <tbody>
-                          {sacado.telefone_receita && (
-                            <tr>
-                              <td className="info-basic-kv-label">Telefone</td>
-                              <td className="info-basic-kv-value">{sacado.telefone_receita}</td>
-                            </tr>
-                          )}
-                          {sacado.email_receita && (
-                            <tr>
-                              <td className="info-basic-kv-label">E-mail</td>
-                              <td className="info-basic-kv-value">{sacado.email_receita}</td>
-                            </tr>
-                          )}
-                          {sacado.endereco_receita && (
-                            <tr>
-                              <td className="info-basic-kv-label">Endereco</td>
-                              <td className="info-basic-kv-value">{sacado.endereco_receita}</td>
-                            </tr>
-                          )}
-                          {sacado.atividade_principal_descricao && (
-                            <tr>
-                              <td className="info-basic-kv-label">Atividade Principal</td>
-                              <td className="info-basic-kv-value">{sacado.atividade_principal_descricao}</td>
-                            </tr>
-                          )}
-                          {sacado.atividades_secundarias && (
-                            <tr>
-                              <td className="info-basic-kv-label">Ativ. Secundarias</td>
-                              <td className="info-basic-kv-value whitespace-pre-line">{sacado.atividades_secundarias}</td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                    </div>
-                  </div>
+                  <table className="info-basic-kv">
+                    <tbody>
+                      <tr>
+                        <td className="info-basic-kv-label">Razao Social</td>
+                        <td className="info-basic-kv-value">{sacado.razao_social}</td>
+                      </tr>
+                      {sacado.nome_fantasia && (
+                        <tr>
+                          <td className="info-basic-kv-label">Nome Fantasia</td>
+                          <td className="info-basic-kv-value">{sacado.nome_fantasia}</td>
+                        </tr>
+                      )}
+                      <tr>
+                        <td className="info-basic-kv-label">CNPJ</td>
+                        <td className="info-basic-kv-value font-mono">{formatCpfCnpj(sacado.cnpj)}</td>
+                      </tr>
+                      {sacado.porte && (
+                        <tr>
+                          <td className="info-basic-kv-label">Porte</td>
+                          <td className="info-basic-kv-value">{sacado.porte}</td>
+                        </tr>
+                      )}
+                      {sacado.natureza_juridica && (
+                        <tr>
+                          <td className="info-basic-kv-label">Natureza Juridica</td>
+                          <td className="info-basic-kv-value">{sacado.natureza_juridica}</td>
+                        </tr>
+                      )}
+                      {sacado.situacao && (
+                        <tr>
+                          <td className="info-basic-kv-label">Situacao</td>
+                          <td className="info-basic-kv-value">
+                            <Badge variant={sacado.situacao === 'ATIVA' ? 'success' : sacado.situacao === 'INATIVA' ? 'error' : 'neutral'} size="sm">
+                              {sacado.situacao}
+                            </Badge>
+                          </td>
+                        </tr>
+                      )}
+                      {sacado.data_abertura && (
+                        <tr>
+                          <td className="info-basic-kv-label">Data Abertura</td>
+                          <td className="info-basic-kv-value">{new Date(sacado.data_abertura).toLocaleDateString('pt-BR')}</td>
+                        </tr>
+                      )}
+                      {sacado.capital_social !== null && (
+                        <tr>
+                          <td className="info-basic-kv-label">Capital Social</td>
+                          <td className="info-basic-kv-value">R$ {sacado.capital_social.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                        </tr>
+                      )}
+                      {sacado.simples_nacional !== null && (
+                        <tr>
+                          <td className="info-basic-kv-label">Simples Nacional</td>
+                          <td className="info-basic-kv-value">
+                            <Badge variant={sacado.simples_nacional ? 'success' : 'neutral'} size="sm">
+                              {sacado.simples_nacional ? 'Sim' : 'Nao'}
+                            </Badge>
+                          </td>
+                        </tr>
+                      )}
+                      {sacado.telefone_receita && (
+                        <tr>
+                          <td className="info-basic-kv-label">Telefone</td>
+                          <td className="info-basic-kv-value">{sacado.telefone_receita}</td>
+                        </tr>
+                      )}
+                      {sacado.email_receita && (
+                        <tr>
+                          <td className="info-basic-kv-label">E-mail</td>
+                          <td className="info-basic-kv-value">{sacado.email_receita}</td>
+                        </tr>
+                      )}
+                      {sacado.endereco_receita && (
+                        <tr>
+                          <td className="info-basic-kv-label">Endereco</td>
+                          <td className="info-basic-kv-value">{sacado.endereco_receita}</td>
+                        </tr>
+                      )}
+                      {sacado.atividade_principal_descricao && (
+                        <tr>
+                          <td className="info-basic-kv-label">Atividade Principal</td>
+                          <td className="info-basic-kv-value">{sacado.atividade_principal_descricao}</td>
+                        </tr>
+                      )}
+                      {sacado.atividades_secundarias && (
+                        <tr>
+                          <td className="info-basic-kv-label">Ativ. Secundarias</td>
+                          <td className="info-basic-kv-value whitespace-pre-line">{sacado.atividades_secundarias}</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
                 </div>
 
                 {/* Observações Gerais */}
