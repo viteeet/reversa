@@ -174,18 +174,19 @@ export default function EditarSacadoPage() {
     });
   };
 
-  // Lista de seções para navegação (sem "Sacados Relacionados")
+  // Lista de seções para navegação (mesmo padrão de cedentes, sem "Sacados Relacionados")
   const secoes = [
     { id: 'informacoes_basicas', label: 'Informações Básicas', icon: '' },
-    { id: 'observacoes', label: 'Observações Gerais', icon: '' },
-    { id: 'enderecos', label: 'Endereços', icon: '' },
-    { id: 'telefones', label: 'Telefones', icon: '' },
-    { id: 'emails', label: 'E-mails', icon: '' },
-    { id: 'relacionamentos', label: 'Relacionamentos', icon: '' },
-    { id: 'pessoas_ligadas', label: '  → Pessoas Ligadas / Familiares', icon: '' },
-    { id: 'empresas_ligadas', label: '  → Empresas Ligadas', icon: '' },
-    { id: 'qsa', label: '  → QSA', icon: '' },
-    { id: 'processos', label: 'Processos', icon: '' },
+    { id: 'qsa', label: 'Sócios (QSA)', icon: '' },
+    { id: 'dados_empresa', label: 'Dados da Empresa', icon: '' },
+    { id: 'enderecos', label: '  → Endereços', icon: '' },
+    { id: 'telefones', label: '  → Telefones', icon: '' },
+    { id: 'emails', label: '  → E-mails', icon: '' },
+    { id: 'grupo_empresas', label: 'Grupo de Empresas', icon: '' },
+    { id: 'empresas_ligadas', label: 'Empresas Ligadas', icon: '' },
+    { id: 'pessoas_ligadas', label: 'Pessoas / Relacionamentos', icon: '' },
+    { id: 'observacoes', label: 'Observações / Relato', icon: '' },
+    { id: 'processos', label: 'Informações Processuais / Processos', icon: '' },
   ];
 
   async function excluirSacado() {
@@ -933,19 +934,20 @@ export default function EditarSacadoPage() {
           {/* Lista de Seções */}
           <nav className="space-y-1">
             {secoes.map((secao) => {
-              // Se for "Relacionamentos", usa a primeira categoria do grupo para scroll
-              const targetSection = secao.id === 'relacionamentos' ? 'pessoas_ligadas' : secao.id;
-              const isActive = activeSection === targetSection || 
-                               (secao.id === 'relacionamentos' && ['pessoas_ligadas', 'empresas_ligadas', 'qsa'].includes(activeSection));
+              const targetSection = secao.id;
+              const isActive = activeSection === targetSection ||
+                               (secao.id === 'dados_empresa' && ['enderecos', 'telefones', 'emails'].includes(activeSection));
               const categoria = categoriasCedentes.find(c => c.id === secao.id);
               const itemCount = categoria ? (categoriasData[secao.id] || []).length : 
                                 secao.id === 'informacoes_basicas' ? 1 :
+                                secao.id === 'dados_empresa' ?
+                                  ((categoriasData['enderecos'] || []).length +
+                                   (categoriasData['telefones'] || []).length +
+                                   (categoriasData['emails'] || []).length) :
+                                secao.id === 'grupo_empresas' ? (grupoInfo ? 1 : 0) :
                                 secao.id === 'observacoes' ? (observacoesGerais ? 1 : 0) : 
                                 secao.id === 'processos' ? (processosTexto ? 1 : 0) :
-                                secao.id === 'relacionamentos' ? 
-                                  ((categoriasData['pessoas_ligadas'] || []).length + 
-                                   (categoriasData['empresas_ligadas'] || []).length + 
-                                   (categoriasData['qsa'] || []).length) : 0;
+                                secao.id === 'qsa' ? (categoriasData['qsa'] || []).length : 0;
 
               return (
                 <button
@@ -1323,151 +1325,7 @@ export default function EditarSacadoPage() {
             </Card>
           </div>
 
-          {/* Gerenciamento de Grupo */}
-          <Card>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between pb-2 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-800">Grupo de Empresas</h3>
-              </div>
-              
-              {grupoInfo ? (
-                <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <div className="flex items-center gap-3">
-                    <Badge variant="info" size="md">Grupo</Badge>
-                    <div>
-                      <p className="font-semibold text-gray-800">{grupoInfo.nome_grupo}</p>
-                      <p className="text-sm text-gray-600">{grupoInfo.cnpjs_count} CNPJ(s) no grupo</p>
-                    </div>
-                  </div>
-                  {isEditMode && (
-                    <div className="flex gap-2">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => router.push(`/empresas-grupo/${grupoInfo.id}/editar`)}
-                      >
-                        Ver Grupo
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => {
-                          if (confirm('Tem certeza que deseja remover este sacado do grupo?')) {
-                            removerDoGrupo();
-                          }
-                        }}
-                      >
-                        Remover do Grupo
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                  <p className="text-sm text-gray-600 mb-3">Este sacado não está em nenhum grupo.</p>
-                  {isEditMode && (
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={() => {
-                        setShowGrupoModal(true);
-                        loadGruposDisponiveis();
-                      }}
-                    >
-                      + Adicionar a um Grupo
-                    </Button>
-                  )}
-                </div>
-              )}
-            </div>
-          </Card>
-
-          {/* Categorias dinâmicas (baseadas na configuração) - Agrupadas */}
-          {(() => {
-            // Agrupa categorias por grupo
-            const categoriasPorGrupo: Record<string, typeof categoriasCedentes> = {};
-            categoriasCedentes
-              .filter(cat => cat.id !== 'qsa') // QSA é renderizado separadamente
-              .forEach(categoria => {
-                const grupo = categoria.group || 'outros';
-                if (!categoriasPorGrupo[grupo]) {
-                  categoriasPorGrupo[grupo] = [];
-                }
-                categoriasPorGrupo[grupo].push(categoria);
-              });
-
-            // Labels dos grupos
-            const grupoLabels: Record<string, string> = {
-              'contatos': 'Informações de Contato',
-              'relacionamentos': 'Relacionamentos',
-              'outros': 'Outros'
-            };
-
-            return Object.entries(categoriasPorGrupo).map(([grupo, categorias]) => {
-              // Adiciona ID de seção para o grupo "relacionamentos" para navegação
-              const grupoId = grupo === 'relacionamentos' ? 'relacionamentos' : null;
-              
-              return (
-                <div key={grupo} className="space-y-4">
-                  {grupo !== 'outros' && (
-                    <div 
-                      id={grupoId || undefined}
-                      ref={grupoId ? (el) => { sectionRefs.current[grupoId] = el; } : undefined}
-                    >
-                      <h2 className="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2">
-                        {grupoLabels[grupo] || grupo}
-                      </h2>
-                    </div>
-                  )}
-                  <div className="space-y-4">
-                    {categorias.map(categoria => (
-                      <div 
-                        key={categoria.id} 
-                        id={categoria.id}
-                        ref={(el) => { sectionRefs.current[categoria.id] = el; }}
-                      >
-                        <Card>
-                          <CompactDataManager
-                            title={categoria.title}
-                            entityId={cnpj}
-                            tableName={sacadoTableMapping[categoria.tableName] || categoria.tableName.replace('cedentes_', 'sacados_')}
-                            items={categoriasData[categoria.id] || []}
-                            onRefresh={() => loadCategoria(categoria.id, sacadoTableMapping[categoria.tableName] || categoria.tableName.replace('cedentes_', 'sacados_'))}
-                            onFetchFromAPI={sacado?.cnpj && categoria.apiType ? () => fetchFromAPI(categoria.apiType!) : undefined}
-                            fields={categoria.fields}
-                            displayFields={categoria.displayFields}
-                            isLoading={loadingCategorias[categoria.id]}
-                            readOnly={!isEditMode}
-                          />
-                        </Card>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            });
-          })()}
-
-          {/* Processos Judiciais - SIMPLIFICADO */}
-          <div id="processos" ref={(el) => { sectionRefs.current['processos'] = el; }}>
-            <Card>
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-gray-800">
-                  Processos Judiciais e Informações Relevantes
-                </label>
-                <textarea
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[300px] resize-y font-mono"
-                  value={processosTexto}
-                  onChange={e => {
-                    setProcessosTexto(e.target.value);
-                  }}
-                  placeholder="Cole aqui todos os processos e informações relevantes encontradas...&#10;&#10;Exemplo:&#10;PROCESSOS: 13&#10;&#10;Processo 1: ...&#10;Processo 2: ...&#10;&#10;INFORMAÇÕES:&#10;- Detalhes importantes&#10;- Endereços relacionados&#10;- Contatos úteis"
-                />
-              </div>
-            </Card>
-          </div>
-
-          {/* QSA com Botão de Detalhes (renderizado separadamente) */}
+          {/* Sócios (QSA) */}
           {(() => {
             const categoriaQsa = categoriasCedentes.find(c => c.id === 'qsa');
             if (!categoriaQsa) return null;
@@ -1511,6 +1369,145 @@ export default function EditarSacadoPage() {
             );
           })()}
 
+          {/* Gerenciamento de Grupo */}
+          <div id="grupo_empresas" ref={(el) => { sectionRefs.current['grupo_empresas'] = el; }}>
+            <Card>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between pb-2 border-b border-gray-200">
+                  <h3 className="text-lg font-semibold text-gray-800">Grupo de Empresas</h3>
+                </div>
+                
+                {grupoInfo ? (
+                  <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="flex items-center gap-3">
+                      <Badge variant="info" size="md">Grupo</Badge>
+                      <div>
+                        <p className="font-semibold text-gray-800">{grupoInfo.nome_grupo}</p>
+                        <p className="text-sm text-gray-600">{grupoInfo.cnpjs_count} CNPJ(s) no grupo</p>
+                      </div>
+                    </div>
+                    {isEditMode && (
+                      <div className="flex gap-2">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => router.push(`/empresas-grupo/${grupoInfo.id}/editar`)}
+                        >
+                          Ver Grupo
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => {
+                            if (confirm('Tem certeza que deseja remover este sacado do grupo?')) {
+                              removerDoGrupo();
+                            }
+                          }}
+                        >
+                          Remover do Grupo
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <p className="text-sm text-gray-600 mb-3">Este sacado não está em nenhum grupo.</p>
+                    {isEditMode && (
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => {
+                          setShowGrupoModal(true);
+                          loadGruposDisponiveis();
+                        }}
+                      >
+                        + Adicionar a um Grupo
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </Card>
+          </div>
+
+          {/* Categorias dinâmicas (baseadas na configuração) - Agrupadas */}
+          {(() => {
+            // Agrupa categorias por grupo
+            const categoriasPorGrupo: Record<string, typeof categoriasCedentes> = {};
+            categoriasCedentes
+              .filter(cat => cat.id !== 'qsa') // QSA é renderizado separadamente
+              .forEach(categoria => {
+                const grupo = categoria.group || 'outros';
+                if (!categoriasPorGrupo[grupo]) {
+                  categoriasPorGrupo[grupo] = [];
+                }
+                categoriasPorGrupo[grupo].push(categoria);
+              });
+
+            // Ordena categorias para refletir o fluxo da tela
+            if (categoriasPorGrupo['relacionamentos']) {
+              const ordemRelacionamentos = ['empresas_ligadas', 'pessoas_ligadas'];
+              categoriasPorGrupo['relacionamentos'].sort(
+                (a, b) => ordemRelacionamentos.indexOf(a.id) - ordemRelacionamentos.indexOf(b.id)
+              );
+            }
+
+            // Labels dos grupos
+            const grupoLabels: Record<string, string> = {
+              'contatos': 'Dados da Empresa (Contato)',
+              'relacionamentos': 'Relacionamentos',
+              'outros': 'Outros'
+            };
+
+            const ordemGrupos = ['contatos', 'relacionamentos', 'outros'];
+
+            return ordemGrupos
+              .filter(grupo => categoriasPorGrupo[grupo]?.length)
+              .map((grupo) => {
+              const categorias = categoriasPorGrupo[grupo];
+              const grupoId = grupo === 'contatos' ? 'dados_empresa' : null;
+              
+              return (
+                <div key={grupo} className="space-y-4">
+                  {grupo !== 'outros' && (
+                    <div 
+                      id={grupoId || undefined}
+                      ref={grupoId ? (el) => { sectionRefs.current[grupoId] = el; } : undefined}
+                    >
+                      <h2 className="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2">
+                        {grupoLabels[grupo] || grupo}
+                      </h2>
+                    </div>
+                  )}
+                  <div className="space-y-4">
+                    {categorias.map(categoria => (
+                      <div 
+                        key={categoria.id} 
+                        id={categoria.id}
+                        ref={(el) => { sectionRefs.current[categoria.id] = el; }}
+                      >
+                        <Card>
+                          <CompactDataManager
+                            title={categoria.title}
+                            entityId={cnpj}
+                            tableName={sacadoTableMapping[categoria.tableName] || categoria.tableName.replace('cedentes_', 'sacados_')}
+                            items={categoriasData[categoria.id] || []}
+                            onRefresh={() => loadCategoria(categoria.id, sacadoTableMapping[categoria.tableName] || categoria.tableName.replace('cedentes_', 'sacados_'))}
+                            onFetchFromAPI={sacado?.cnpj && categoria.apiType ? () => fetchFromAPI(categoria.apiType!) : undefined}
+                            fields={categoria.fields}
+                            displayFields={categoria.displayFields}
+                            isLoading={loadingCategorias[categoria.id]}
+                            readOnly={!isEditMode}
+                          />
+                        </Card>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            });
+          })()}
+
           {/* Observações Gerais da Empresa */}
           <div id="observacoes" ref={(el) => { sectionRefs.current['observacoes'] = el; }}>
             <Card>
@@ -1523,6 +1520,25 @@ export default function EditarSacadoPage() {
                   onChange={(html) => setObservacoesGerais(html)}
                   placeholder="Digite observações gerais sobre esta empresa: contexto, histórico, alertas, etc..."
                   readOnly={!isEditMode}
+                />
+              </div>
+            </Card>
+          </div>
+
+          {/* Processos Judiciais - SIMPLIFICADO */}
+          <div id="processos" ref={(el) => { sectionRefs.current['processos'] = el; }}>
+            <Card>
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-gray-800">
+                  Processos Judiciais e Informações Relevantes
+                </label>
+                <textarea
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[300px] resize-y font-mono"
+                  value={processosTexto}
+                  onChange={e => {
+                    setProcessosTexto(e.target.value);
+                  }}
+                  placeholder="Cole aqui todos os processos e informações relevantes encontradas...&#10;&#10;Exemplo:&#10;PROCESSOS: 13&#10;&#10;Processo 1: ...&#10;Processo 2: ...&#10;&#10;INFORMAÇÕES:&#10;- Detalhes importantes&#10;- Endereços relacionados&#10;- Contatos úteis"
                 />
               </div>
             </Card>

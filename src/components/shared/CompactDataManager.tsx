@@ -313,7 +313,7 @@ export default function CompactDataManager({
     if (!isEditing) {
       return (
         <span 
-          className={`${readOnly ? 'text-gray-800' : 'cursor-pointer hover:bg-blue-50 group relative'} px-1 py-0.5 rounded text-sm text-gray-900`}
+          className={`${readOnly ? 'text-gray-800' : 'cursor-pointer hover:bg-blue-50'} inline-flex items-center gap-1 px-1 py-0.5 rounded text-sm text-gray-900 break-words whitespace-normal`}
           onDoubleClick={() => {
             if (readOnly) return;
             setEditingCell({ id: item.id!, field: fieldKey });
@@ -321,8 +321,8 @@ export default function CompactDataManager({
           }}
           title={readOnly ? undefined : 'Duplo clique para editar'}
         >
-          {value || '—'}
-          {!readOnly && <span className="absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 text-[8px] text-blue-500">✏️</span>}
+          <span>{value || '—'}</span>
+          {!readOnly && <span className="text-[10px] text-blue-500 leading-none" aria-hidden="true">✏️</span>}
         </span>
       );
     }
@@ -672,14 +672,14 @@ export default function CompactDataManager({
                         const fieldConfig = fields.find(f => f.key === field);
                         const isEditable = isEditableField(field);
                         return (
-                          <div key={field} className="flex items-baseline gap-1.5 min-w-0">
+                          <div key={field} className="flex items-start gap-1.5 min-w-0">
                             <span className="text-xs font-medium text-gray-500 shrink-0">{fieldConfig?.label}:</span>
                             {isEditable ? (
                               <div className="flex-1 min-w-0">
                                 {renderEditableCell(item, field, fieldConfig)}
                               </div>
                             ) : (
-                              <span className="text-sm text-gray-900 truncate">{item[field] || '—'}</span>
+                              <span className="text-sm text-gray-900 break-words whitespace-normal">{item[field] || '—'}</span>
                             )}
                           </div>
                         );

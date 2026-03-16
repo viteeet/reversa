@@ -182,16 +182,16 @@ export default function EditarCedentePage() {
   // Lista de seções para navegação
   const secoes = [
     { id: 'informacoes_basicas', label: 'Informações Básicas', icon: '' },
-    { id: 'observacoes', label: 'Observações Gerais', icon: '' },
-    { id: 'enderecos', label: 'Endereços', icon: '' },
-    { id: 'telefones', label: 'Telefones', icon: '' },
-    { id: 'emails', label: 'E-mails', icon: '' },
-    { id: 'relacionamentos', label: 'Relacionamentos', icon: '' },
-    { id: 'pessoas_ligadas', label: '  → Pessoas Ligadas / Familiares', icon: '' },
-    { id: 'empresas_ligadas', label: '  → Empresas Ligadas', icon: '' },
-    { id: 'qsa', label: '  → QSA', icon: '' },
-    { id: 'processos', label: 'Processos', icon: '' },
-    { id: 'sacados', label: 'Sacados', icon: '' },
+    { id: 'qsa', label: 'Sócios (QSA)', icon: '' },
+    { id: 'dados_empresa', label: 'Dados da Empresa', icon: '' },
+    { id: 'enderecos', label: '  → Endereços', icon: '' },
+    { id: 'telefones', label: '  → Telefones', icon: '' },
+    { id: 'emails', label: '  → E-mails', icon: '' },
+    { id: 'empresas_ligadas', label: 'Empresas Ligadas', icon: '' },
+    { id: 'pessoas_ligadas', label: 'Pessoas / Relacionamentos', icon: '' },
+    { id: 'sacados', label: 'Sacados Relacionados', icon: '' },
+    { id: 'observacoes', label: 'Observações / Relato', icon: '' },
+    { id: 'processos', label: 'Informações Processuais / Processos', icon: '' },
   ];
 
   async function loadAllData() {
@@ -1028,20 +1028,20 @@ export default function EditarCedentePage() {
           {/* Lista de Seções */}
           <nav className="space-y-1">
             {secoes.map((secao) => {
-              // Se for "Relacionamentos", usa a primeira categoria do grupo para scroll
-              const targetSection = secao.id === 'relacionamentos' ? 'pessoas_ligadas' : secao.id;
-              const isActive = activeSection === targetSection || 
-                               (secao.id === 'relacionamentos' && ['pessoas_ligadas', 'empresas_ligadas', 'qsa'].includes(activeSection));
+              const targetSection = secao.id;
+              const isActive = activeSection === targetSection ||
+                               (secao.id === 'dados_empresa' && ['enderecos', 'telefones', 'emails'].includes(activeSection));
               const categoria = categoriasCedentes.find(c => c.id === secao.id);
               const itemCount = categoria ? (categoriasData[secao.id] || []).length : 
                                 secao.id === 'informacoes_basicas' ? 1 :
+                                secao.id === 'dados_empresa' ?
+                                  ((categoriasData['enderecos'] || []).length +
+                                   (categoriasData['telefones'] || []).length +
+                                   (categoriasData['emails'] || []).length) :
                                 secao.id === 'observacoes' ? (observacoesGerais ? 1 : 0) : 
                                 secao.id === 'processos' ? (processosTexto ? 1 : 0) :
                                 secao.id === 'sacados' ? sacados.length :
-                                secao.id === 'relacionamentos' ? 
-                                  ((categoriasData['pessoas_ligadas'] || []).length + 
-                                   (categoriasData['empresas_ligadas'] || []).length + 
-                                   (categoriasData['qsa'] || []).length) : 0;
+                                secao.id === 'qsa' ? (categoriasData['qsa'] || []).length : 0;
 
               return (
                 <button
@@ -1348,6 +1348,48 @@ export default function EditarCedentePage() {
             </div>
           </div>
 
+          {/* Sócios (QSA) */}
+          {(() => {
+            const categoriaQsa = categoriasCedentes.find(c => c.id === 'qsa');
+            if (!categoriaQsa) return null;
+
+            return (
+              <div id="qsa" ref={(el) => { sectionRefs.current['qsa'] = el; }}>
+                <div className="bg-white border border-gray-300">
+                  <div className="border-b border-gray-300 bg-gray-100 px-4 py-2 flex items-center justify-between">
+                    <h2 className="text-xs font-semibold text-gray-700 uppercase">{categoriaQsa.title}</h2>
+                    <div className="flex gap-2">
+                      {isEditMode && cedente.cnpj && categoriaQsa.apiType && (
+                        <button
+                          onClick={() => fetchFromAPI(categoriaQsa.apiType!).then(() => loadCategoria('qsa', categoriaQsa.tableName))}
+                          className="px-2 py-1 text-xs border border-gray-300 bg-white hover:bg-gray-50 text-[#0369a1] font-medium"
+                        >
+                          API
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <div className="p-4">
+
+                    <CompactDataManager
+                      title=""
+                      entityId={id}
+                      tableName={categoriaQsa.tableName}
+                      items={categoriasData['qsa'] || []}
+                      onRefresh={() => loadCategoria('qsa', categoriaQsa.tableName)}
+                      fields={categoriaQsa.fields}
+                      displayFields={categoriaQsa.displayFields}
+                      showDetailsButton={categoriaQsa.showDetailsButton}
+                      isLoading={loadingCategorias['qsa']}
+                      onOpenDetails={openQsaDetails}
+                      readOnly={!isEditMode}
+                    />
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Categorias dinâmicas (baseadas na configuração) - Agrupadas */}
           {(() => {
             // Agrupa categorias por grupo
@@ -1362,16 +1404,28 @@ export default function EditarCedentePage() {
                 categoriasPorGrupo[grupo].push(categoria);
               });
 
+            // Ordena categorias para refletir o fluxo da tela
+            if (categoriasPorGrupo['relacionamentos']) {
+              const ordemRelacionamentos = ['empresas_ligadas', 'pessoas_ligadas'];
+              categoriasPorGrupo['relacionamentos'].sort(
+                (a, b) => ordemRelacionamentos.indexOf(a.id) - ordemRelacionamentos.indexOf(b.id)
+              );
+            }
+
             // Labels dos grupos
             const grupoLabels: Record<string, string> = {
-              'contatos': 'Informações de Contato',
+              'contatos': 'Dados da Empresa (Contato)',
               'relacionamentos': 'Relacionamentos',
               'outros': 'Outros'
             };
 
-            return Object.entries(categoriasPorGrupo).map(([grupo, categorias]) => {
-              // Adiciona ID de seção para o grupo "relacionamentos" para navegação
-              const grupoId = grupo === 'relacionamentos' ? 'relacionamentos' : null;
+            const ordemGrupos = ['contatos', 'relacionamentos', 'outros'];
+
+            return ordemGrupos
+              .filter(grupo => categoriasPorGrupo[grupo]?.length)
+              .map((grupo) => {
+              const categorias = categoriasPorGrupo[grupo];
+              const grupoId = grupo === 'contatos' ? 'dados_empresa' : null;
               
               return (
                 <div key={grupo} className="space-y-4">
@@ -1414,67 +1468,6 @@ export default function EditarCedentePage() {
                 </div>
               );
             });
-          })()}
-
-          {/* Processos Judiciais - SIMPLIFICADO */}
-          <div id="processos" ref={(el) => { sectionRefs.current['processos'] = el; }}>
-            <div className="bg-white border border-gray-300">
-              <div className="border-b border-gray-300 bg-gray-100 px-4 py-2">
-                <h2 className="text-xs font-semibold text-gray-700 uppercase">Processos Judiciais e Informações Relevantes</h2>
-              </div>
-              <div className="p-4">
-                <textarea
-                  className="w-full px-3 py-2 text-sm border border-gray-300 min-h-[300px] resize-y font-mono"
-                  value={processosTexto}
-                  onChange={e => {
-                    setProcessosTexto(e.target.value);
-                  }}
-                  placeholder="Cole aqui todos os processos e informações relevantes encontradas...&#10;&#10;Exemplo:&#10;PROCESSOS: 13&#10;&#10;Processo 1: ...&#10;Processo 2: ...&#10;&#10;INFORMAÇÕES:&#10;- Detalhes importantes&#10;- Endereços relacionados&#10;- Contatos úteis"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* QSA com Botão de Detalhes (renderizado separadamente) */}
-          {(() => {
-            const categoriaQsa = categoriasCedentes.find(c => c.id === 'qsa');
-            if (!categoriaQsa) return null;
-            
-            return (
-              <div id="qsa" ref={(el) => { sectionRefs.current['qsa'] = el; }}>
-                <div className="bg-white border border-gray-300">
-                  <div className="border-b border-gray-300 bg-gray-100 px-4 py-2 flex items-center justify-between">
-                    <h2 className="text-xs font-semibold text-gray-700 uppercase">{categoriaQsa.title}</h2>
-                    <div className="flex gap-2">
-                      {isEditMode && cedente.cnpj && categoriaQsa.apiType && (
-                        <button
-                          onClick={() => fetchFromAPI(categoriaQsa.apiType!).then(() => loadCategoria('qsa', categoriaQsa.tableName))}
-                          className="px-2 py-1 text-xs border border-gray-300 bg-white hover:bg-gray-50 text-[#0369a1] font-medium"
-                        >
-                          API
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  <div className="p-4">
-
-                    <CompactDataManager
-                      title=""
-                      entityId={id}
-                      tableName={categoriaQsa.tableName}
-                      items={categoriasData['qsa'] || []}
-                      onRefresh={() => loadCategoria('qsa', categoriaQsa.tableName)}
-                      fields={categoriaQsa.fields}
-                      displayFields={categoriaQsa.displayFields}
-                      showDetailsButton={categoriaQsa.showDetailsButton}
-                      isLoading={loadingCategorias['qsa']}
-                      onOpenDetails={openQsaDetails}
-                      readOnly={!isEditMode}
-                    />
-                  </div>
-                </div>
-              </div>
-            );
           })()}
 
           {/* Sacados Relacionados */}
@@ -1601,6 +1594,25 @@ export default function EditarCedentePage() {
                   onChange={(html) => setObservacoesGerais(html)}
                   placeholder="Digite observações gerais sobre esta empresa: contexto, histórico, alertas, etc..."
                   readOnly={!isEditMode}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Processos Judiciais - SIMPLIFICADO */}
+          <div id="processos" ref={(el) => { sectionRefs.current['processos'] = el; }}>
+            <div className="bg-white border border-gray-300">
+              <div className="border-b border-gray-300 bg-gray-100 px-4 py-2">
+                <h2 className="text-xs font-semibold text-gray-700 uppercase">Processos Judiciais e Informações Relevantes</h2>
+              </div>
+              <div className="p-4">
+                <textarea
+                  className="w-full px-3 py-2 text-sm border border-gray-300 min-h-[300px] resize-y font-mono"
+                  value={processosTexto}
+                  onChange={e => {
+                    setProcessosTexto(e.target.value);
+                  }}
+                  placeholder="Cole aqui todos os processos e informações relevantes encontradas...&#10;&#10;Exemplo:&#10;PROCESSOS: 13&#10;&#10;Processo 1: ...&#10;Processo 2: ...&#10;&#10;INFORMAÇÕES:&#10;- Detalhes importantes&#10;- Endereços relacionados&#10;- Contatos úteis"
                 />
               </div>
             </div>
