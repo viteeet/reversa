@@ -1880,16 +1880,20 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
                       <span className="text-gray-400">—</span>
                     )}
                   </td>
-                  <td className="px-4 py-2">
-                    <div className="flex gap-1">
+                  <td className="px-3 py-2">
+                    <div className="flex gap-1 justify-center">
                       <button
                         onClick={() => {
                           setTituloSelecionadoParaAtividades(titulo);
                         }}
-                        className="px-2 py-1 border border-blue-300 bg-white hover:bg-blue-50 text-blue-600 text-xs font-medium"
+                        className="w-8 h-8 border border-blue-300 bg-white hover:bg-blue-50 text-blue-600 flex items-center justify-center"
                         title="Histórico de Cobrança"
+                        aria-label="Histórico de Cobrança"
                       >
-                        Cobrança
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M3 3v18h18" />
+                          <path d="M7 14l3-3 3 2 4-5" />
+                        </svg>
                       </button>
                       <button
                         onClick={() => {
@@ -1909,10 +1913,14 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
                           });
                           setShowEditTitulo(true);
                         }}
-                        className="px-2 py-1 border border-gray-300 bg-white hover:bg-gray-50 text-[#0369a1] text-xs font-medium"
+                        className="w-8 h-8 border border-gray-300 bg-white hover:bg-gray-50 text-[#0369a1] flex items-center justify-center"
                         title="Editar"
+                        aria-label="Editar"
                       >
-                        Editar
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M12 20h9" />
+                          <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+                        </svg>
                       </button>
                       <button
                         onClick={async () => {
@@ -1960,11 +1968,18 @@ export default function TitulosNegociadosManager({ cedenteId }: TitulosNegociado
                             showToast(`Erro ao excluir título: ${error.message || 'Erro desconhecido'}`, 'error');
                           }
                         }}
-                        className="px-2 py-1 border border-red-300 bg-white hover:bg-red-50 text-red-600 text-xs font-medium"
+                        className="w-8 h-8 border border-red-300 bg-white hover:bg-red-50 text-red-600 flex items-center justify-center"
                         title="Excluir permanentemente"
+                        aria-label="Excluir permanentemente"
                         disabled={titulo.status === 'titulo_de_acordo' || titulo.status === 'pago'}
                       >
-                        Excluir
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M3 6h18" />
+                          <path d="M8 6V4h8v2" />
+                          <path d="M19 6l-1 14H6L5 6" />
+                          <path d="M10 11v6" />
+                          <path d="M14 11v6" />
+                        </svg>
                       </button>
                     </div>
                   </td>

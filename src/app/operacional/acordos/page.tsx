@@ -421,7 +421,7 @@ export default function AcordosOperacionaisPage() {
                   <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Valor</th>
                   <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Status</th>
                   <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Pagamento</th>
-                  <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase">Ações</th>
+                  <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 uppercase w-24">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -479,21 +479,30 @@ export default function AcordosOperacionaisPage() {
                           <span className="text-gray-400">—</span>
                         )}
                       </td>
-                      <td className="px-4 py-2">
-                        <div className="flex gap-1">
+                      <td className="px-3 py-2">
+                        <div className="flex gap-1 justify-center">
                           <button
                             onClick={() => abrirEditarParcela(parcela)}
-                            className="px-2 py-1 border border-gray-300 bg-white hover:bg-gray-50 text-[#0369a1] text-xs font-medium"
+                            className="w-8 h-8 border border-gray-300 bg-white hover:bg-gray-50 text-[#0369a1] flex items-center justify-center"
                             title="Editar parcela"
+                            aria-label="Editar parcela"
                           >
-                            Editar
+                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M12 20h9" />
+                              <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+                            </svg>
                           </button>
                           {parcela.parcelamento?.cedente_id && (
                             <Link
                               href={`/cedentes/${parcela.parcelamento.cedente_id}?tab=acordos`}
-                              className="px-2 py-1 border border-gray-300 bg-white hover:bg-gray-50 text-[#0369a1] text-xs font-medium"
+                              className="w-8 h-8 border border-gray-300 bg-white hover:bg-gray-50 text-[#0369a1] inline-flex items-center justify-center"
+                              title="Visualizar"
+                              aria-label="Visualizar"
                             >
-                              Ver
+                              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" />
+                                <circle cx="12" cy="12" r="3" />
+                              </svg>
                             </Link>
                           )}
                         </div>

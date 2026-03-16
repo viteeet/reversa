@@ -121,7 +121,7 @@ export default function CobrancaReportPage() {
         <header className="flex items-center justify-between print:hidden">
           <h1 className="text-2xl font-bold text-slate-800">Ficha de Cobrança</h1>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => router.push(`/sacados/${encodeURIComponent(cnpj)}/editar`)}>
+            <Button variant="outline" onClick={() => router.push(`/sacados/${encodeURIComponent(cnpj)}/editar?mode=edit`)}>
               Editar Dados
             </Button>
             <Button variant="secondary" onClick={() => {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { formatCpfCnpj } from '@/lib/format';
@@ -46,7 +46,20 @@ type Sacado = {
 export default function EditarCedentePage() {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const id = params.id as string;
+  const isEditMode = searchParams.get('mode') === 'edit';
+
+  function setEditingMode(editing: boolean) {
+    const nextParams = new URLSearchParams(searchParams.toString());
+    if (editing) {
+      nextParams.set('mode', 'edit');
+    } else {
+      nextParams.delete('mode');
+    }
+    const query = nextParams.toString();
+    router.replace(query ? `/cedentes/${id}/editar?${query}` : `/cedentes/${id}/editar`, { scroll: false });
+  }
   
   const [cedente, setCedente] = useState<Cedente | null>(null);
   const [loading, setLoading] = useState(true);
@@ -1096,9 +1109,16 @@ export default function EditarCedentePage() {
                 {cedente.razao_social && <p className="text-sm text-gray-600">{cedente.razao_social}</p>}
                 {cedente.cnpj && <p className="text-xs text-gray-500 font-mono">{formatCpfCnpj(cedente.cnpj)}</p>}
               </div>
+              <Button
+                variant={isEditMode ? 'secondary' : 'primary'}
+                onClick={() => setEditingMode(!isEditMode)}
+              >
+                {isEditMode ? 'Modo Visualizacao' : 'Editar'}
+              </Button>
             </div>
           </header>
 
+          <fieldset disabled={!isEditMode} className="space-y-4 border-0 p-0 m-0 min-w-0">
           {/* Informações Básicas - Formulário de Edição */}
           <div id="informacoes_basicas" ref={(el) => { sectionRefs.current['informacoes_basicas'] = el; }}>
             <div className="bg-white border border-gray-300">
@@ -1328,22 +1348,6 @@ export default function EditarCedentePage() {
             </div>
           </div>
 
-          {/* Observações Gerais da Empresa - TOPO */}
-          <div id="observacoes" ref={(el) => { sectionRefs.current['observacoes'] = el; }}>
-            <div className="bg-white border border-gray-300">
-              <div className="border-b border-gray-300 bg-gray-100 px-4 py-2">
-                <h2 className="text-xs font-semibold text-gray-700 uppercase">Observações Gerais - {cedente.nome}</h2>
-              </div>
-              <div className="p-4">
-                <RichTextEditor
-                  content={observacoesGerais}
-                  onChange={(html) => setObservacoesGerais(html)}
-                  placeholder="Digite observações gerais sobre esta empresa: contexto, histórico, alertas, etc..."
-                />
-              </div>
-            </div>
-          </div>
-
           {/* Categorias dinâmicas (baseadas na configuração) - Agrupadas */}
           {(() => {
             // Agrupa categorias por grupo
@@ -1515,7 +1519,7 @@ export default function EditarCedentePage() {
                       <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Nome Fantasia</th>
                       <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">CNPJ</th>
                       <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Situação</th>
-                      <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase">Ações</th>
+                      <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 uppercase w-32">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1541,21 +1545,37 @@ export default function EditarCedentePage() {
                             </Badge>
                           )}
                         </td>
-                        <td className="px-4 py-2">
-                          <div className="flex gap-1">
+                        <td className="px-3 py-2">
+                          <div className="flex gap-1 justify-center">
                             <Link href={`/sacados/${encodeURIComponent(sacado.cnpj)}`}>
-                              <button className="px-2 py-1 border border-gray-300 bg-white hover:bg-gray-50 text-[#0369a1] text-xs font-medium" title="Ver">Ver</button>
+                              <button className="w-8 h-8 border border-gray-300 bg-white hover:bg-gray-50 text-[#0369a1] flex items-center justify-center" title="Visualizar" aria-label="Visualizar">
+                                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" />
+                                  <circle cx="12" cy="12" r="3" />
+                                </svg>
+                              </button>
                             </Link>
-                            <Link href={`/sacados/${encodeURIComponent(sacado.cnpj)}/editar`}>
-                              <button className="px-2 py-1 border border-gray-300 bg-white hover:bg-gray-50 text-[#0369a1] text-xs font-medium" title="Editar">Editar</button>
+                            <Link href={`/sacados/${encodeURIComponent(sacado.cnpj)}/editar?mode=edit`}>
+                              <button className="w-8 h-8 border border-gray-300 bg-white hover:bg-gray-50 text-[#0369a1] flex items-center justify-center" title="Editar" aria-label="Editar">
+                                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M12 20h9" />
+                                  <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+                                </svg>
+                              </button>
                             </Link>
                             <button 
                               onClick={() => removerSacado(sacado.cnpj)}
-                              className="px-2 py-1 border border-gray-300 bg-white hover:bg-gray-50 text-red-600 text-xs font-medium" 
+                              className="w-8 h-8 border border-red-300 bg-white hover:bg-red-50 text-red-600 flex items-center justify-center" 
                               title="Remover"
                               aria-label="Remover"
                             >
-                              Remover
+                              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M3 6h18" />
+                                <path d="M8 6V4h8v2" />
+                                <path d="M19 6l-1 14H6L5 6" />
+                                <path d="M10 11v6" />
+                                <path d="M14 11v6" />
+                              </svg>
                             </button>
                           </div>
                         </td>
@@ -1569,6 +1589,25 @@ export default function EditarCedentePage() {
             </div>
           </div>
 
+          {/* Observações Gerais da Empresa */}
+          <div id="observacoes" ref={(el) => { sectionRefs.current['observacoes'] = el; }}>
+            <div className="bg-white border border-gray-300">
+              <div className="border-b border-gray-300 bg-gray-100 px-4 py-2">
+                <h2 className="text-xs font-semibold text-gray-700 uppercase">Observações Gerais - {cedente.nome}</h2>
+              </div>
+              <div className="p-4">
+                <RichTextEditor
+                  content={observacoesGerais}
+                  onChange={(html) => setObservacoesGerais(html)}
+                  placeholder="Digite observações gerais sobre esta empresa: contexto, histórico, alertas, etc..."
+                  readOnly={!isEditMode}
+                />
+              </div>
+            </div>
+          </div>
+
+          </fieldset>
+
           {/* Botões de Ação */}
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
             <Button variant="secondary" onClick={() => {
@@ -1580,20 +1619,26 @@ export default function EditarCedentePage() {
 }}>
               Voltar
             </Button>
-            <Button 
-              variant="primary" 
-              onClick={async () => {
-                // Salva informações básicas, observações e processos
-                await Promise.all([
-                  saveInfoBasicas(),
-                  saveObservacaoGeral(observacoesGerais),
-                  saveProcessosTexto(processosTexto)
-                ]);
-                showToast('Dados salvos com sucesso!', 'success');
-              }}
-            >
-              Salvar Tudo
-            </Button>
+            {isEditMode ? (
+              <Button 
+                variant="primary" 
+                onClick={async () => {
+                  // Salva informações básicas, observações e processos
+                  await Promise.all([
+                    saveInfoBasicas(),
+                    saveObservacaoGeral(observacoesGerais),
+                    saveProcessosTexto(processosTexto)
+                  ]);
+                  showToast('Dados salvos com sucesso!', 'success');
+                }}
+              >
+                Salvar Tudo
+              </Button>
+            ) : (
+              <Button variant="primary" onClick={() => setEditingMode(true)}>
+                Editar
+              </Button>
+            )}
           </div>
         </div>
       </main>
@@ -1786,6 +1831,7 @@ export default function EditarCedentePage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[400px] resize-y font-mono text-sm"
                   value={qsaDetalhes}
                   onChange={(e) => setQsaDetalhes(e.target.value)}
+                  disabled={!isEditMode}
                   placeholder="Cole aqui todas as informações encontradas sobre esta pessoa: endereços, telefones, e-mails, processos judiciais, familiares, empresas relacionadas, etc."
                 />
               </div>
@@ -1802,12 +1848,14 @@ export default function EditarCedentePage() {
               >
                 Cancelar
               </button>
-              <button
-                onClick={saveQsaDetalhes}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700"
-              >
-                Salvar Detalhes
-              </button>
+              {isEditMode && (
+                <button
+                  onClick={saveQsaDetalhes}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700"
+                >
+                  Salvar Detalhes
+                </button>
+              )}
             </div>
           </div>
         </div>

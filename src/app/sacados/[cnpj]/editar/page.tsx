@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { supabase } from '@/lib/supabase';
 import { formatCpfCnpj } from '@/lib/format';
@@ -48,7 +48,21 @@ const sacadoTableMapping: Record<string, string> = {
 export default function EditarSacadoPage() {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const cnpj = decodeURIComponent(params.cnpj as string);
+  const isEditMode = searchParams.get('mode') === 'edit';
+
+  function setEditingMode(editing: boolean) {
+    const nextParams = new URLSearchParams(searchParams.toString());
+    if (editing) {
+      nextParams.set('mode', 'edit');
+    } else {
+      nextParams.delete('mode');
+    }
+    const query = nextParams.toString();
+    const path = `/sacados/${encodeURIComponent(cnpj)}/editar`;
+    router.replace(query ? `${path}?${query}` : path, { scroll: false });
+  }
   
   const [sacado, setSacado] = useState<Sacado | null>(null);
   const [loading, setLoading] = useState(true);
@@ -984,6 +998,12 @@ export default function EditarSacadoPage() {
               {sacado.cnpj && <p className="text-sm text-[#64748b] font-mono">{formatCpfCnpj(sacado.cnpj)}</p>}
             </div>
             <div className="flex gap-2">
+              <Button
+                variant={isEditMode ? 'secondary' : 'primary'}
+                onClick={() => setEditingMode(!isEditMode)}
+              >
+                {isEditMode ? 'Modo Visualizacao' : 'Editar'}
+              </Button>
               <Button 
                 variant="error" 
                 onClick={excluirSacado}
@@ -1093,6 +1113,7 @@ export default function EditarSacadoPage() {
             </div>
           )}
 
+          <fieldset disabled={!isEditMode} className="space-y-4 border-0 p-0 m-0 min-w-0">
           {/* Informações Básicas - Formulário de Edição */}
           <div id="informacoes_basicas" ref={(el) => { sectionRefs.current['informacoes_basicas'] = el; }}>
             <Card>
@@ -1357,22 +1378,6 @@ export default function EditarSacadoPage() {
             </div>
           </Card>
 
-          {/* Observações Gerais da Empresa - TOPO */}
-          <div id="observacoes" ref={(el) => { sectionRefs.current['observacoes'] = el; }}>
-            <Card>
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-gray-800">
-                  Observações Gerais - {sacado.razao_social}
-                </label>
-                <RichTextEditor
-                  content={observacoesGerais}
-                  onChange={(html) => setObservacoesGerais(html)}
-                  placeholder="Digite observações gerais sobre esta empresa: contexto, histórico, alertas, etc..."
-                />
-              </div>
-            </Card>
-          </div>
-
           {/* Categorias dinâmicas (baseadas na configuração) - Agrupadas */}
           {(() => {
             // Agrupa categorias por grupo
@@ -1500,6 +1505,25 @@ export default function EditarSacadoPage() {
             );
           })()}
 
+          {/* Observações Gerais da Empresa */}
+          <div id="observacoes" ref={(el) => { sectionRefs.current['observacoes'] = el; }}>
+            <Card>
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-gray-800">
+                  Observações Gerais - {sacado.razao_social}
+                </label>
+                <RichTextEditor
+                  content={observacoesGerais}
+                  onChange={(html) => setObservacoesGerais(html)}
+                  placeholder="Digite observações gerais sobre esta empresa: contexto, histórico, alertas, etc..."
+                  readOnly={!isEditMode}
+                />
+              </div>
+            </Card>
+          </div>
+
+          </fieldset>
+
           {/* Botões de Ação */}
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
             <Button variant="secondary" onClick={() => {
@@ -1511,20 +1535,26 @@ export default function EditarSacadoPage() {
             }}>
               Voltar
             </Button>
-            <Button 
-              variant="primary" 
-              onClick={async () => {
-                // Salva informações básicas, observações e processos
-                await Promise.all([
-                  saveInfoBasicas(),
-                  saveObservacaoGeral(observacoesGerais),
-                  saveProcessosTexto(processosTexto)
-                ]);
-                showToast('Dados salvos com sucesso!', 'success');
-              }}
-            >
-              Salvar Tudo
-            </Button>
+            {isEditMode ? (
+              <Button 
+                variant="primary" 
+                onClick={async () => {
+                  // Salva informações básicas, observações e processos
+                  await Promise.all([
+                    saveInfoBasicas(),
+                    saveObservacaoGeral(observacoesGerais),
+                    saveProcessosTexto(processosTexto)
+                  ]);
+                  showToast('Dados salvos com sucesso!', 'success');
+                }}
+              >
+                Salvar Tudo
+              </Button>
+            ) : (
+              <Button variant="primary" onClick={() => setEditingMode(true)}>
+                Editar
+              </Button>
+            )}
           </div>
         </div>
       </main>
@@ -1592,6 +1622,7 @@ export default function EditarSacadoPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[400px] resize-y font-mono text-sm"
                   value={qsaDetalhes}
                   onChange={(e) => setQsaDetalhes(e.target.value)}
+                  disabled={!isEditMode}
                   placeholder="Cole aqui todas as informações encontradas sobre esta pessoa: endereços, telefones, e-mails, processos judiciais, familiares, empresas relacionadas, etc."
                 />
               </div>
@@ -1608,12 +1639,14 @@ export default function EditarSacadoPage() {
               >
                 Cancelar
               </button>
-              <button
-                onClick={saveQsaDetalhes}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700"
-              >
-                Salvar Detalhes
-              </button>
+              {isEditMode && (
+                <button
+                  onClick={saveQsaDetalhes}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700"
+                >
+                  Salvar Detalhes
+                </button>
+              )}
             </div>
           </div>
         </div>

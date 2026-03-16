@@ -359,7 +359,7 @@ export default function CedentePage() {
               </button>
               <button
                 className="px-3 py-1.5 border border-[#0369a1] bg-[#0369a1] text-white text-sm font-medium hover:bg-[#075985]"
-                onClick={() => router.push(`/cedentes/${cedente.id}/editar`)}
+                onClick={() => router.push(`/cedentes/${cedente.id}/editar?mode=edit`)}
               >
                 Editar
               </button>
@@ -585,19 +585,23 @@ export default function CedentePage() {
                                     {items.map((item, idx) => (
                                       <div key={item.id || idx} className="border-b border-gray-200 pb-3 last:border-b-0">
                                         <div className="grid gap-2 sm:grid-cols-2">
-                                          {categoria.displayFields.map(field => {
-                                            const fieldConfig = categoria.fields.find(f => f.key === field);
-                                            if (!fieldConfig) return null;
-                                            const value = item[field];
+                                          {categoria.fields.map((fieldConfig) => {
+                                            const value = item[fieldConfig.key];
                                             if (!value && value !== 0) return null;
-                                            
+
+                                            const formatted = fieldConfig.key === 'cpf' && value
+                                              ? formatCpf(value)
+                                              : fieldConfig.key === 'cnpj' && value
+                                              ? formatCpfCnpj(value)
+                                              : String(value);
+
+                                            const isLongText = fieldConfig.type === 'textarea' || fieldConfig.width === 'full';
+
                                             return (
-                                              <div key={field}>
+                                              <div key={fieldConfig.key} className={isLongText ? 'sm:col-span-2' : ''}>
                                                 <p className="text-xs text-gray-500 uppercase mb-1">{fieldConfig.label}</p>
-                                                <p className="text-sm text-gray-900">
-                                                  {field === 'cpf' && value ? formatCpf(value) : 
-                                                   field === 'cnpj' && value ? formatCpfCnpj(value) :
-                                                   String(value)}
+                                                <p className={`text-sm text-gray-900 ${isLongText ? 'whitespace-pre-wrap' : ''}`}>
+                                                  {formatted}
                                                 </p>
                                               </div>
                                             );
@@ -638,30 +642,36 @@ export default function CedentePage() {
                           <table className="w-full border-collapse text-sm">
                             <thead className="bg-gray-50 border-b border-gray-300">
                               <tr>
-                                {categoriaQsa.displayFields.map(field => {
-                                  const fieldConfig = categoriaQsa.fields.find(f => f.key === field);
-                                  return (
-                                    <th key={field} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">
-                                      {fieldConfig?.label || field}
-                                    </th>
-                                  );
-                                })}
+                                {categoriaQsa.fields.map(fieldConfig => (
+                                  <th key={fieldConfig.key} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">
+                                    {fieldConfig.label}
+                                  </th>
+                                ))}
                               </tr>
                             </thead>
                             <tbody>
                               {qsaItems.map((item, idx) => (
-                                <tr key={item.id || idx} className="border-b border-gray-200 hover:bg-gray-50">
-                                  {categoriaQsa.displayFields.map(field => {
-                                    const value = item[field];
-                                    return (
-                                      <td key={field} className="px-3 py-2 text-gray-900 border-r border-gray-300">
-                                        {field === 'cpf' && value ? formatCpf(value) :
-                                         field === 'participacao' && value ? `${value}%` :
-                                         value || '—'}
+                                [
+                                  <tr key={`qsa-row-${item.id || idx}`} className="border-b border-gray-200 hover:bg-gray-50">
+                                    {categoriaQsa.fields.map(fieldConfig => {
+                                      const value = item[fieldConfig.key];
+                                      return (
+                                        <td key={fieldConfig.key} className="px-3 py-2 text-gray-900 border-r border-gray-300">
+                                          {fieldConfig.key === 'cpf' && value ? formatCpf(value) :
+                                           fieldConfig.key === 'participacao' && value ? `${value}%` :
+                                           value || '—'}
+                                        </td>
+                                      );
+                                    })}
+                                  </tr>,
+                                  qsaDetalhes[item.id] ? (
+                                    <tr key={`qsa-details-${item.id || idx}`} className="border-b border-gray-200 bg-gray-50">
+                                      <td colSpan={categoriaQsa.fields.length} className="px-3 py-2 text-sm text-gray-800 whitespace-pre-wrap">
+                                        <span className="font-medium text-gray-900">Detalhes completos:</span> {qsaDetalhes[item.id]}
                                       </td>
-                                    );
-                                  })}
-                                </tr>
+                                    </tr>
+                                  ) : null
+                                ]
                               ))}
                             </tbody>
                           </table>
@@ -701,7 +711,7 @@ export default function CedentePage() {
                     />
                     <button 
                       className="px-3 py-1.5 border border-[#0369a1] bg-[#0369a1] text-white text-sm font-medium hover:bg-[#075985]"
-                      onClick={() => router.push(`/cedentes/${cedente.id}/editar`)}
+                      onClick={() => router.push(`/cedentes/${cedente.id}/editar?mode=edit`)}
                     >
                       Ir para Edição
                     </button>
@@ -716,7 +726,7 @@ export default function CedentePage() {
                     </p>
                     <button 
                       className="px-4 py-2 border border-[#0369a1] bg-[#0369a1] text-white text-sm font-medium hover:bg-[#075985]"
-                      onClick={() => router.push(`/cedentes/${cedente.id}/editar`)}
+                      onClick={() => router.push(`/cedentes/${cedente.id}/editar?mode=edit`)}
                     >
                       Ir para Edição
                     </button>
@@ -730,7 +740,7 @@ export default function CedentePage() {
                           <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Nome Fantasia</th>
                           <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">CNPJ</th>
                           <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Situação</th>
-                          <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase">Ações</th>
+                          <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 uppercase w-32">Ações</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -756,16 +766,35 @@ export default function CedentePage() {
                                 </Badge>
                               )}
                             </td>
-                            <td className="px-4 py-2">
-                              <div className="flex gap-1">
+                            <td className="px-3 py-2">
+                              <div className="flex gap-1 justify-center">
                                 <Link href={`/sacados/${encodeURIComponent(sacado.cnpj)}`}>
-                                  <button className="px-2 py-1 border border-gray-300 bg-white hover:bg-gray-50 text-[#0369a1] text-xs font-medium" title="Ver">Ver</button>
+                                  <button className="w-8 h-8 border border-gray-300 bg-white hover:bg-gray-50 text-[#0369a1] flex items-center justify-center" title="Visualizar" aria-label="Visualizar">
+                                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" />
+                                      <circle cx="12" cy="12" r="3" />
+                                    </svg>
+                                  </button>
                                 </Link>
-                                <Link href={`/sacados/${encodeURIComponent(sacado.cnpj)}/editar`}>
-                                  <button className="px-2 py-1 border border-gray-300 bg-white hover:bg-gray-50 text-[#0369a1] text-xs font-medium" title="Editar">Editar</button>
+                                <Link href={`/sacados/${encodeURIComponent(sacado.cnpj)}/editar?mode=edit`}>
+                                  <button className="w-8 h-8 border border-gray-300 bg-white hover:bg-gray-50 text-[#0369a1] flex items-center justify-center" title="Editar" aria-label="Editar">
+                                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                      <path d="M12 20h9" />
+                                      <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+                                    </svg>
+                                  </button>
                                 </Link>
                                 <Link href={`/sacados/${encodeURIComponent(sacado.cnpj)}/cobranca`}>
-                                  <button className="px-2 py-1 border border-gray-300 bg-white hover:bg-gray-50 text-[#0369a1] text-xs font-medium" title="Ficha">Ficha</button>
+                                  <button className="w-8 h-8 border border-gray-300 bg-white hover:bg-gray-50 text-[#0369a1] flex items-center justify-center" title="Ficha" aria-label="Ficha">
+                                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                      <path d="M8 6h13" />
+                                      <path d="M8 12h13" />
+                                      <path d="M8 18h13" />
+                                      <path d="M3 6h.01" />
+                                      <path d="M3 12h.01" />
+                                      <path d="M3 18h.01" />
+                                    </svg>
+                                  </button>
                                 </Link>
                               </div>
                             </td>

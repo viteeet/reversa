@@ -181,7 +181,7 @@ export default function BlockList(props: BlockListProps) {
                   {columns.map((c) => (
                     <th key={c.key}>{c.label}</th>
                   ))}
-                  <th className="w-24">Ações</th>
+                  <th className="w-16 text-center">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -212,13 +212,21 @@ export default function BlockList(props: BlockListProps) {
                         const formatted = text;
                         return <td key={c.key}>{formatted}</td>;
                       })}
-                      <td>
+                      <td className="text-center">
                         <button
-                          className="btn h-8 px-2"
+                          className="w-8 h-8 border border-red-300 bg-white hover:bg-red-50 text-red-600 inline-flex items-center justify-center"
                           type="button"
                           onClick={() => onDelete(String(row[idKey]))}
+                          title="Excluir"
+                          aria-label="Excluir"
                         >
-                          Excluir
+                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M3 6h18" />
+                            <path d="M8 6V4h8v2" />
+                            <path d="M19 6l-1 14H6L5 6" />
+                            <path d="M10 11v6" />
+                            <path d="M14 11v6" />
+                          </svg>
                         </button>
                       </td>
                     </tr>

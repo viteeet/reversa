@@ -266,7 +266,7 @@ export default function RecorrenciasPage() {
                     <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Frequência</th>
                     <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Dia Venc.</th>
                     <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Status</th>
-                    <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase">Ações</th>
+                    <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 uppercase w-32">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -288,25 +288,49 @@ export default function RecorrenciasPage() {
                           {item.ativo ? 'Ativa' : 'Inativa'}
                         </Badge>
                       </td>
-                      <td className="px-4 py-2">
-                        <div className="flex gap-2">
+                      <td className="px-3 py-2">
+                        <div className="flex gap-1 justify-center">
                           <button 
-                            className="px-2 py-1 border border-gray-300 bg-white hover:bg-gray-50 text-[#0369a1] text-xs font-medium"
+                            className="w-8 h-8 border border-gray-300 bg-white hover:bg-gray-50 text-[#0369a1] inline-flex items-center justify-center"
                             onClick={() => abrirEdicao(item)}
+                            title="Editar"
+                            aria-label="Editar"
                           >
-                            Editar
+                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M12 20h9" />
+                              <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+                            </svg>
                           </button>
                           <button 
-                            className="px-2 py-1 border border-gray-300 bg-white hover:bg-gray-50 text-xs font-medium"
+                            className="w-8 h-8 border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 inline-flex items-center justify-center"
                             onClick={() => toggleAtivo(item.id, item.ativo)}
+                            title={item.ativo ? 'Desativar' : 'Ativar'}
+                            aria-label={item.ativo ? 'Desativar' : 'Ativar'}
                           >
-                            {item.ativo ? 'Desativar' : 'Ativar'}
+                            {item.ativo ? (
+                              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M18 6L6 18" />
+                                <path d="M6 6l12 12" />
+                              </svg>
+                            ) : (
+                              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M20 6L9 17l-5-5" />
+                              </svg>
+                            )}
                           </button>
                           <button 
-                            className="px-2 py-1 border border-gray-300 bg-white hover:bg-gray-50 text-red-600 text-xs font-medium"
+                            className="w-8 h-8 border border-red-300 bg-white hover:bg-red-50 text-red-600 inline-flex items-center justify-center"
                             onClick={() => excluir(item.id)}
+                            title="Excluir"
+                            aria-label="Excluir"
                           >
-                            Excluir
+                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M3 6h18" />
+                              <path d="M8 6V4h8v2" />
+                              <path d="M19 6l-1 14H6L5 6" />
+                              <path d="M10 11v6" />
+                              <path d="M14 11v6" />
+                            </svg>
                           </button>
                         </div>
                       </td>

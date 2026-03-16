@@ -91,7 +91,7 @@ input, button, textarea, select { font: inherit; color: inherit; }
 /* Container utilitário */
 .container {
   width: 100%;
-  max-width: 72rem; /* 1152px */
+  max-width: 90rem; /* 1440px */
   margin-left: auto;
   margin-right: auto;
   padding-left: 1rem;

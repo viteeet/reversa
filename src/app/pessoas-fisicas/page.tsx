@@ -846,7 +846,7 @@ export default function PessoasFisicasPage() {
                         Situação {sortBy === 'situacao' && (sortDir === 'asc' ? '↑' : '↓')}
                       </button>
                     </th>
-                    <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase">Ações</th>
+                    <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 uppercase w-32">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -914,18 +914,45 @@ export default function PessoasFisicasPage() {
                           {item.situacao || 'ativa'}
                         </Badge>
                       </td>
-                      <td className="px-4 py-2">
-                        <div className="flex gap-2">
+                      <td className="px-3 py-2">
+                        <div className="flex gap-1 justify-center">
+                          <Link href={`/pessoas-fisicas/${encodeURIComponent(item.cpf)}`}>
+                            <button
+                              className="w-8 h-8 border border-gray-300 bg-white hover:bg-gray-50 text-[#0369a1] flex items-center justify-center"
+                              title="Visualizar"
+                              aria-label="Visualizar"
+                            >
+                              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" />
+                                <circle cx="12" cy="12" r="3" />
+                              </svg>
+                            </button>
+                          </Link>
                           <Link href={`/pessoas-fisicas/${encodeURIComponent(item.cpf)}/editar`}>
-                            <button className="px-2 py-1 border border-gray-300 bg-white hover:bg-gray-50 text-[#0369a1] text-xs font-medium">
-                              Editar
+                            <button
+                              className="w-8 h-8 border border-gray-300 bg-white hover:bg-gray-50 text-[#0369a1] flex items-center justify-center"
+                              title="Editar"
+                              aria-label="Editar"
+                            >
+                              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M12 20h9" />
+                                <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+                              </svg>
                             </button>
                           </Link>
                           <button 
-                            className="px-2 py-1 border border-gray-300 bg-white hover:bg-gray-50 text-red-600 text-xs font-medium"
+                            className="w-8 h-8 border border-red-300 bg-white hover:bg-red-50 text-red-600 flex items-center justify-center"
                             onClick={() => remove(item.id)}
+                            title="Excluir"
+                            aria-label="Excluir"
                           >
-                            Excluir
+                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M3 6h18" />
+                              <path d="M8 6V4h8v2" />
+                              <path d="M19 6l-1 14H6L5 6" />
+                              <path d="M10 11v6" />
+                              <path d="M14 11v6" />
+                            </svg>
                           </button>
                         </div>
                       </td>

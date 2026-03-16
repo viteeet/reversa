@@ -12,6 +12,7 @@ interface RichTextEditorProps {
   content: string;
   onChange: (html: string) => void;
   placeholder?: string;
+  readOnly?: boolean;
 }
 
 const COLORS = [
@@ -31,7 +32,7 @@ const HIGHLIGHTS = [
   { label: 'Laranja', value: '#fed7aa' },
 ];
 
-export default function RichTextEditor({ content, onChange, placeholder }: RichTextEditorProps) {
+export default function RichTextEditor({ content, onChange, placeholder, readOnly = false }: RichTextEditorProps) {
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -44,9 +45,10 @@ export default function RichTextEditor({ content, onChange, placeholder }: RichT
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
     },
+    editable: !readOnly,
     editorProps: {
       attributes: {
-        class: 'prose prose-sm max-w-none p-3 min-h-[120px] focus:outline-none text-sm whitespace-pre-wrap break-words [overflow-wrap:anywhere]',
+        class: 'prose prose-sm max-w-none p-3 min-h-[120px] focus:outline-none text-sm whitespace-pre-wrap break-words [overflow-wrap:anywhere] [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-6 [&_ol]:pl-6 [&_li]:my-1',
       },
     },
   });
@@ -57,6 +59,12 @@ export default function RichTextEditor({ content, onChange, placeholder }: RichT
     }
   }, [content]);
 
+  useEffect(() => {
+    if (editor) {
+      editor.setEditable(!readOnly);
+    }
+  }, [editor, readOnly]);
+
   if (!editor) return null;
 
   const currentTextColor = editor.getAttributes('textStyle').color as string | undefined;
@@ -64,6 +72,7 @@ export default function RichTextEditor({ content, onChange, placeholder }: RichT
 
   return (
     <div className="border border-gray-300 rounded bg-white">
+      {!readOnly && (
       <div className="flex flex-wrap gap-1 p-2 border-b border-gray-200 bg-gray-50">
         <button
           type="button"
@@ -190,6 +199,7 @@ export default function RichTextEditor({ content, onChange, placeholder }: RichT
           Separador
         </button>
       </div>
+      )}
       <EditorContent editor={editor} />
     </div>
   );
