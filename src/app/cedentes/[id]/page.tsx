@@ -65,6 +65,14 @@ export default function CedentePage() {
   const [processosTexto, setProcessosTexto] = useState<string>('');
   const [qsaDetalhes, setQsaDetalhes] = useState<Record<string, string>>({});
 
+  function formatCategoriaValue(fieldKey: string, value: any) {
+    if (value === null || value === undefined || value === '') return '—';
+    if (fieldKey === 'cpf') return formatCpf(String(value));
+    if (fieldKey === 'cnpj' || fieldKey === 'cnpj_relacionado') return formatCpfCnpj(String(value));
+    if (fieldKey === 'participacao') return `${value}%`;
+    return String(value);
+  }
+
   useEffect(() => {
     loadData();
     
@@ -179,6 +187,8 @@ export default function CedentePage() {
     if (!id) return;
     
     try {
+      const categoriasMap: Record<string, any[]> = {};
+
       // Carrega todas as categorias
       for (const categoria of categoriasCedentes) {
         try {
@@ -188,19 +198,15 @@ export default function CedentePage() {
             .eq('cedente_id', id)
             .eq('ativo', true)
             .order('created_at', { ascending: false });
-          
-          setCategoriasData(prev => ({
-            ...prev,
-            [categoria.id]: data || []
-          }));
+
+          categoriasMap[categoria.id] = data || [];
         } catch (err) {
           // Tabela pode não existir
-          setCategoriasData(prev => ({
-            ...prev,
-            [categoria.id]: []
-          }));
+          categoriasMap[categoria.id] = [];
         }
       }
+
+      setCategoriasData(categoriasMap);
       
       // Carrega observações gerais
       try {
@@ -230,7 +236,7 @@ export default function CedentePage() {
       
       // Carrega detalhes do QSA (após carregar os dados do QSA)
       try {
-        const qsaItems = categoriasData['qsa'] || [];
+        const qsaItems = categoriasMap['qsa'] || [];
         if (qsaItems.length > 0) {
           const detalhesPromises = qsaItems.map(async (item) => {
             const { data } = await supabase
@@ -586,39 +592,39 @@ export default function CedentePage() {
                                     {categoria.title} ({items.length})
                                   </h2>
                                 </div>
-                                <div className="p-4">
-                                  <div className="space-y-3">
-                                    {items.map((item, idx) => (
-                                      <div key={item.id || idx} className="border-b border-gray-200 pb-3 last:border-b-0">
-                                        <div className="grid gap-2 sm:grid-cols-2">
-                                          {categoria.fields.map((fieldConfig) => {
-                                            const value = item[fieldConfig.key];
-                                            if (!value && value !== 0) return null;
-
-                                            const formatted = fieldConfig.key === 'cpf' && value
-                                              ? formatCpf(value)
-                                              : fieldConfig.key === 'cnpj' && value
-                                              ? formatCpfCnpj(value)
-                                              : String(value);
-
-                                            const isLongText = fieldConfig.type === 'textarea' || fieldConfig.width === 'full';
-
-                                            return (
-                                              <div key={fieldConfig.key} className={isLongText ? 'sm:col-span-2' : ''}>
-                                                <p className="text-xs text-gray-500 uppercase mb-1">{fieldConfig.label}</p>
-                                                <p className={`text-sm text-gray-900 ${isLongText ? 'whitespace-pre-wrap' : ''}`}>
-                                                  {formatted}
-                                                </p>
-                                              </div>
-                                            );
-                                          })}
-                                        </div>
-                                        {item.origem === 'api' && (
-                                          <span className="inline-block mt-2 text-xs text-[#0369a1] bg-blue-50 px-2 py-1 rounded">API</span>
-                                        )}
-                                      </div>
-                                    ))}
-                                  </div>
+                                <div className="overflow-x-auto">
+                                  <table className="w-full border-collapse text-sm">
+                                    <thead className="bg-gray-50 border-b border-gray-300">
+                                      <tr>
+                                        {categoria.fields.map(fieldConfig => (
+                                          <th key={fieldConfig.key} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 align-top whitespace-nowrap">
+                                            {fieldConfig.label}
+                                          </th>
+                                        ))}
+                                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase align-top whitespace-nowrap">
+                                          Origem
+                                        </th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {items.map((item, idx) => (
+                                        <tr key={item.id || idx} className="border-b border-gray-200 hover:bg-gray-50 align-top">
+                                          {categoria.fields.map(fieldConfig => (
+                                            <td key={fieldConfig.key} className={`px-3 py-2 text-gray-900 border-r border-gray-300 align-top ${fieldConfig.type === 'textarea' || fieldConfig.width === 'full' ? 'whitespace-pre-wrap min-w-[260px]' : 'whitespace-nowrap'}`}>
+                                              {formatCategoriaValue(fieldConfig.key, item[fieldConfig.key])}
+                                            </td>
+                                          ))}
+                                          <td className="px-3 py-2 align-top whitespace-nowrap">
+                                            {item.origem === 'api' ? (
+                                              <span className="inline-block text-xs text-[#0369a1] bg-blue-50 px-2 py-1 rounded">API</span>
+                                            ) : (
+                                              <span className="inline-block text-xs text-gray-700 bg-gray-100 px-2 py-1 rounded">Manual</span>
+                                            )}
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
                                 </div>
                               </div>
                             );
@@ -663,9 +669,7 @@ export default function CedentePage() {
                                       const value = item[fieldConfig.key];
                                       return (
                                         <td key={fieldConfig.key} className="px-3 py-2 text-gray-900 border-r border-gray-300">
-                                          {fieldConfig.key === 'cpf' && value ? formatCpf(value) :
-                                           fieldConfig.key === 'participacao' && value ? `${value}%` :
-                                           value || '—'}
+                                          {formatCategoriaValue(fieldConfig.key, value)}
                                         </td>
                                       );
                                     })}

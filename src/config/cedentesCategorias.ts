@@ -82,7 +82,7 @@ export const categoriasCedentes: CategoriaConfig[] = [
       { key: 'estado', label: 'UF', type: 'text', placeholder: 'SP', tooltip: 'Estado (sigla de 2 letras)' },
       { key: 'observacoes', label: 'Observações', type: 'textarea', placeholder: 'Informações adicionais...', width: 'full', tooltip: 'Informações adicionais sobre esta pessoa' }
     ],
-    displayFields: ['nome', 'cpf', 'tipo_relacionamento', 'telefone']
+    displayFields: ['nome', 'cpf', 'tipo_relacionamento', 'telefone', 'email', 'endereco', 'cidade', 'estado', 'observacoes']
   },
   {
     id: 'empresas_ligadas',
@@ -99,7 +99,7 @@ export const categoriasCedentes: CategoriaConfig[] = [
       { key: 'participacao', label: 'Part.%', type: 'number', tooltip: 'Percentual de participação (0-100)' },
       { key: 'observacoes', label: 'Obs', type: 'text', width: 'half', tooltip: 'Observações sobre o relacionamento' }
     ],
-    displayFields: ['razao_social', 'cnpj_relacionado', 'tipo_relacionamento']
+    displayFields: ['razao_social', 'cnpj_relacionado', 'tipo_relacionamento', 'participacao', 'observacoes']
   },
   {
     id: 'qsa',
@@ -115,7 +115,7 @@ export const categoriasCedentes: CategoriaConfig[] = [
       { key: 'data_entrada', label: 'Data Entrada', type: 'date', tooltip: 'Data de entrada na sociedade' },
       { key: 'observacoes', label: 'OBS (Detalhes, endereços, telefones, processos, etc.)', type: 'textarea', placeholder: 'Informações completas desta pessoa...', width: 'full', tooltip: 'Informações adicionais: endereços, telefones, processos judiciais, etc.' }
     ],
-    displayFields: ['nome', 'cpf', 'qualificacao', 'participacao'],
+    displayFields: ['nome', 'cpf', 'qualificacao', 'participacao', 'data_entrada'],
     showDetailsButton: true
   }
   // Para adicionar uma nova categoria, adicione um objeto aqui seguindo o mesmo padrão

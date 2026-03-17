@@ -1483,7 +1483,6 @@ export default function EditarCedentePage() {
                             displayFields={categoria.displayFields}
                             showDetailsButton={categoria.showDetailsButton}
                             isLoading={loadingCategorias[categoria.id]}
-                            onOpenDetails={categoria.id === 'pessoas_ligadas' ? openQsaDetails : undefined}
                             readOnly={!isEditMode}
                           />
                         </div>
