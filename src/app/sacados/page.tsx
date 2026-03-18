@@ -14,12 +14,21 @@ import PageHeader from '@/components/ui/PageHeader';
 
 function extractUF(endereco: string | null): string {
   if (!endereco) return '';
-  // Tenta encontrar sigla de UF (2 letras maiúsculas) no endereço
   const match = endereco.match(/\b([A-Z]{2})\b(?=[^A-Z]*\d{5}[-]?\d{3}[^\w]|[^A-Z]*$)/);
   if (match) return match[1];
-  // Fallback: última ocorrência de 2 letras maiúsculas
   const all = endereco.match(/\b[A-Z]{2}\b/g);
   return all ? all[all.length - 1] : '';
+}
+
+function extractCidade(endereco: string | null): string {
+  if (!endereco) return '';
+  // Formato: "..., Bairro, Cidade, UF, CEP" — pega o item antes da sigla UF
+  const parts = endereco.split(',').map(p => p.trim());
+  const uf = extractUF(endereco);
+  if (!uf) return '';
+  const ufIdx = parts.findIndex(p => p === uf || p.startsWith(uf + ' '));
+  if (ufIdx > 0) return parts[ufIdx - 1];
+  return '';
 }
 
 type Sacado = {
@@ -55,6 +64,8 @@ export default function SacadosPage() {
   const [showHelp, setShowHelp] = useState(false);
   const [sortBy, setSortBy] = useState<'nome_fantasia' | 'razao_social' | 'cnpj' | 'situacao' | 'porte'>('nome_fantasia');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [filterUF, setFilterUF] = useState<string>('all');
+  const [filterCidade, setFilterCidade] = useState<string>('all');
 
   useEffect(() => {
     load();
@@ -104,10 +115,29 @@ export default function SacadosPage() {
     setLoading(false);
   }
 
+  const ufsDisponiveis = useMemo(() => {
+    const set = new Set<string>();
+    items.forEach(s => { const uf = extractUF(s.endereco_receita); if (uf) set.add(uf); });
+    return Array.from(set).sort();
+  }, [items]);
+
+  const cidadesDisponiveis = useMemo(() => {
+    const set = new Set<string>();
+    items.forEach(s => {
+      if (filterUF !== 'all' && extractUF(s.endereco_receita) !== filterUF) return;
+      const cidade = extractCidade(s.endereco_receita);
+      if (cidade) set.add(cidade);
+    });
+    return Array.from(set).sort();
+  }, [items, filterUF]);
+
   const filtered = useMemo(() => {
+    let result = items;
+    if (filterUF !== 'all') result = result.filter(s => extractUF(s.endereco_receita) === filterUF);
+    if (filterCidade !== 'all') result = result.filter(s => extractCidade(s.endereco_receita) === filterCidade);
     const t = q.trim().toLowerCase();
-    if (!t) return items;
-    return items.filter(s => {
+    if (!t) return result;
+    return result.filter(s => {
       const cedenteNome = s.cedente?.nome?.toLowerCase() ?? '';
       const cedenteRazao = s.cedente?.razao_social?.toLowerCase() ?? '';
       return [
@@ -115,10 +145,9 @@ export default function SacadosPage() {
         s.endereco_receita ?? '', s.telefone_receita ?? '', s.email_receita ?? '',
         s.situacao ?? '', s.atividade_principal_descricao ?? '', s.porte ?? '',
         s.natureza_juridica ?? '', cedenteNome, cedenteRazao
-      ]
-        .some(v => v.toLowerCase().includes(t));
+      ].some(v => v.toLowerCase().includes(t));
     });
-  }, [items, q]);
+  }, [items, q, filterUF, filterCidade]);
 
   const sorted = useMemo(() => {
     const sortedItems = [...filtered];
@@ -214,9 +243,9 @@ export default function SacadosPage() {
         {/* Toolbar */}
         <div className="bg-white border border-gray-300 p-4">
           <div className="flex flex-col lg:flex-row gap-4 lg:items-center lg:justify-between">
-            {/* Busca */}
-            <div className="flex flex-col sm:flex-row gap-3 flex-1">
-              <div className="relative flex-1">
+            {/* Busca e filtros */}
+            <div className="flex flex-col sm:flex-row gap-3 flex-1 flex-wrap">
+              <div className="relative flex-1 min-w-[180px]">
                 <Input
                   placeholder="Buscar por nome, CNPJ, cedente..."
                   value={q}
@@ -224,6 +253,26 @@ export default function SacadosPage() {
                   className="w-full"
                 />
               </div>
+              <select
+                value={filterUF}
+                onChange={(e) => { setFilterUF(e.target.value); setFilterCidade('all'); }}
+                className="px-3 py-2 border border-gray-300 text-sm text-[#0369a1] bg-white hover:bg-gray-50"
+              >
+                <option value="all">Todas as UFs</option>
+                {ufsDisponiveis.map(uf => (
+                  <option key={uf} value={uf}>{uf}</option>
+                ))}
+              </select>
+              <select
+                value={filterCidade}
+                onChange={(e) => setFilterCidade(e.target.value)}
+                className="px-3 py-2 border border-gray-300 text-sm text-[#0369a1] bg-white hover:bg-gray-50"
+              >
+                <option value="all">Todas as cidades</option>
+                {cidadesDisponiveis.map(c => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
             </div>
 
             {/* Botões de ação */}
@@ -276,11 +325,11 @@ export default function SacadosPage() {
           <div className="mt-4 pt-4 border-t border-gray-300 flex items-center justify-between text-sm">
             <span className="text-[#64748b]">
               Exibindo <strong className="text-[#0369a1]">{sorted.length}</strong> de <strong className="text-[#0369a1]">{items.length}</strong> sacados
-              {q && <span> (filtrado)</span>}
+              {(q || filterUF !== 'all' || filterCidade !== 'all') && <span> (filtrado)</span>}
             </span>
-            {q && (
-              <Button variant="secondary" onClick={() => setQ('')} size="sm">
-                Limpar busca
+            {(q || filterUF !== 'all' || filterCidade !== 'all') && (
+              <Button variant="secondary" onClick={() => { setQ(''); setFilterUF('all'); setFilterCidade('all'); }} size="sm">
+                Limpar filtros
               </Button>
             )}
           </div>
@@ -321,6 +370,7 @@ export default function SacadosPage() {
                       )}
                     </th>
                     <th className="px-4 py-2 text-center text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Cedente</th>
+                    <th className="px-4 py-2 text-center text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Cidade</th>
                     <th className="px-4 py-2 text-center text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 w-16">UF</th>
                     <th 
                       className="px-4 py-2 text-center text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 cursor-pointer select-none hover:bg-gray-200"
@@ -346,7 +396,7 @@ export default function SacadosPage() {
                 <tbody>
                   {sorted.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="p-8 text-center text-gray-600 border-b border-gray-300">
+                      <td colSpan={9} className="p-8 text-center text-gray-600 border-b border-gray-300">
                         <EmptyState title="Nenhum sacado encontrado." />
                       </td>
                     </tr>
@@ -366,6 +416,9 @@ export default function SacadosPage() {
                         ) : (
                           <span className="text-sm text-gray-500">—</span>
                         )}
+                      </td>
+                      <td className="px-4 py-2 text-sm text-gray-600 text-center border-r border-gray-300">
+                        {extractCidade(s.endereco_receita) || '—'}
                       </td>
                       <td className="px-4 py-2 text-sm text-gray-700 font-semibold text-center border-r border-gray-300">
                         {extractUF(s.endereco_receita) || '—'}

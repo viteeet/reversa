@@ -15,11 +15,20 @@ import EmptyState from '@/components/ui/EmptyState';
 
 function extractUF(endereco: string | null): string {
   if (!endereco) return '';
-  // Tenta encontrar sigla de UF (2 letras maiúsculas) antes do CEP ou ao final
   const match = endereco.match(/\b([A-Z]{2})\b(?=[^A-Z]*\d{5}[-]?\d{3}[^\w]|[^A-Z]*$)/);
   if (match) return match[1];
   const all = endereco.match(/\b[A-Z]{2}\b/g);
   return all ? all[all.length - 1] : '';
+}
+
+function extractCidade(endereco: string | null): string {
+  if (!endereco) return '';
+  const parts = endereco.split(',').map(p => p.trim());
+  const uf = extractUF(endereco);
+  if (!uf) return '';
+  const ufIdx = parts.findIndex(p => p === uf || p.startsWith(uf + ' '));
+  if (ufIdx > 0) return parts[ufIdx - 1];
+  return '';
 }
 
 const ESTEIRA_OPTIONS = [
@@ -84,6 +93,8 @@ export default function CedentesPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('table');
   const [filterSituacao, setFilterSituacao] = useState<string>('all');
   const [filterEsteira, setFilterEsteira] = useState<string>('all');
+  const [filterUF, setFilterUF] = useState<string>('all');
+  const [filterCidade, setFilterCidade] = useState<string>('all');
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -247,6 +258,22 @@ export default function CedentesPage() {
     await load();
   }
 
+  const ufsDisponiveis = useMemo(() => {
+    const set = new Set<string>();
+    items.forEach(c => { const uf = extractUF(c.endereco); if (uf) set.add(uf); });
+    return Array.from(set).sort();
+  }, [items]);
+
+  const cidadesDisponiveis = useMemo(() => {
+    const set = new Set<string>();
+    items.forEach(c => {
+      if (filterUF !== 'all' && extractUF(c.endereco) !== filterUF) return;
+      const cidade = extractCidade(c.endereco);
+      if (cidade) set.add(cidade);
+    });
+    return Array.from(set).sort();
+  }, [items, filterUF]);
+
   const filtered = useMemo(() => {
     let result = items;
     
@@ -265,6 +292,9 @@ export default function CedentesPage() {
         result = result.filter(i => i.esteira === filterEsteira);
       }
     }
+
+    if (filterUF !== 'all') result = result.filter(i => extractUF(i.endereco) === filterUF);
+    if (filterCidade !== 'all') result = result.filter(i => extractCidade(i.endereco) === filterCidade);
     
     const t = q.trim().toLowerCase();
     if (t) {
@@ -276,7 +306,7 @@ export default function CedentesPage() {
     }
     
     return result;
-  }, [items, q, filterSituacao, filterEsteira]);
+  }, [items, q, filterSituacao, filterEsteira, filterUF, filterCidade]);
 
   const valorTotalFiltrado = useMemo(() => {
     return filtered.reduce((sum, c) => sum + (c.valor_total_demandas || 0), 0);
@@ -312,7 +342,7 @@ export default function CedentesPage() {
     setPage(1);
   }
 
-  useEffect(() => { setPage(1); }, [q, filterSituacao, filterEsteira]);
+  useEffect(() => { setPage(1); }, [q, filterSituacao, filterEsteira, filterUF, filterCidade]);
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -356,6 +386,26 @@ export default function CedentesPage() {
                   <option key={e.value} value={e.value}>{e.label}</option>
                 ))}
               </select>
+              <select
+                value={filterUF}
+                onChange={(e) => { setFilterUF(e.target.value); setFilterCidade('all'); }}
+                className="px-3 py-2 border border-gray-300 text-sm text-[#0369a1] bg-white hover:bg-gray-50"
+              >
+                <option value="all">Todas as UFs</option>
+                {ufsDisponiveis.map(uf => (
+                  <option key={uf} value={uf}>{uf}</option>
+                ))}
+              </select>
+              <select
+                value={filterCidade}
+                onChange={(e) => setFilterCidade(e.target.value)}
+                className="px-3 py-2 border border-gray-300 text-sm text-[#0369a1] bg-white hover:bg-gray-50"
+              >
+                <option value="all">Todas as cidades</option>
+                {cidadesDisponiveis.map(c => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
             </div>
 
             {/* Botões de ação */}
@@ -386,8 +436,8 @@ export default function CedentesPage() {
                 </span>
               )}
             </div>
-            {(q || filterEsteira !== 'all') && (
-              <Button variant="secondary" onClick={() => { setQ(''); setFilterEsteira('all'); setFilterSituacao('all'); }} className="text-xs">
+            {(q || filterEsteira !== 'all' || filterUF !== 'all' || filterCidade !== 'all') && (
+              <Button variant="secondary" onClick={() => { setQ(''); setFilterEsteira('all'); setFilterSituacao('all'); setFilterUF('all'); setFilterCidade('all'); }} className="text-xs">
                 Limpar filtros
               </Button>
             )}
@@ -582,6 +632,7 @@ export default function CedentesPage() {
                       </th>
                     ))}
                     <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 w-16">UF</th>
+                    <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Cidade</th>
                     <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 cursor-pointer select-none hover:bg-gray-200" onClick={() => onSort('situacao')}>
                       Status
                       {sortBy === 'situacao' && (
@@ -595,7 +646,7 @@ export default function CedentesPage() {
                 </thead>
                 <tbody>
                   {paginated.length === 0 ? (
-                    <tr><td colSpan={8} className="p-8 text-center text-gray-600 border-b border-gray-300">
+                    <tr><td colSpan={9} className="p-8 text-center text-gray-600 border-b border-gray-300">
                       <EmptyState title="Nenhum cedente encontrado." />
                     </td></tr>
                   ) : paginated.map(c => {
@@ -607,6 +658,9 @@ export default function CedentesPage() {
                       <td className="px-4 py-2 text-sm text-gray-600 font-mono border-r border-gray-300">{c.cnpj ? formatCpfCnpj(c.cnpj) : '—'}</td>
                       <td className="px-4 py-2 text-sm text-gray-700 font-semibold border-r border-gray-300">
                         {extractUF(c.endereco) || '—'}
+                      </td>
+                      <td className="px-4 py-2 text-sm text-gray-600 border-r border-gray-300">
+                        {extractCidade(c.endereco) || '—'}
                       </td>
                       <td className="px-4 py-2 border-r border-gray-300">
                         {c.situacao && (
