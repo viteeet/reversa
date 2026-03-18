@@ -12,6 +12,16 @@ import Badge from '@/components/ui/Badge';
 import EmptyState from '@/components/ui/EmptyState';
 import PageHeader from '@/components/ui/PageHeader';
 
+function extractUF(endereco: string | null): string {
+  if (!endereco) return '';
+  // Tenta encontrar sigla de UF (2 letras maiúsculas) no endereço
+  const match = endereco.match(/\b([A-Z]{2})\b(?=[^A-Z]*\d{5}[-]?\d{3}[^\w]|[^A-Z]*$)/);
+  if (match) return match[1];
+  // Fallback: última ocorrência de 2 letras maiúsculas
+  const all = endereco.match(/\b[A-Z]{2}\b/g);
+  return all ? all[all.length - 1] : '';
+}
+
 type Sacado = {
   cnpj: string;
   razao_social: string;
@@ -311,6 +321,7 @@ export default function SacadosPage() {
                       )}
                     </th>
                     <th className="px-4 py-2 text-center text-xs font-semibold text-gray-700 uppercase border-r border-gray-300">Cedente</th>
+                    <th className="px-4 py-2 text-center text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 w-16">UF</th>
                     <th 
                       className="px-4 py-2 text-center text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 cursor-pointer select-none hover:bg-gray-200"
                       onClick={() => onSort('situacao')}
@@ -335,7 +346,7 @@ export default function SacadosPage() {
                 <tbody>
                   {sorted.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="p-8 text-center text-gray-600 border-b border-gray-300">
+                      <td colSpan={8} className="p-8 text-center text-gray-600 border-b border-gray-300">
                         <EmptyState title="Nenhum sacado encontrado." />
                       </td>
                     </tr>
@@ -355,6 +366,9 @@ export default function SacadosPage() {
                         ) : (
                           <span className="text-sm text-gray-500">—</span>
                         )}
+                      </td>
+                      <td className="px-4 py-2 text-sm text-gray-700 font-semibold text-center border-r border-gray-300">
+                        {extractUF(s.endereco_receita) || '—'}
                       </td>
                       <td className="px-4 py-2 text-center border-r border-gray-300">
                         {s.situacao && (

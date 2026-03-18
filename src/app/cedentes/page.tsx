@@ -13,6 +13,15 @@ import Badge from '@/components/ui/Badge';
 import PageHeader from '@/components/ui/PageHeader';
 import EmptyState from '@/components/ui/EmptyState';
 
+function extractUF(endereco: string | null): string {
+  if (!endereco) return '';
+  // Tenta encontrar sigla de UF (2 letras maiúsculas) antes do CEP ou ao final
+  const match = endereco.match(/\b([A-Z]{2})\b(?=[^A-Z]*\d{5}[-]?\d{3}[^\w]|[^A-Z]*$)/);
+  if (match) return match[1];
+  const all = endereco.match(/\b[A-Z]{2}\b/g);
+  return all ? all[all.length - 1] : '';
+}
+
 const ESTEIRA_OPTIONS = [
   { value: 'em_cobranca', label: 'Em Cobrança', color: 'bg-blue-100 text-blue-800 border-blue-300' },
   { value: 'em_negociacao', label: 'Em Negociação', color: 'bg-yellow-100 text-yellow-800 border-yellow-300' },
@@ -572,6 +581,7 @@ export default function CedentesPage() {
                         )}
                       </th>
                     ))}
+                    <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 w-16">UF</th>
                     <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 cursor-pointer select-none hover:bg-gray-200" onClick={() => onSort('situacao')}>
                       Status
                       {sortBy === 'situacao' && (
@@ -585,7 +595,7 @@ export default function CedentesPage() {
                 </thead>
                 <tbody>
                   {paginated.length === 0 ? (
-                    <tr><td colSpan={7} className="p-8 text-center text-gray-600 border-b border-gray-300">
+                    <tr><td colSpan={8} className="p-8 text-center text-gray-600 border-b border-gray-300">
                       <EmptyState title="Nenhum cedente encontrado." />
                     </td></tr>
                   ) : paginated.map(c => {
@@ -595,6 +605,9 @@ export default function CedentesPage() {
                       <td className="px-4 py-2 text-sm text-gray-900 font-medium border-r border-gray-300">{c.nome}</td>
                       <td className="px-4 py-2 text-sm text-gray-600 border-r border-gray-300">{c.razao_social ?? '—'}</td>
                       <td className="px-4 py-2 text-sm text-gray-600 font-mono border-r border-gray-300">{c.cnpj ? formatCpfCnpj(c.cnpj) : '—'}</td>
+                      <td className="px-4 py-2 text-sm text-gray-700 font-semibold border-r border-gray-300">
+                        {extractUF(c.endereco) || '—'}
+                      </td>
                       <td className="px-4 py-2 border-r border-gray-300">
                         {c.situacao && (
                           <Badge variant={c.situacao === 'ATIVA' ? 'success' : 'neutral'} size="sm">
