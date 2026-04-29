@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__claude_ai_Supabase__list_projects",
+      "mcp__claude_ai_Supabase__get_project_url",
+      "mcp__claude_ai_Supabase__get_publishable_keys",
+      "Bash(curl -s -X POST https://febwxvqdeangjnadnfsu.supabase.co/auth/v1/recover -H 'apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZlYnd4dnFkZWFuZ2puYWRuZnN1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTczNDk0MDQsImV4cCI6MjA3MjkyNTQwNH0.zA_i6Fe4Pm1EnU_Kjjc6O_ZCnQCj-jR2qu6YC6m3WQk' -H 'Content-Type: application/json' -d '{\"email\":\"cleber@reversacapital.com.br\",\"redirectTo\":\"http://localhost:3000/auth/reset-password\"}')"
+    ]
+  }
+}
